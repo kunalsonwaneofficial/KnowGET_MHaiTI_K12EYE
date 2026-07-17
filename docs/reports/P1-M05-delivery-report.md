@@ -2,13 +2,13 @@
 
 **Enterprise Shared Services Platform (ESSP)** · Phase 1 (Platform Core Engineering)
 
-|                |                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P1-M05 — Enterprise Shared Services Platform                                                                       |
-| **Status**     | 🟡 Engineered; in-sandbox gates green. On `feat/p1-m05-shared-services` pending green CI (Prisma-gated API build). |
-| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data Platform), P1-M04 (Security Foundation)                                      |
-| **Date**       | 17 July 2026                                                                                                       |
-| **Next**       | P1-M06 — Observability & DevOps Platform                                                                           |
+|                |                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P1-M05 — Enterprise Shared Services Platform                                                               |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/typecheck/tests, security audit, E2E). Merged to `main`. |
+| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data Platform), P1-M04 (Security Foundation)                              |
+| **Date**       | 17 July 2026                                                                                               |
+| **Next**       | P1-M06 — Observability & DevOps Platform                                                                   |
 
 ---
 
