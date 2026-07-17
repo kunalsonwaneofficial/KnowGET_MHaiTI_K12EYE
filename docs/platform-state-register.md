@@ -19,6 +19,17 @@ Updated at the close of every engineering contract.
 | P1-M06 Observability & DevOps Platform               | ✅ Complete | Metrics (+Prometheus), tracing spans, reliability, alerting, diagnostics + API ObservabilityModule (/metrics, /diagnostics, request interceptor). Resolves TD-10/TD-15. CI green. Live on `main`. |
 | P1-M07 Platform Certification & Production Readiness | ✅ Complete | Phase-1 certified; performance baseline captured; baseline frozen and tagged `v0.1.0`. See `docs/certification/P1-Phase1-Certification-Report.md`.                                                |
 
+## Phase 2 — Enterprise Domain Engineering
+
+Domains build on the certified `v0.1.0` core following the domain architecture
+pattern (ADR-0010). Program A — Identity & Organization:
+
+| Contract                           | Status         | Notes                                                                                                                            |
+| ---------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| P2-D01-M01 Organization Foundation | 🟡 CI-pending  | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. In-sandbox green; RLS verified on live PostgreSQL. |
+| P2-D01-M02 Person Platform         | ⬜ Not started | Next milestone.                                                                                                                  |
+| P2-D01-M03 … M07                   | ⬜ Not started | Identity, Membership, Authorization, Relationship, Domain certification.                                                         |
+
 ## Reusable capabilities available now
 
 | Package                   | Capability                                                                                                  |
@@ -58,6 +69,7 @@ Updated at the close of every engineering contract.
 | `@knowget/kernel`         | Clock/Id services, lifecycle, runtime events, kernel assembly                                               |
 | `@knowget/persistence`    | Repository, query/pagination, specification, unit-of-work, audit, validation                                |
 | `@knowget/database`       | Prisma platform, generic repository, transactions, RLS multi-tenancy, auditing, DB health                   |
+| `@knowget/organization`   | Organization aggregate, hierarchy ops, lifecycle state machine, events, repository port (P2-D01-M01)        |
 
 ## Data platform (P1-M03)
 
