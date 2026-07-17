@@ -2,7 +2,7 @@
   "name": "@knowget/database",
   "version": "0.1.0",
   "private": true,
-  "description": "Enterprise Data Platform foundation for KnowGET MHaiTI (fully implemented in P1-M03).",
+  "description": "Enterprise Data Platform — Prisma infrastructure, reusable repositories, transactions, multi-tenancy (RLS), auditing, health.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -12,22 +12,36 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "prisma"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc --noEmit -p tsconfig.json",
     "lint": "eslint src",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist .turbo coverage"
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "tsx src/seed.ts",
+    "clean": "rm -rf dist .turbo coverage generated"
   },
   "dependencies": {
-    "@knowget/types": "workspace:*"
+    "@knowget/context": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/health": "workspace:*",
+    "@knowget/persistence": "workspace:*",
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@prisma/client": "^6.19.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",
     "eslint": "^9.17.0",
+    "prisma": "^6.19.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

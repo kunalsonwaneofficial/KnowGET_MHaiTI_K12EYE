@@ -1,4 +1,5 @@
 import { StaticFeatureFlagService } from "@knowget/configuration";
+import { PrismaService } from "@knowget/database";
 import { createKernel } from "@knowget/kernel";
 import { Global, Module } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
@@ -6,7 +7,7 @@ import { loadAppConfig } from "./config/app-config";
 import { AllExceptionsFilter } from "./errors/all-exceptions.filter";
 import { HealthController } from "./health/health.controller";
 import { KernelLifecycleService } from "./runtime/kernel-lifecycle.service";
-import { APP_CONFIG, FEATURE_FLAGS, KERNEL } from "./tokens";
+import { APP_CONFIG, DATABASE, FEATURE_FLAGS, KERNEL } from "./tokens";
 
 /**
  * The platform runtime module. Provides the single {@link Kernel} instance and
@@ -22,9 +23,10 @@ import { APP_CONFIG, FEATURE_FLAGS, KERNEL } from "./tokens";
     { provide: KERNEL, useFactory: () => createKernel() },
     { provide: APP_CONFIG, useFactory: () => loadAppConfig() },
     { provide: FEATURE_FLAGS, useFactory: () => new StaticFeatureFlagService() },
+    { provide: DATABASE, useFactory: () => new PrismaService() },
     KernelLifecycleService,
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
-  exports: [KERNEL, APP_CONFIG, FEATURE_FLAGS],
+  exports: [KERNEL, APP_CONFIG, FEATURE_FLAGS, DATABASE],
 })
 export class PlatformModule {}

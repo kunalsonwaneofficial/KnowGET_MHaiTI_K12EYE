@@ -38,9 +38,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@swc/core",
+      "@prisma/client",
+      "@prisma/engines",
       "esbuild",
-      "sharp"
+      "prisma",
+      "sharp",
+      "@swc/core"
     ]
   }
 }

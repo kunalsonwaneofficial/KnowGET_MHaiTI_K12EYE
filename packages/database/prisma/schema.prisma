@@ -1,0 +1,49 @@
+// KnowGET MHaiTI — Enterprise Data Platform (P1-M03).
+// Prisma is an infrastructure implementation detail; domains depend on the
+// @knowget/persistence abstractions, never on this client directly.
+// Only PLATFORM-level tables live here — no business (Student/Finance/HR) schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Platform audit trail (platform auditing — not business audit reporting).
+model AuditLog {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String?  @map("tenant_id") @db.Uuid
+  action        String
+  entityType    String   @map("entity_type")
+  entityId      String?  @map("entity_id")
+  actorId       String?  @map("actor_id") @db.Uuid
+  correlationId String?  @map("correlation_id")
+  data          Json?
+  occurredAt    DateTime @default(now()) @map("occurred_at")
+
+  @@index([tenantId])
+  @@index([entityType, entityId])
+  @@map("audit_log")
+}
+
+/// Platform data-platform verification fixture — exercises the reusable
+/// repository, transactions, soft delete and tenant (RLS) isolation. It is NOT
+/// a business entity; it is the concrete surface the data platform is tested on.
+model DataProbe {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  name          String
+  value         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdBy     String?   @map("created_by") @db.Uuid
+  updatedBy     String?   @map("updated_by") @db.Uuid
+  correlationId String?   @map("correlation_id")
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@map("data_probe")
+}
