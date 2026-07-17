@@ -16,6 +16,7 @@
   "dependencies": {
     "@knowget/configuration": "workspace:*",
     "@knowget/context": "workspace:*",
+    "@knowget/database": "workspace:*",
     "@knowget/exceptions": "workspace:*",
     "@knowget/health": "workspace:*",
     "@knowget/kernel": "workspace:*",

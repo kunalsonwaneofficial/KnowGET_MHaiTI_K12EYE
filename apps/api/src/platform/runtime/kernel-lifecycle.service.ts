@@ -1,3 +1,4 @@
+import { DatabaseHealthIndicator, type PrismaService } from "@knowget/database";
 import type { Kernel } from "@knowget/kernel";
 import {
   Inject,
@@ -5,17 +6,20 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from "@nestjs/common";
-import { KERNEL } from "../tokens";
+import { DATABASE, KERNEL } from "../tokens";
 
 /**
  * Bridges the NestJS application lifecycle to the platform {@link Kernel}: it
- * registers a self health indicator, starts the kernel (running startup hooks
- * and emitting ApplicationStarted) on bootstrap, and stops it (running shutdown
- * hooks and emitting ApplicationStopped) on graceful shutdown.
+ * registers the self and database health indicators, starts the kernel (running
+ * startup hooks and emitting ApplicationStarted) on bootstrap, and stops the
+ * kernel and disconnects the database on graceful shutdown.
  */
 @Injectable()
 export class KernelLifecycleService implements OnApplicationBootstrap, OnApplicationShutdown {
-  constructor(@Inject(KERNEL) private readonly kernel: Kernel) {}
+  constructor(
+    @Inject(KERNEL) private readonly kernel: Kernel,
+    @Inject(DATABASE) private readonly database: PrismaService,
+  ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     this.kernel.health.register({
@@ -23,10 +27,12 @@ export class KernelLifecycleService implements OnApplicationBootstrap, OnApplica
       kinds: ["liveness", "readiness", "startup"],
       check: () => ({ status: "up" }),
     });
+    this.kernel.health.register(new DatabaseHealthIndicator(this.database));
     await this.kernel.start();
   }
 
   async onApplicationShutdown(signal?: string): Promise<void> {
     await this.kernel.stop(signal);
+    await this.database.disconnect();
   }
 }
