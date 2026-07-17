@@ -7,7 +7,7 @@ Updated at the close of every engineering contract.
 
 | Contract                                             | Status         | Notes                                                                  |
 | ---------------------------------------------------- | -------------- | ---------------------------------------------------------------------- |
-| P1-M01 Repository & Workspace Foundation             | ✅ In review   | Monorepo, 12 packages, 4 apps, CI, Docker, hooks. Awaiting merge/push. |
+| P1-M01 Repository & Workspace Foundation             | ✅ In review   | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Awaiting merge/push. |
 | P1-M02 Platform Runtime Kernel                       | ⬜ Not started | Next milestone.                                                        |
 | P1-M03 Enterprise Data Platform                      | ⬜ Not started |                                                                        |
 | P1-M04 Security Foundation                           | ⬜ Not started |                                                                        |
