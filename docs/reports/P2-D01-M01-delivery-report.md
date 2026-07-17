@@ -2,13 +2,13 @@
 
 **Organization Foundation** · Phase 2 (Enterprise Domain Engineering) · Program A (Identity & Organization)
 
-|                |                                                                                                                              |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D01-M01 — Organization Foundation                                                                                         |
-| **Status**     | 🟡 Engineered; in-sandbox gates green + RLS verified on live PostgreSQL. On `feat/p2-d01-m01-organization` pending green CI. |
-| **Depends on** | Phase 1 baseline (`v0.1.0`) — kernel, data platform (RLS), security, shared services, observability                          |
-| **Date**       | 17 July 2026                                                                                                                 |
-| **Next**       | P2-D01-M02 — Person Platform                                                                                                 |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D01-M01 — Organization Foundation                                                                                               |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
+| **Depends on** | Phase 1 baseline (`v0.1.0`) — kernel, data platform (RLS), security, shared services, observability                                |
+| **Date**       | 17 July 2026                                                                                                                       |
+| **Next**       | P2-D01-M02 — Person Platform                                                                                                       |
 
 ---
 
