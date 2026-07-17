@@ -4,6 +4,10 @@ Deliberately-deferred capabilities, each behind a stable interface, with the
 contract that will resolve them. Reviewed and burned down at every certification
 milestone.
 
+> **Phase-1 certification review (P1-M07):** 5 items resolved in Phase 1
+> (TD-02/03/04/10/15); 14 remain, **all interface-protected and none blocking
+> Phase 2**. No `TODO`/`FIXME` markers exist in the codebase.
+
 | #     | Item                                                                                                                          | Interface protecting callers                                                         | Resolved by                                                        |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | TD-01 | Event delivery is in-process; a transactional outbox now exists but its store is in-memory and there is no streaming backbone | `EventBus` / `OutboxStore` (`@knowget/events`)                                       | P3-D02 (streaming) + Phase-2 (PG outbox)                           |
