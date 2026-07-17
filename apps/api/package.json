@@ -36,6 +36,7 @@
     "@knowget/media": "workspace:*",
     "@knowget/metrics": "workspace:*",
     "@knowget/notifications": "workspace:*",
+    "@knowget/organization": "workspace:*",
     "@knowget/search": "workspace:*",
     "@knowget/security": "workspace:*",
     "@knowget/shared": "workspace:*",

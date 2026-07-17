@@ -9,3 +9,4 @@ export const BLOB_STORE = Symbol("BLOB_STORE");
 export const TRANSLATOR = Symbol("TRANSLATOR");
 export const OUTBOX = Symbol("OUTBOX");
 export const MEDIA_PROCESSOR = Symbol("MEDIA_PROCESSOR");
+export const EVENT_BUS = Symbol("EVENT_BUS");

@@ -1,5 +1,5 @@
 import { InMemoryCache } from "@knowget/cache";
-import { InMemoryOutbox } from "@knowget/events";
+import { InMemoryEventBus, InMemoryOutbox } from "@knowget/events";
 import { InMemoryBlobStore } from "@knowget/files";
 import { Translator } from "@knowget/i18n";
 import { InMemoryJobQueue, Scheduler } from "@knowget/jobs";
@@ -11,6 +11,7 @@ import { ServicesController } from "./services.controller";
 import {
   BLOB_STORE,
   CACHE,
+  EVENT_BUS,
   IN_APP_INBOX,
   JOB_QUEUE,
   MEDIA_PROCESSOR,
@@ -38,6 +39,7 @@ const providers: Provider[] = [
   { provide: BLOB_STORE, useFactory: () => new InMemoryBlobStore() },
   { provide: TRANSLATOR, useFactory: () => new Translator({ defaultLocale: "en" }) },
   { provide: OUTBOX, useFactory: () => new InMemoryOutbox() },
+  { provide: EVENT_BUS, useFactory: () => new InMemoryEventBus() },
   { provide: MEDIA_PROCESSOR, useFactory: () => new PassthroughMediaProcessor() },
   inAppInboxProvider,
   {
@@ -66,6 +68,7 @@ const providers: Provider[] = [
     BLOB_STORE,
     TRANSLATOR,
     OUTBOX,
+    EVENT_BUS,
     MEDIA_PROCESSOR,
     IN_APP_INBOX,
     NOTIFICATION_DISPATCHER,
