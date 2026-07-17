@@ -2,13 +2,13 @@
 
 **Observability & DevOps Platform (EODP)** · Phase 1 (Platform Core Engineering)
 
-|                |                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P1-M06 — Observability & DevOps Platform                                                                         |
-| **Status**     | 🟡 Engineered; in-sandbox gates green. On `feat/p1-m06-observability` pending green CI (Prisma-gated API build). |
-| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data), P1-M04 (Security), P1-M05 (Shared Services)                              |
-| **Date**       | 17 July 2026                                                                                                     |
-| **Next**       | P1-M07 — Platform Certification & Production Readiness (Phase-1 exit)                                            |
+|                |                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P1-M06 — Observability & DevOps Platform                                                                   |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/typecheck/tests, security audit, E2E). Merged to `main`. |
+| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data), P1-M04 (Security), P1-M05 (Shared Services)                        |
+| **Date**       | 17 July 2026                                                                                               |
+| **Next**       | P1-M07 — Platform Certification & Production Readiness (Phase-1 exit)                                      |
 
 ---
 
@@ -78,9 +78,8 @@ phase rather than stubbed here.
 
 Resolved: **TD-10** (tracing is now spans, not correlation-id only) and **TD-15**
 (Prisma musl target for Alpine). No new debt introduced; container slimming
-(TD-06) and E2E-local (TD-07) remain as previously tracked, and backup/recovery
-
-- dashboard UI are noted as operations-phase work.
+(TD-06) and E2E-local (TD-07) remain as previously tracked, while backup/recovery
+and a dashboard UI are noted as operations-phase work.
 
 ## 7. Recommendation — proceed to P1-M07
 
