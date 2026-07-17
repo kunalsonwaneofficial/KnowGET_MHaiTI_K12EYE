@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # `main` for the release gate; milestone branches so every push is verified
+    # before it is merged (the pre-merge gate — see P1-M03/P1-M04 delivery notes).
+    branches: [main, "feat/**"]
   pull_request:
     branches: [main]
 
