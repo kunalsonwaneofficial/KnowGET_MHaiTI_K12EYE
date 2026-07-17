@@ -93,6 +93,9 @@ importers:
       '@knowget/authorization':
         specifier: workspace:*
         version: link:../../packages/authorization
+      '@knowget/cache':
+        specifier: workspace:*
+        version: link:../../packages/cache
       '@knowget/configuration':
         specifier: workspace:*
         version: link:../../packages/configuration
@@ -102,21 +105,45 @@ importers:
       '@knowget/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@knowget/documents':
+        specifier: workspace:*
+        version: link:../../packages/documents
+      '@knowget/events':
+        specifier: workspace:*
+        version: link:../../packages/events
       '@knowget/exceptions':
         specifier: workspace:*
         version: link:../../packages/exceptions
+      '@knowget/files':
+        specifier: workspace:*
+        version: link:../../packages/files
       '@knowget/health':
         specifier: workspace:*
         version: link:../../packages/health
+      '@knowget/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@knowget/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@knowget/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@knowget/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
       '@knowget/logging':
         specifier: workspace:*
         version: link:../../packages/logging
+      '@knowget/media':
+        specifier: workspace:*
+        version: link:../../packages/media
+      '@knowget/notifications':
+        specifier: workspace:*
+        version: link:../../packages/notifications
+      '@knowget/search':
+        specifier: workspace:*
+        version: link:../../packages/search
       '@knowget/security':
         specifier: workspace:*
         version: link:../../packages/security
@@ -355,6 +382,28 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
 
+  packages/cache:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
   packages/config:
     dependencies:
       '@eslint/js':
@@ -466,6 +515,28 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
 
+  packages/documents:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
   packages/events:
     dependencies:
       '@knowget/logging':
@@ -506,7 +577,54 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
 
+  packages/files:
+    dependencies:
+      '@knowget/exceptions':
+        specifier: workspace:*
+        version: link:../exceptions
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
   packages/health:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
+  packages/i18n:
     dependencies:
       '@knowget/shared':
         specifier: workspace:*
@@ -536,6 +654,28 @@ importers:
       '@knowget/security':
         specifier: workspace:*
         version: link:../security
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
+  packages/jobs:
+    dependencies:
       '@knowget/shared':
         specifier: workspace:*
         version: link:../shared
@@ -612,6 +752,50 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
 
+  packages/media:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
+  packages/notifications:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
   packages/persistence:
     dependencies:
       '@knowget/exceptions':
@@ -639,6 +823,28 @@ importers:
 
   packages/sdk:
     dependencies:
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
+  packages/search:
+    dependencies:
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@knowget/types':
         specifier: workspace:*
         version: link:../types
@@ -780,6 +986,31 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.7(react@19.2.7)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(terser@5.49.0)
+
+  packages/workflow:
+    dependencies:
+      '@knowget/exceptions':
+        specifier: workspace:*
+        version: link:../exceptions
+      '@knowget/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@knowget/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@knowget/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.17.0
+        version: 9.39.5(jiti@2.6.1)
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

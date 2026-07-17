@@ -5,15 +5,15 @@ Updated at the close of every engineering contract.
 
 ## Phase 1 — Platform Core Engineering
 
-| Contract                                             | Status         | Notes                                                                                                                                                                              |
-| ---------------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                  |
-| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                           |
-| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                              |
-| P1-M04 Security Foundation                           | ✅ Complete    | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`. |
-| P1-M05 Enterprise Shared Services Platform           | ⬜ Not started | Next milestone.                                                                                                                                                                    |
-| P1-M06 Observability & DevOps Platform               | ⬜ Not started |                                                                                                                                                                                    |
-| P1-M07 Platform Certification & Production Readiness | ⬜ Not started |                                                                                                                                                                                    |
+| Contract                                             | Status         | Notes                                                                                                                                                                                                 |
+| ---------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                                     |
+| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                                              |
+| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                                                 |
+| P1-M04 Security Foundation                           | ✅ Complete    | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.                    |
+| P1-M05 Enterprise Shared Services Platform           | 🟡 CI-pending  | Cache, jobs/scheduler, files, search, i18n, notifications, documents, media, workflow, events outbox + API ServicesModule. In-sandbox gates green; on `feat/p1-m05-shared-services` pending green CI. |
+| P1-M06 Observability & DevOps Platform               | ⬜ Not started | Next milestone.                                                                                                                                                                                       |
+| P1-M07 Platform Certification & Production Readiness | ⬜ Not started |                                                                                                                                                                                                       |
 
 ## Reusable capabilities available now
 
@@ -23,7 +23,16 @@ Updated at the close of every engineering contract.
 | `@knowget/types`          | Branded ids, `DomainEvent`, pagination, guards                                                              |
 | `@knowget/shared`         | `Result`, id/date/text utilities, assertions, boundary branding                                             |
 | `@knowget/logging`        | Structured, level-filtered, redacting logger                                                                |
-| `@knowget/events`         | Typed, error-isolating in-process event bus                                                                 |
+| `@knowget/events`         | Typed error-isolating event bus + transactional outbox & relay (at-least-once)                              |
+| `@knowget/cache`          | TTL/LRU in-memory cache, single-flight `getOrSet`, namespacing                                              |
+| `@knowget/jobs`           | Retrying/backing-off job queue + recurring/one-shot scheduler (injectable clock)                            |
+| `@knowget/files`          | `BlobStore` (in-memory + node-fs), checksums, prefix listing, traversal-safe keys                           |
+| `@knowget/search`         | Inverted-index full-text search, TF-IDF ranking, field filters, paging                                      |
+| `@knowget/i18n`           | Message catalogs, locale fallback, interpolation, `Intl` pluralization                                      |
+| `@knowget/notifications`  | Channels (email/SMS/push/in-app), templates, dispatcher, in-app inbox                                       |
+| `@knowget/documents`      | Structured document model + HTML/Markdown/text renderers                                                    |
+| `@knowget/media`          | Media asset descriptors + rendition specs behind a `MediaProcessor` port                                    |
+| `@knowget/workflow`       | Guarded state-machine definitions + deterministic engine                                                    |
 | `@knowget/testing`        | Deterministic clock, promise flushing                                                                       |
 | `@knowget/ui`             | Tailwind `cn`, foundational `Button`                                                                        |
 | `@knowget/auth`           | Principal / permission contracts                                                                            |
@@ -66,3 +75,16 @@ implementations in Phase 2. Bootstrap secrets are required in production
 (fail-closed). The full API build is CI-verified (Prisma, TD-12); the security
 layer is additionally verified in-sandbox by an isolated type-check and an
 in-process `SecurityModule` integration spec.
+
+## Shared services (P1-M05)
+
+Twelve horizontal capabilities every Phase-2 domain consumes rather than
+rebuilds: logging (P1-M01), events (+ transactional outbox), cache, jobs &
+scheduling, files, search, i18n, notifications, documents, media, and workflow.
+Each is a stable port with a working in-memory (or node-stdlib) default;
+production/distributed backends slot in behind the same contract. Time-sensitive
+services (cache, jobs, scheduler) take an injectable clock and the job/scheduler
+run pull-based, so behaviour is deterministic. Every package is Prisma-free and
+fully verified in-sandbox; the API `ServicesModule` provides them via DI and
+exposes `/services` catalog + self-test routes, validated by an in-process
+integration spec.
