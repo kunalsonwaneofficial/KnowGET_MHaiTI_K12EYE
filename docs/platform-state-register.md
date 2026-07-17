@@ -3,17 +3,21 @@
 Authoritative record of what has been engineered, certified, and is reusable.
 Updated at the close of every engineering contract.
 
+> **Phase 1 — Platform Core is CERTIFIED and frozen at `v0.1.0` (2026-07-17).**
+> All 7 contracts merged and CI-green on `main`; Phase-2 domains build on this
+> baseline. See `docs/certification/P1-Phase1-Certification-Report.md`.
+
 ## Phase 1 — Platform Core Engineering
 
-| Contract                                             | Status         | Notes                                                                                                                                                                                             |
-| ---------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                                 |
-| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                                          |
-| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                                             |
-| P1-M04 Security Foundation                           | ✅ Complete    | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.                |
-| P1-M05 Enterprise Shared Services Platform           | ✅ Complete    | Cache, jobs/scheduler, files, search, i18n, notifications, documents, media, workflow, events outbox + API ServicesModule. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.      |
-| P1-M06 Observability & DevOps Platform               | ✅ Complete    | Metrics (+Prometheus), tracing spans, reliability, alerting, diagnostics + API ObservabilityModule (/metrics, /diagnostics, request interceptor). Resolves TD-10/TD-15. CI green. Live on `main`. |
-| P1-M07 Platform Certification & Production Readiness | ⬜ Not started | Next milestone (Phase-1 exit).                                                                                                                                                                    |
+| Contract                                             | Status      | Notes                                                                                                                                                                                             |
+| ---------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1-M01 Repository & Workspace Foundation             | ✅ Complete | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                                 |
+| P1-M02 Platform Runtime Kernel                       | ✅ Complete | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                                          |
+| P1-M03 Enterprise Data Platform                      | ✅ Complete | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                                             |
+| P1-M04 Security Foundation                           | ✅ Complete | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.                |
+| P1-M05 Enterprise Shared Services Platform           | ✅ Complete | Cache, jobs/scheduler, files, search, i18n, notifications, documents, media, workflow, events outbox + API ServicesModule. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.      |
+| P1-M06 Observability & DevOps Platform               | ✅ Complete | Metrics (+Prometheus), tracing spans, reliability, alerting, diagnostics + API ObservabilityModule (/metrics, /diagnostics, request interceptor). Resolves TD-10/TD-15. CI green. Live on `main`. |
+| P1-M07 Platform Certification & Production Readiness | ✅ Complete | Phase-1 certified; performance baseline captured; baseline frozen and tagged `v0.1.0`. See `docs/certification/P1-Phase1-Certification-Report.md`.                                                |
 
 ## Reusable capabilities available now
 
