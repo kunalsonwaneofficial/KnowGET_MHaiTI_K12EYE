@@ -5,15 +5,15 @@ Updated at the close of every engineering contract.
 
 ## Phase 1 — Platform Core Engineering
 
-| Contract                                             | Status         | Notes                                                                                                         |
-| ---------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
-| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                             |
-| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                      |
-| P1-M03 Enterprise Data Platform                      | 🟡 CI-pending  | Prisma platform, persistence, RLS multi-tenancy. DB verified via psql; Prisma-client build/integration in CI. |
-| P1-M04 Security Foundation                           | ⬜ Not started | Next milestone.                                                                                               |
-| P1-M05 Enterprise Shared Services Platform           | ⬜ Not started |                                                                                                               |
-| P1-M06 Observability & DevOps Platform               | ⬜ Not started |                                                                                                               |
-| P1-M07 Platform Certification & Production Readiness | ⬜ Not started |                                                                                                               |
+| Contract                                             | Status         | Notes                                                                                                 |
+| ---------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------- |
+| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                     |
+| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                              |
+| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`. |
+| P1-M04 Security Foundation                           | ⬜ Not started | Next milestone.                                                                                       |
+| P1-M05 Enterprise Shared Services Platform           | ⬜ Not started |                                                                                                       |
+| P1-M06 Observability & DevOps Platform               | ⬜ Not started |                                                                                                       |
+| P1-M07 Platform Certification & Production Readiness | ⬜ Not started |                                                                                                       |
 
 ## Reusable capabilities available now
 

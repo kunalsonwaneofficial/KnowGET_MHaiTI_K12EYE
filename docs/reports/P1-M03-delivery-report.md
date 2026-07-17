@@ -2,13 +2,13 @@
 
 **Enterprise Data Platform** · Phase 1 (Platform Core Engineering)
 
-|                |                                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P1-M03 — Enterprise Data Platform                                                                                                                                           |
-| **Status**     | 🟡 Implemented; DB behaviour verified against live PostgreSQL. Prisma-client build + integration tests are **CI-verified** (see §7). On branch `feat/p1-m03-data-platform`. |
-| **Depends on** | P1-M02 (Platform Runtime Kernel)                                                                                                                                            |
-| **Date**       | 17 July 2026                                                                                                                                                                |
-| **Next**       | P1-M04 — Security Foundation                                                                                                                                                |
+|                |                                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P1-M03 — Enterprise Data Platform                                                                           |
+| **Status**     | ✅ Complete — CI green (build/typecheck/test incl. Prisma integration tests, E2E, audit). Merged to `main`. |
+| **Depends on** | P1-M02 (Platform Runtime Kernel)                                                                            |
+| **Date**       | 17 July 2026                                                                                                |
+| **Next**       | P1-M04 — Security Foundation                                                                                |
 
 ---
 
