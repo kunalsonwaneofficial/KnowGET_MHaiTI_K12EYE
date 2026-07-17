@@ -2,13 +2,13 @@
 
 **Platform Certification & Production Readiness (PCPR)** · Phase 1 — exit
 
-|                |                                                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P1-M07 — Platform Certification & Production Readiness                                                               |
-| **Status**     | 🟡 Engineered; in-sandbox gates green. On `feat/p1-m07-certification` pending green CI; baseline tagged after merge. |
-| **Depends on** | P1-M01 … P1-M06 (all merged, CI-green on `main`)                                                                     |
-| **Date**       | 17 July 2026                                                                                                         |
-| **Next**       | Phase 2 — Enterprise Domain Engineering                                                                              |
+|                |                                                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P1-M07 — Platform Certification & Production Readiness                                                                 |
+| **Status**     | ✅ Complete — CI green; merged to `main`. Phase-1 baseline frozen and tagged `v0.1.0`. Phase 1 (P1-M01…M07) certified. |
+| **Depends on** | P1-M01 … P1-M06 (all merged, CI-green on `main`)                                                                       |
+| **Date**       | 17 July 2026                                                                                                           |
+| **Next**       | Phase 2 — Enterprise Domain Engineering                                                                                |
 
 ---
 
