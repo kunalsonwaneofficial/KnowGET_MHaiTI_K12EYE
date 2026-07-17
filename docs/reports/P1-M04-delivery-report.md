@@ -2,13 +2,13 @@
 
 **Security Foundation** · Phase 1 (Platform Core Engineering)
 
-|                |                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P1-M04 — Security Foundation                                                                                           |
-| **Status**     | 🟡 Engineered; in-sandbox gates green. On `feat/p1-m04-security-foundation` pending green CI (Prisma-gated API build). |
-| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data Platform)                                                                        |
-| **Date**       | 17 July 2026                                                                                                           |
-| **Next**       | P1-M05 — Enterprise Shared Services Platform                                                                           |
+|                |                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Contract**   | P1-M04 — Security Foundation                                                                                       |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/typecheck/tests, security audit, E2E). Merged to `main` (PR #2). |
+| **Depends on** | P1-M02 (Runtime Kernel), P1-M03 (Data Platform)                                                                    |
+| **Date**       | 17 July 2026                                                                                                       |
+| **Next**       | P1-M05 — Enterprise Shared Services Platform                                                                       |
 
 ---
 
