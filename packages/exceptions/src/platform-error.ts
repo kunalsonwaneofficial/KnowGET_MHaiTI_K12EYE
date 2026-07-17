@@ -5,6 +5,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "NOT_FOUND"
   | "CONFLICT"
+  | "RATE_LIMITED"
   | "UNAVAILABLE";
 
 export interface PlatformErrorOptions {
@@ -80,6 +81,13 @@ export class NotFoundError extends PlatformError {
 export class ConflictError extends PlatformError {
   constructor(message: string, options: SubclassOptions = {}) {
     super(message, { ...options, code: "CONFLICT", httpStatus: 409, isOperational: true });
+  }
+}
+
+/** The caller has exceeded a rate limit (maps to HTTP 429). */
+export class RateLimitError extends PlatformError {
+  constructor(message = "Too many requests", options: SubclassOptions = {}) {
+    super(message, { ...options, code: "RATE_LIMITED", httpStatus: 429, isOperational: true });
   }
 }
 
