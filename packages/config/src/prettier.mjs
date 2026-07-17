@@ -1,0 +1,16 @@
+/**
+ * Shared Prettier configuration for the KnowGET MHaiTI monorepo.
+ *
+ * @type {import("prettier").Config}
+ */
+export default {
+  semi: true,
+  singleQuote: false,
+  trailingComma: "all",
+  printWidth: 100,
+  tabWidth: 2,
+  useTabs: false,
+  arrowParens: "always",
+  bracketSpacing: true,
+  endOfLine: "lf",
+};
