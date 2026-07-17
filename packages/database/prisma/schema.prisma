@@ -5,6 +5,9 @@
 
 generator client {
   provider = "prisma-client-js"
+  // "native" for local/CI; the musl target lets the client run on Alpine-based
+  // container images (P1-M06 / resolves TD-15).
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {

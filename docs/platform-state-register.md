@@ -5,15 +5,15 @@ Updated at the close of every engineering contract.
 
 ## Phase 1 — Platform Core Engineering
 
-| Contract                                             | Status         | Notes                                                                                                                                                                                        |
-| ---------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                            |
-| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                                     |
-| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                                        |
-| P1-M04 Security Foundation                           | ✅ Complete    | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.           |
-| P1-M05 Enterprise Shared Services Platform           | ✅ Complete    | Cache, jobs/scheduler, files, search, i18n, notifications, documents, media, workflow, events outbox + API ServicesModule. CI green (verify incl. Prisma build, audit, E2E). Live on `main`. |
-| P1-M06 Observability & DevOps Platform               | ⬜ Not started | Next milestone.                                                                                                                                                                              |
-| P1-M07 Platform Certification & Production Readiness | ⬜ Not started |                                                                                                                                                                                              |
+| Contract                                             | Status         | Notes                                                                                                                                                                                                                    |
+| ---------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P1-M01 Repository & Workspace Foundation             | ✅ Complete    | Monorepo, 11 packages, 4 apps, CI, Docker, hooks. Live on `main`.                                                                                                                                                        |
+| P1-M02 Platform Runtime Kernel                       | ✅ Complete    | Kernel/context/config/health/exceptions + NestJS wiring. Live on `main`.                                                                                                                                                 |
+| P1-M03 Enterprise Data Platform                      | ✅ Complete    | Prisma platform, persistence, RLS multi-tenancy. CI-verified incl. integration tests. Live on `main`.                                                                                                                    |
+| P1-M04 Security Foundation                           | ✅ Complete    | Crypto/keys, tokens, identity, RBAC/ABAC, sessions, auth engine, hash-chained audit, and the NestJS guard stack. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.                                       |
+| P1-M05 Enterprise Shared Services Platform           | ✅ Complete    | Cache, jobs/scheduler, files, search, i18n, notifications, documents, media, workflow, events outbox + API ServicesModule. CI green (verify incl. Prisma build, audit, E2E). Live on `main`.                             |
+| P1-M06 Observability & DevOps Platform               | 🟡 CI-pending  | Metrics (+Prometheus), tracing spans, reliability, alerting, diagnostics + API ObservabilityModule (/metrics, /diagnostics, request interceptor). Resolves TD-10/TD-15. On `feat/p1-m06-observability` pending green CI. |
+| P1-M07 Platform Certification & Production Readiness | ⬜ Not started | Next milestone (Phase-1 exit).                                                                                                                                                                                           |
 
 ## Reusable capabilities available now
 
@@ -33,6 +33,11 @@ Updated at the close of every engineering contract.
 | `@knowget/documents`      | Structured document model + HTML/Markdown/text renderers                                                    |
 | `@knowget/media`          | Media asset descriptors + rendition specs behind a `MediaProcessor` port                                    |
 | `@knowget/workflow`       | Guarded state-machine definitions + deterministic engine                                                    |
+| `@knowget/metrics`        | Counter/gauge/histogram instruments + registry + Prometheus exposition                                      |
+| `@knowget/tracing`        | Spans, tracer, in-memory exporter; correlation-id → trace-id bridge                                         |
+| `@knowget/reliability`    | Retry (backoff), timeout, circuit breaker (injectable clock)                                                |
+| `@knowget/alerting`       | Threshold rules over metric readings + firing/resolved manager                                              |
+| `@knowget/diagnostics`    | Runtime snapshot + contributor sections (health/metrics/alerts)                                             |
 | `@knowget/testing`        | Deterministic clock, promise flushing                                                                       |
 | `@knowget/ui`             | Tailwind `cn`, foundational `Button`                                                                        |
 | `@knowget/auth`           | Principal / permission contracts                                                                            |
@@ -88,3 +93,17 @@ run pull-based, so behaviour is deterministic. Every package is Prisma-free and
 fully verified in-sandbox; the API `ServicesModule` provides them via DI and
 exposes `/services` catalog + self-test routes, validated by an in-process
 integration spec.
+
+## Observability & DevOps (P1-M06)
+
+Metrics (counter/gauge/histogram with Prometheus text exposition), distributed
+tracing (spans with a correlation-id → trace-id bridge, resolving the
+correlation-only limitation), reliability primitives (retry, timeout, circuit
+breaker), threshold alerting, and runtime diagnostics — each a backend-agnostic
+port with an in-memory default (OTLP/Prometheus-remote/APM exporters slot in
+behind the same seams). The API `ObservabilityModule` provides them via DI,
+installs a single global interceptor that records a labelled request counter, a
+latency histogram and a per-request span, and exposes `/metrics` (Prometheus
+scrape) and `/diagnostics` (JSON snapshot). The Prisma client now also targets
+`linux-musl-openssl-3.0.x` for Alpine images. Container slimming, backup/recovery
+and dashboard visualization remain operations-phase concerns.
