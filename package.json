@@ -23,6 +23,8 @@
     "infra:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
     "infra:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
     "verify": "bash scripts/verify.sh",
+    "bench": "node tools/benchmarks/bench.cjs",
+    "certify": "bash scripts/certify.sh",
     "prepare": "husky"
   },
   "devDependencies": {
