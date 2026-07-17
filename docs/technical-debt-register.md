@@ -29,5 +29,6 @@ milestone.
 | TD-18 | Refresh-token rotation/replay-detection and token-family lineage not yet enforced end to end                                  | `@knowget/tokens` (refresh, revocation)                                              | Phase 2 (identity domains)                                         |
 | TD-19 | Shared services use in-memory/node-stdlib defaults, not shared across replicas                                                | service ports (`@knowget/cache`/`jobs`/`files`/`search`/`notifications`)             | later (Redis, object store, PG-FTS/OpenSearch, distributed runner) |
 | TD-20 | Media processing is passthrough (metadata + rendition planning only, no real transcode)                                       | `MediaProcessor` (`@knowget/media`)                                                  | later (sharp/ffmpeg processor)                                     |
+| TD-21 | Domain Prisma adapters live at the composition root (`apps/api`), not per-domain persistence packages                         | domain repository ports (e.g. `OrganizationRepository`)                              | later (mechanical refactor as domains grow)                        |
 
 No `TODO` markers exist in the codebase; deferrals are tracked here instead.
