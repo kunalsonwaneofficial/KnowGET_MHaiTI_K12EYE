@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { assert, assertDefined } from "./assert";
 import { isValidIso, nowIso, parseIso, toIso } from "./datetime";
-import { isUuid, newCorrelationId, newUuid } from "./id";
+import { isUuid, newCorrelationId, newUuid, toCorrelationId, toTenantId, toUuid } from "./id";
 import { err, isErr, isOk, map, mapErr, ok, unwrap, unwrapOr } from "./result";
 import { isBlank, slugify, truncate } from "./text";
 
@@ -33,6 +33,12 @@ describe("id", () => {
     expect(isUuid(a)).toBe(true);
     expect(isUuid(newCorrelationId())).toBe(true);
     expect(isUuid("not-a-uuid")).toBe(false);
+  });
+
+  it("brands trusted strings at boundaries", () => {
+    expect(toUuid("id-1")).toBe("id-1");
+    expect(toCorrelationId("corr-1")).toBe("corr-1");
+    expect(toTenantId("tenant-1")).toBe("tenant-1");
   });
 });
 
