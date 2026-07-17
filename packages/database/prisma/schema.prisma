@@ -1,7 +1,8 @@
-// KnowGET MHaiTI — Enterprise Data Platform (P1-M03).
+// KnowGET MHaiTI — Enterprise Data Platform (P1-M03) + Phase-2 domain tables.
 // Prisma is an infrastructure implementation detail; domains depend on the
 // @knowget/persistence abstractions, never on this client directly.
-// Only PLATFORM-level tables live here — no business (Student/Finance/HR) schema.
+// Platform tables (P1) and per-domain tables (P2+) live here; every
+// tenant-owned table enables FORCE Row-Level Security (see the RLS migrations).
 
 generator client {
   provider = "prisma-client-js"
@@ -49,4 +50,28 @@ model DataProbe {
 
   @@index([tenantId])
   @@map("data_probe")
+}
+
+/// Organization domain (P2-D01-M01) — a node in the institution's hierarchy
+/// (trust/society → school → campus → department → grade → section). Structure
+/// only; membership and people arrive in later Identity & Organization contracts.
+/// Tenant-owned: FORCE RLS isolates every row (see the add_organization migration).
+model Organization {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
+  type      String
+  name      String
+  code      String
+  status    String    @default("draft")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedBy String?   @map("updated_by") @db.Uuid
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, parentId])
+  @@map("organization")
 }
