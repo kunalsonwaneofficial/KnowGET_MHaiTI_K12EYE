@@ -1,8 +1,8 @@
 {
-  "name": "@knowget/security",
+  "name": "@knowget/authentication",
   "version": "0.1.0",
   "private": true,
-  "description": "Security foundation (password policy, constant-time compare, security headers) for KnowGET MHaiTI — extended by P1-M04.",
+  "description": "Authentication engine, session management and account lockout.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,8 +23,11 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/identity": "workspace:*",
+    "@knowget/security": "workspace:*",
     "@knowget/shared": "workspace:*",
-    "@knowget/types": "workspace:*"
+    "@knowget/tokens": "workspace:*"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",

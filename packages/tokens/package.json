@@ -1,8 +1,8 @@
 {
-  "name": "@knowget/security",
+  "name": "@knowget/tokens",
   "version": "0.1.0",
   "private": true,
-  "description": "Security foundation (password policy, constant-time compare, security headers) for KnowGET MHaiTI — extended by P1-M04.",
+  "description": "Token platform — HS256 JWT, refresh tokens, revocation and token families.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,8 +23,8 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
-    "@knowget/shared": "workspace:*",
-    "@knowget/types": "workspace:*"
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/security": "workspace:*"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",

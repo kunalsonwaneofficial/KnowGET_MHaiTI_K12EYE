@@ -1,8 +1,8 @@
 {
-  "name": "@knowget/security",
+  "name": "@knowget/identity",
   "version": "0.1.0",
   "private": true,
-  "description": "Security foundation (password policy, constant-time compare, security headers) for KnowGET MHaiTI — extended by P1-M04.",
+  "description": "Identity infrastructure — identity model, credentials, repository (persona-agnostic).",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,6 +23,8 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
+    "@knowget/events": "workspace:*",
+    "@knowget/security": "workspace:*",
     "@knowget/shared": "workspace:*",
     "@knowget/types": "workspace:*"
   },

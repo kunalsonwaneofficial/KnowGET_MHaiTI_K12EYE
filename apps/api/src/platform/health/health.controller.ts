@@ -1,6 +1,7 @@
 import type { HealthReport } from "@knowget/health";
 import type { Kernel } from "@knowget/kernel";
 import { Controller, Get, Inject, Res } from "@nestjs/common";
+import { Public } from "../security/decorators";
 import { KERNEL } from "../tokens";
 
 interface StatusSettable {
@@ -11,6 +12,7 @@ interface StatusSettable {
  * Kubernetes-style health probes backed by the kernel's health registry.
  * `down` maps to HTTP 503 so orchestrators can act; `up`/`degraded` return 200.
  */
+@Public()
 @Controller("health")
 export class HealthController {
   constructor(@Inject(KERNEL) private readonly kernel: Kernel) {}

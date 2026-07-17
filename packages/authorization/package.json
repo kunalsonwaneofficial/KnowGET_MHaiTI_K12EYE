@@ -1,8 +1,8 @@
 {
-  "name": "@knowget/security",
+  "name": "@knowget/authorization",
   "version": "0.1.0",
   "private": true,
-  "description": "Security foundation (password policy, constant-time compare, security headers) for KnowGET MHaiTI — extended by P1-M04.",
+  "description": "Authorization engine — RBAC with policy evaluation (ABAC-ready). No business roles.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -23,11 +23,12 @@
     "clean": "rm -rf dist .turbo coverage"
   },
   "dependencies": {
-    "@knowget/shared": "workspace:*",
-    "@knowget/types": "workspace:*"
+    "@knowget/auth": "workspace:*",
+    "@knowget/exceptions": "workspace:*"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",
+    "@knowget/types": "workspace:*",
     "eslint": "^9.17.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
