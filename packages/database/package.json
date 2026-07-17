@@ -34,7 +34,8 @@
     "@knowget/persistence": "workspace:*",
     "@knowget/shared": "workspace:*",
     "@knowget/types": "workspace:*",
-    "@prisma/client": "^6.19.0"
+    "@prisma/client": "^6.19.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",

@@ -15,9 +15,9 @@ export class PrismaService implements DatabaseConnection {
   private connected = false;
 
   constructor(options: PrismaServiceOptions = {}) {
-    this.client = new PrismaClient(
-      options.datasourceUrl ? { datasourceUrl: options.datasourceUrl } : {},
-    );
+    this.client = options.datasourceUrl
+      ? new PrismaClient({ datasourceUrl: options.datasourceUrl })
+      : new PrismaClient();
   }
 
   async connect(): Promise<void> {
