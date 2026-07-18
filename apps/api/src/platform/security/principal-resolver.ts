@@ -16,7 +16,13 @@ import type { TenantId, Uuid } from "@knowget/types";
  * behind this same contract.
  */
 export interface PrincipalResolver {
-  resolve(identityId: string): Promise<Principal | null>;
+  /**
+   * Resolve an authenticated subject into a {@link Principal}. `tenantId` (from
+   * the token's tenant claim) is supplied by the guard and used by the persisted,
+   * tenant-scoped resolver; the in-memory bootstrap resolver is identity-keyed and
+   * ignores it.
+   */
+  resolve(identityId: string, tenantId?: string): Promise<Principal | null>;
 }
 
 /** A role/permission assignment for a single identity. */
