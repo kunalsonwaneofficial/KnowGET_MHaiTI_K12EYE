@@ -3,6 +3,51 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D02 · Program B: Institutional Governance Platform
+
+The first contract of Phase 2 Program B, on the certified `v0.2.0` Identity &
+Organization baseline and the frozen Phase-1 core. The authoritative model for
+institutional authority, accountability and governance, delivered as one
+`@knowget/governance` package (ADR-0021).
+
+### Added
+
+- **Institutional Governance Platform (ADR-0021):** six aggregates in one
+  `@knowget/governance` package — **governance body** (rooted on an organization node,
+  nesting into a hierarchy), **committee** (single chair/secretary, Person members),
+  **policy registry** (versioned author→approve→publish→retire, acknowledgment, "which
+  policies apply"), **delegation of authority** (scope + monetary limit, effective
+  window, approval matrix, `authorizes` check), **resolution** (draft→voting→tally→
+  implement), and **governance calendar** (meetings/deadlines/reviews with validated
+  attendees). Each is a pure aggregate behind a repository port, a Prisma/RLS adapter at
+  the composition root, an application service on the event bus, and a permission-gated
+  (`governance:read`/`:write`), tenant-scoped REST controller; organization/person
+  existence enters through injected directory ports.
+- **Reusable approval workflow:** one `WorkflowDefinition` over the frozen
+  `@knowget/workflow` engine — `draft → in_review → approved | rejected` with a
+  `request_changes` loop — instantiated for policy/committee/resolution/delegation
+  approval, guarded for **segregation of duties**, and persisted as a
+  `GovernanceApproval` whose append-only history is the audit trail. Exposed at
+  `governance/approvals`.
+- **Governance events:** eight `governance.*` domain events on the platform bus —
+  `GovernanceBodyCreated`, `CommitteeCreated`, `PolicyPublished`, `PolicyRetired`,
+  `DelegationGranted`, `DelegationRevoked`, `ResolutionApproved`, `ResolutionImplemented`.
+- **Persistence:** eight tables (`governance_body`, `_committee`, `_policy`,
+  `_policy_acknowledgment`, `_delegation`, `_resolution`, `_calendar_entry`, `_approval`)
+  with **FORCE ROW LEVEL SECURITY** + tenant-isolation, verified on live PostgreSQL; the
+  policy-acknowledgment table is an intentional immutable append-only ledger.
+- **API:** `GovernanceModule` wires eight repositories, two directories and seven
+  services, registered in the root module; all six aggregate service tokens are exported
+  for in-process cross-domain consumption.
+
+### Notes
+
+- No frozen-code change; the workflow engine is reused, not modified. Domain Prisma
+  adapters remain at the composition root (TD-21). New low-priority TD-23: the approval
+  subject is referenced opaquely (`kind` + `subjectId`), decoupling the reusable workflow
+  from the aggregates. Gates green (build, lint, typecheck, 73 governance + 166 API
+  tests); the Prisma build/migration/tests run in CI (TD-12).
+
 ## [Unreleased] — Security hardening (post-0.2.0)
 
 Post-certification hardening of the live security path, on the frozen Phase-1 core

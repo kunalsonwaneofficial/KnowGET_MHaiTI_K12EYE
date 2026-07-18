@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { GovernanceModule } from "./domains/governance/governance.module";
 import { IdentityModule } from "./domains/identity/identity.module";
 import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
@@ -34,6 +35,8 @@ const persistedServices =
  * are imported under `domains/` as they are engineered — the Identity &
  * Organization sub-domain: Organization (M01), Person (M02), Enterprise
  * Identity (M03), Membership (M04), Authorization/Roles (M05), Relationship (M06).
+ * Phase-2 D02 adds the Institutional Governance Platform (governance bodies,
+ * committees, policies, delegations, resolutions and the governance calendar).
  * Live security hardening wires the persisted identity/principal→role stores
  * behind `SECURITY_STORE=persisted`.
  */
@@ -50,6 +53,7 @@ const persistedServices =
     RolesModule,
     MembershipModule,
     RelationshipModule,
+    GovernanceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

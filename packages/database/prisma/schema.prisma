@@ -299,3 +299,207 @@ model ServiceSearchDocument {
 
   @@map("service_search_document")
 }
+
+/// Governance body (P2-D02). The authoritative unit of governance for an
+/// organization node (board of trustees, councils, management/finance/academic
+/// committees), nesting via `parentBodyId`. Tenant-owned; isolated by FORCE RLS.
+model GovernanceBody {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  parentBodyId     String?   @map("parent_body_id") @db.Uuid
+  name             String
+  type             String
+  status           String    @default("active")
+  termsOfReference String?   @map("terms_of_reference")
+  establishedOn    DateTime? @map("established_on") @db.Date
+  dissolvedOn      DateTime? @map("dissolved_on") @db.Date
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, parentBodyId])
+  @@map("governance_body")
+}
+
+/// Committee (P2-D02). An operational committee with an embedded composition
+/// (`members`: chair/secretary/member Persons), optionally reporting to a body.
+model GovernanceCommittee {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  governanceBodyId String?   @map("governance_body_id") @db.Uuid
+  name             String
+  purpose          String?
+  termsOfReference String?   @map("terms_of_reference")
+  members          Json      @default("[]")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("governance_committee")
+}
+
+/// Policy (P2-D02). A version-controlled institutional policy in the central
+/// registry, scoped to an organization node and lifecycle-managed.
+model GovernancePolicy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  category       String
+  title          String
+  body           String    @default("")
+  version        Int       @default(1)
+  status         String    @default("draft")
+  ownerId        String    @map("owner_id") @db.Uuid
+  effectiveOn    DateTime? @map("effective_on") @db.Date
+  approvedOn     DateTime? @map("approved_on") @db.Date
+  publishedOn    DateTime? @map("published_on") @db.Date
+  retiredOn      DateTime? @map("retired_on") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@map("governance_policy")
+}
+
+/// Policy acknowledgment (P2-D02). A Person's acknowledgment of a published policy
+/// version. Tenant-owned; one per (policy, person, version). An immutable,
+/// append-only compliance ledger — intentionally exempt from the audit/soft-delete
+/// columns the other governance tables carry (records are never edited or removed).
+model GovernancePolicyAcknowledgment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  policyId       String   @map("policy_id") @db.Uuid
+  personId       String   @map("person_id") @db.Uuid
+  version        Int
+  acknowledgedOn DateTime @map("acknowledged_on")
+
+  @@unique([tenantId, policyId, personId, version])
+  @@index([tenantId, policyId])
+  @@map("governance_policy_acknowledgment")
+}
+
+/// Delegation of authority (P2-D02). A delegated approval power (scope + optional
+/// monetary limit) from a delegator to a delegate, over an effective window.
+model GovernanceDelegation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  delegatorId    String    @map("delegator_id") @db.Uuid
+  delegateId     String    @map("delegate_id") @db.Uuid
+  scope          String
+  description    String?
+  monetaryLimit  BigInt?   @map("monetary_limit")
+  status         String    @default("active")
+  effectiveFrom  DateTime  @map("effective_from") @db.Date
+  effectiveUntil DateTime? @map("effective_until") @db.Date
+  grantedOn      DateTime  @map("granted_on") @db.Date
+  revokedOn      DateTime? @map("revoked_on") @db.Date
+  revokedReason  String?   @map("revoked_reason")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, delegateId])
+  @@map("governance_delegation")
+}
+
+/// Resolution (P2-D02). A formal decision of a governance body, with an embedded
+/// `votes` collection, tallied to approval/rejection and tracked to implementation.
+model GovernanceResolution {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  governanceBodyId String    @map("governance_body_id") @db.Uuid
+  title            String
+  proposalText     String    @map("proposal_text")
+  proposedById     String    @map("proposed_by_id") @db.Uuid
+  status           String    @default("draft")
+  votes            Json      @default("[]")
+  effectiveOn      DateTime? @map("effective_on") @db.Date
+  approvedOn       DateTime? @map("approved_on") @db.Date
+  implementedOn    DateTime? @map("implemented_on") @db.Date
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, governanceBodyId])
+  @@map("governance_resolution")
+}
+
+/// Governance calendar entry (P2-D02). A meeting, compliance deadline, board
+/// activity, regulatory event or review; meetings carry minutes and `attendeeIds`.
+model GovernanceCalendarEntry {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  governanceBodyId String?   @map("governance_body_id") @db.Uuid
+  committeeId      String?   @map("committee_id") @db.Uuid
+  type             String
+  title            String
+  description      String?
+  scheduledOn      DateTime  @map("scheduled_on") @db.Date
+  status           String    @default("scheduled")
+  completedOn      DateTime? @map("completed_on") @db.Date
+  minutes          String?
+  attendeeIds      Json      @default("[]") @map("attendee_ids")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, scheduledOn])
+  @@map("governance_calendar_entry")
+}
+
+/// Governance approval (P2-D02). A persisted instance of the single reusable
+/// approval workflow (policy/committee/resolution/delegation approval), driven by
+/// the Phase-1 workflow engine. `history` is the append-only decision audit trail.
+model GovernanceApproval {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  kind           String
+  subjectId      String    @map("subject_id") @db.Uuid
+  state          String    @default("draft")
+  status         String    @default("running")
+  submittedById  String    @map("submitted_by_id") @db.Uuid
+  decidedById    String?   @map("decided_by_id") @db.Uuid
+  note           String?
+  history        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, kind, subjectId])
+  @@map("governance_approval")
+}

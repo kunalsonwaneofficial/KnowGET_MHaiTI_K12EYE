@@ -39,3 +39,6 @@ Thumbs.db
 
 # Misc
 *.local
+
+# Redis dump artifact from local integration-test runs
+*.rdb
