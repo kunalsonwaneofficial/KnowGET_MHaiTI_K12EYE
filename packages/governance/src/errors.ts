@@ -153,3 +153,50 @@ export class PersonNotFoundForGovernanceError extends PlatformError {
     });
   }
 }
+
+/** The requested policy does not exist in the current tenant. */
+export class PolicyNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Policy "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A policy must have a non-empty title. */
+export class EmptyPolicyTitleError extends PlatformError {
+  constructor() {
+    super("A policy must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested policy lifecycle transition is not permitted. */
+export class InvalidPolicyTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition policy from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Only a published policy can be acknowledged. */
+export class PolicyNotPublishedError extends PlatformError {
+  constructor(id: string) {
+    super(`Policy "${id}" is not published and cannot be acknowledged`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

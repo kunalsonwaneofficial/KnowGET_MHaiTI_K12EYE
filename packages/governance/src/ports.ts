@@ -1,6 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Committee } from "./committee";
 import type { GovernanceBody } from "./governance-body";
+import type { Policy, PolicyAcknowledgment } from "./policy";
 
 /**
  * Storage contract for governance bodies. Tenant-scoped (explicit argument + RLS
@@ -76,6 +77,89 @@ export class InMemoryCommitteeRepository implements CommitteeRepository {
     if (committee && committee.tenantId === tenantId) {
       this.byId.delete(id);
     }
+  }
+}
+
+/** Storage contract for policies. Tenant-scoped (explicit argument + RLS). */
+export interface PolicyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Policy | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Policy[]>;
+  /** Published (in-force) policies for an organization node. */
+  listPublishedByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Policy[]>;
+  listByTenant(tenantId: TenantId): Promise<Policy[]>;
+  save(policy: Policy): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** Storage contract for policy acknowledgments. Tenant-scoped. */
+export interface PolicyAcknowledgmentRepository {
+  save(acknowledgment: PolicyAcknowledgment): Promise<void>;
+  listByPolicy(tenantId: TenantId, policyId: Uuid): Promise<PolicyAcknowledgment[]>;
+  exists(tenantId: TenantId, policyId: Uuid, personId: Uuid, version: number): Promise<boolean>;
+}
+
+/** In-memory {@link PolicyRepository} — the default for tests and bootstrap. */
+export class InMemoryPolicyRepository implements PolicyRepository {
+  private readonly byId = new Map<string, Policy>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Policy | null> {
+    const policy = this.byId.get(id);
+    return policy && policy.tenantId === tenantId ? policy : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Policy[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listPublishedByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Policy[]> {
+    return (await this.listByOrganization(tenantId, organizationId)).filter(
+      (p) => p.status === "published",
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Policy[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(policy: Policy): Promise<void> {
+    this.byId.set(policy.id, policy);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const policy = this.byId.get(id);
+    if (policy && policy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** In-memory {@link PolicyAcknowledgmentRepository} — the default for tests. */
+export class InMemoryPolicyAcknowledgmentRepository implements PolicyAcknowledgmentRepository {
+  private readonly entries: PolicyAcknowledgment[] = [];
+
+  async save(acknowledgment: PolicyAcknowledgment): Promise<void> {
+    this.entries.push(acknowledgment);
+  }
+
+  async listByPolicy(tenantId: TenantId, policyId: Uuid): Promise<PolicyAcknowledgment[]> {
+    return this.entries.filter((a) => a.tenantId === tenantId && a.policyId === policyId);
+  }
+
+  async exists(
+    tenantId: TenantId,
+    policyId: Uuid,
+    personId: Uuid,
+    version: number,
+  ): Promise<boolean> {
+    return this.entries.some(
+      (a) =>
+        a.tenantId === tenantId &&
+        a.policyId === policyId &&
+        a.personId === personId &&
+        a.version === version,
+    );
   }
 }
 

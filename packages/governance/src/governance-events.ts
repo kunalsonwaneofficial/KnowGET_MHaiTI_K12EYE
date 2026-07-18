@@ -3,6 +3,8 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Committee } from "./committee";
 import type { GovernanceBody } from "./governance-body";
 import type { GovernanceBodyType } from "./governance-body-type";
+import type { Policy } from "./policy";
+import type { PolicyCategory } from "./policy-category";
 
 export const GOVERNANCE_BODY_CREATED = "governance.body.created";
 export const GOVERNANCE_BODY_DISSOLVED = "governance.body.dissolved";
@@ -54,3 +56,28 @@ export const committeeCreated = (committee: Committee): CommitteeCreatedEvent =>
     },
     { tenantId: committee.tenantId },
   );
+
+export const POLICY_PUBLISHED = "governance.policy.published";
+export const POLICY_RETIRED = "governance.policy.retired";
+
+export interface PolicyPayload {
+  readonly policyId: Uuid;
+  readonly organizationId: Uuid;
+  readonly category: PolicyCategory;
+  readonly version: number;
+}
+
+const policyPayload = (policy: Policy): PolicyPayload => ({
+  policyId: policy.id,
+  organizationId: policy.organizationId,
+  category: policy.category,
+  version: policy.version,
+});
+
+export type PolicyPublishedEvent = DomainEvent<typeof POLICY_PUBLISHED, PolicyPayload>;
+
+export const policyPublished = (policy: Policy): PolicyPublishedEvent =>
+  createEvent(POLICY_PUBLISHED, policyPayload(policy), { tenantId: policy.tenantId });
+
+export const policyRetired = (policy: Policy): DomainEvent<typeof POLICY_RETIRED, PolicyPayload> =>
+  createEvent(POLICY_RETIRED, policyPayload(policy), { tenantId: policy.tenantId });
