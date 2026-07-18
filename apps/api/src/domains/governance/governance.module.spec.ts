@@ -6,10 +6,12 @@ import { EVENT_BUS } from "../../platform/services/services.tokens";
 import { DATABASE } from "../../platform/tokens";
 import { CommitteeController } from "./committee.controller";
 import { DelegationController } from "./delegation.controller";
+import { GovernanceApprovalController } from "./governance-approval.controller";
 import { GovernanceBodyController } from "./governance-body.controller";
 import { GovernanceCalendarController } from "./governance-calendar.controller";
 import { GovernanceModule } from "./governance.module";
 import {
+  GOVERNANCE_APPROVAL_SERVICE,
   GOVERNANCE_BODY_SERVICE,
   GOVERNANCE_CALENDAR_SERVICE,
   GOVERNANCE_COMMITTEE_SERVICE,
@@ -50,6 +52,9 @@ describe("GovernanceModule (integration)", () => {
     expect(moduleRef.get(GovernanceCalendarController)).toBeInstanceOf(
       GovernanceCalendarController,
     );
+    expect(moduleRef.get(GovernanceApprovalController)).toBeInstanceOf(
+      GovernanceApprovalController,
+    );
 
     await moduleRef.close();
   });
@@ -66,6 +71,7 @@ describe("GovernanceModule (integration)", () => {
       GOVERNANCE_DELEGATION_SERVICE,
       GOVERNANCE_RESOLUTION_SERVICE,
       GOVERNANCE_CALENDAR_SERVICE,
+      GOVERNANCE_APPROVAL_SERVICE,
     ]) {
       expect(moduleRef.get(token)).toBeDefined();
     }

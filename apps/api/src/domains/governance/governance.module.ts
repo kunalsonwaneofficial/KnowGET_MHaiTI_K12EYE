@@ -3,12 +3,14 @@ import type { EventBus } from "@knowget/events";
 import {
   CommitteeService,
   DelegationService,
+  GovernanceApprovalService,
   GovernanceBodyService,
   GovernanceCalendarService,
   PolicyService,
   ResolutionService,
   type CommitteeRepository,
   type DelegationRepository,
+  type GovernanceApprovalRepository,
   type GovernanceBodyRepository,
   type GovernanceCalendarRepository,
   type OrganizationDirectory,
@@ -29,9 +31,12 @@ import { PERSON_SERVICE } from "../person/person.tokens";
 import { CommitteeController } from "./committee.controller";
 import { DelegationController } from "./delegation.controller";
 import { OrganizationServiceDirectory, PersonServiceDirectory } from "./directory.adapters";
+import { GovernanceApprovalController } from "./governance-approval.controller";
 import { GovernanceBodyController } from "./governance-body.controller";
 import { GovernanceCalendarController } from "./governance-calendar.controller";
 import {
+  GOVERNANCE_APPROVAL_REPOSITORY,
+  GOVERNANCE_APPROVAL_SERVICE,
   GOVERNANCE_BODY_REPOSITORY,
   GOVERNANCE_BODY_SERVICE,
   GOVERNANCE_CALENDAR_REPOSITORY,
@@ -49,6 +54,7 @@ import {
   GOVERNANCE_RESOLUTION_SERVICE,
 } from "./governance.tokens";
 import { PolicyController } from "./policy.controller";
+import { PrismaGovernanceApprovalRepository } from "./prisma-governance-approval.repository";
 import { PrismaGovernanceBodyRepository } from "./prisma-governance-body.repository";
 import { PrismaGovernanceCalendarRepository } from "./prisma-governance-calendar.repository";
 import { PrismaGovernanceCommitteeRepository } from "./prisma-governance-committee.repository";
@@ -94,6 +100,11 @@ const repositories: Provider[] = [
   {
     provide: GOVERNANCE_CALENDAR_REPOSITORY,
     useFactory: (db: PrismaService) => new PrismaGovernanceCalendarRepository(db),
+    inject: [DATABASE],
+  },
+  {
+    provide: GOVERNANCE_APPROVAL_REPOSITORY,
+    useFactory: (db: PrismaService) => new PrismaGovernanceApprovalRepository(db),
     inject: [DATABASE],
   },
 ];
@@ -203,6 +214,19 @@ const services: Provider[] = [
       GOVERNANCE_COMMITTEE_REPOSITORY,
     ],
   },
+  {
+    provide: GOVERNANCE_APPROVAL_SERVICE,
+    useFactory: (
+      repository: GovernanceApprovalRepository,
+      organizations: OrganizationDirectory,
+      persons: PersonDirectory,
+    ) => new GovernanceApprovalService({ repository, organizations, persons }),
+    inject: [
+      GOVERNANCE_APPROVAL_REPOSITORY,
+      GOVERNANCE_ORGANIZATION_DIRECTORY,
+      GOVERNANCE_PERSON_DIRECTORY,
+    ],
+  },
 ];
 
 /**
@@ -224,6 +248,7 @@ const services: Provider[] = [
     DelegationController,
     ResolutionController,
     GovernanceCalendarController,
+    GovernanceApprovalController,
   ],
   providers: [...repositories, ...directories, ...services],
   exports: [
@@ -233,6 +258,7 @@ const services: Provider[] = [
     GOVERNANCE_DELEGATION_SERVICE,
     GOVERNANCE_RESOLUTION_SERVICE,
     GOVERNANCE_CALENDAR_SERVICE,
+    GOVERNANCE_APPROVAL_SERVICE,
   ],
 })
 export class GovernanceModule {}

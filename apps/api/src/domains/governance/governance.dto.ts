@@ -147,3 +147,19 @@ export const completeEntrySchema = z.object({
   minutes: z.string().optional(),
   attendeeIds: z.array(uuid).optional(),
 });
+
+// --- Approval workflow ------------------------------------------------------------
+const approvalKind = z.enum(["policy", "committee", "resolution", "delegation"]);
+
+export const openApprovalSchema = z.object({
+  organizationId: uuid,
+  kind: approvalKind,
+  subjectId: uuid,
+  submittedById: uuid,
+  note: z.string().optional(),
+});
+export const decideApprovalSchema = z.object({
+  decidedById: uuid,
+  note: z.string().optional(),
+});
+export const requestChangesSchema = z.object({ note: z.string().optional() });
