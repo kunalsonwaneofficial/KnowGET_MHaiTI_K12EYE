@@ -474,3 +474,27 @@ model GovernanceCalendarEntry {
   @@index([tenantId, scheduledOn])
   @@map("governance_calendar_entry")
 }
+
+model GovernanceApproval {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  kind           String
+  subjectId      String    @map("subject_id") @db.Uuid
+  state          String    @default("draft")
+  status         String    @default("running")
+  submittedById  String    @map("submitted_by_id") @db.Uuid
+  decidedById    String?   @map("decided_by_id") @db.Uuid
+  note           String?
+  history        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, kind, subjectId])
+  @@map("governance_approval")
+}
