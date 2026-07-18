@@ -21,18 +21,23 @@ Updated at the close of every engineering contract.
 
 ## Phase 2 — Enterprise Domain Engineering
 
+> **Program A — Identity & Organization is CERTIFIED and baselined at `v0.2.0`
+> (2026-07-18).** All 7 contracts merged and CI-green on `main`; the six domains
+> compose into a proven, data-driven authorization flow. See
+> `docs/certification/P2-D01-IdentityOrganization-Certification-Report.md`.
+
 Domains build on the certified `v0.1.0` core following the domain architecture
 pattern (ADR-0010). Program A — Identity & Organization:
 
-| Contract                           | Status         | Notes                                                                                                                                                                                                                                                                           |
-| ---------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P2-D01-M01 Organization Foundation | ✅ Complete    | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                                                        |
-| P2-D01-M02 Person Platform         | ✅ Complete    | Person domain (names, demographics, contacts, dedup/merge, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                                     |
-| P2-D01-M03 Enterprise Identity     | ✅ Complete    | Enterprise identity domain (tenant-scoped login accounts, identifiers, credential, lifecycle, lockout) linked to Person + RLS table (GIN identifier lookup) + REST module + auth-engine bridge. CI green; RLS verified on live PostgreSQL. Live on `main`.                      |
-| P2-D01-M04 Membership              | ✅ Complete    | Membership domain (Person→Organization role assignment, lifecycle, effective period) + RLS table + REST module + persisted tenant-scoped PrincipalResolver. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                          |
-| P2-D01-M05 Authorization           | ✅ Complete    | Tenant-scoped role catalogue (name→permissions, lifecycle, system-role protection) + RLS table + REST module; authorization made data-driven via a permission-resolution decorator; membership role-name validation. CI green; RLS verified on live PostgreSQL. Live on `main`. |
-| P2-D01-M06 Relationship            | ✅ Complete    | Relationship domain (typed person↔person associations: guardian/parent/sibling/spouse/emergency-contact, directionality + counterpart, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                         |
-| P2-D01-M07 Domain certification    | ⬜ Not started | Identity & Organization sub-domain certification.                                                                                                                                                                                                                               |
+| Contract                           | Status      | Notes                                                                                                                                                                                                                                                                           |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-D01-M01 Organization Foundation | ✅ Complete | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                                                        |
+| P2-D01-M02 Person Platform         | ✅ Complete | Person domain (names, demographics, contacts, dedup/merge, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                                     |
+| P2-D01-M03 Enterprise Identity     | ✅ Complete | Enterprise identity domain (tenant-scoped login accounts, identifiers, credential, lifecycle, lockout) linked to Person + RLS table (GIN identifier lookup) + REST module + auth-engine bridge. CI green; RLS verified on live PostgreSQL. Live on `main`.                      |
+| P2-D01-M04 Membership              | ✅ Complete | Membership domain (Person→Organization role assignment, lifecycle, effective period) + RLS table + REST module + persisted tenant-scoped PrincipalResolver. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                          |
+| P2-D01-M05 Authorization           | ✅ Complete | Tenant-scoped role catalogue (name→permissions, lifecycle, system-role protection) + RLS table + REST module; authorization made data-driven via a permission-resolution decorator; membership role-name validation. CI green; RLS verified on live PostgreSQL. Live on `main`. |
+| P2-D01-M06 Relationship            | ✅ Complete | Relationship domain (typed person↔person associations: guardian/parent/sibling/spouse/emergency-contact, directionality + counterpart, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                         |
+| P2-D01-M07 Domain certification    | ✅ Complete | Identity & Organization sub-domain **CERTIFIED** & baselined `v0.2.0`: cross-domain chain (login→principal→authorization) proven in-sandbox; six domains' RLS verified on live PostgreSQL; certification report + ADR-0013. CI green. Live on `main`.                           |
 
 ## Reusable capabilities available now
 
