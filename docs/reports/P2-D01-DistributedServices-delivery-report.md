@@ -2,13 +2,13 @@
 
 **Live security/services wiring** · Phase 2 · Program A (Identity & Organization) · post-certification hardening
 
-|                |                                                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | Remaining TD-19 backends — jobs, notifications, search, files                                                        |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + live Redis & Postgres. CI pending on the feature branch (pre-merge). |
-| **Depends on** | P1-M05 (service ports), ADR-0017 (KeyValue/Redis backend)                                                            |
-| **Scope**      | All four remaining shared services distributed, **env-gated (in-memory default)**. Fully closes TD-19.               |
-| **Date**       | 18 July 2026                                                                                                         |
+|                |                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| **Contract**   | Remaining TD-19 backends — jobs, notifications, search, files                                          |
+| **Status**     | ✅ Complete — merged to `main` (CI green). Verified in-sandbox + live Redis & Postgres.                |
+| **Depends on** | P1-M05 (service ports), ADR-0017 (KeyValue/Redis backend)                                              |
+| **Scope**      | All four remaining shared services distributed, **env-gated (in-memory default)**. Fully closes TD-19. |
+| **Date**       | 18 July 2026                                                                                           |
 
 ---
 
@@ -57,8 +57,13 @@ async app-level seams (the async-rate-limiter pattern).
   full-text search — ranked `plainto_tsquery`/`ts_rank`, JSONB `@>` filtering,
   window-count totals, and the **GIN tsvector index confirmed in use** (Bitmap Index
   Scan) — verified on a real PostgreSQL 16.
-- **Prisma-free typecheck** of the new/changed surface; ESLint 0 warnings; Prettier
-  clean.
+- **Full typecheck** of the new/changed surface — this time including the Prisma
+  adapters, compiled against the generated client (produced offline via Prisma's WASM
+  schema parser, `engine=none`, to sidestep TD-12). That surfaced one real defect the
+  earlier Prisma-free pass could not: a Node `Buffer` (`Buffer<ArrayBufferLike>` under
+  Node 22 `@types/node`) is not assignable to Prisma 6's `Bytes` input
+  (`Uint8Array<ArrayBuffer>`), fixed by copying into an `ArrayBuffer`-backed view in the
+  blob store's write path. ESLint 0 warnings; Prettier clean.
 
 ## 5. Decisions
 
@@ -76,6 +81,11 @@ Prisma adapters sit behind an opt-in module so the default build stays Prisma-fr
   claimed job is not re-queued) — a future refinement; Postgres `bytea` suits moderate
   blob sizes (an S3/GCS object store or OpenSearch slots behind the same ports for
   scale); the sliding-window limiter and KMS custody (TD-11) remain separate.
+- **TD-12 narrowed (not closed).** The Prisma client's TypeScript surface can be
+  generated offline (`engine=none`, WASM schema parser), so Prisma adapters are now
+  locally typecheckable — the blob-store defect above would have been caught pre-CI.
+  Live query execution still needs a real database, so DB integration remains
+  CI-verified.
 
 ## 7. Recommendation
 
