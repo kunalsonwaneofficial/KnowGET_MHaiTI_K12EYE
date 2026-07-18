@@ -75,3 +75,31 @@ model Organization {
   @@index([tenantId, parentId])
   @@map("organization")
 }
+
+/// Person domain (P2-D01-M02) — the persona-agnostic canonical human record.
+/// Contacts are an embedded value-object collection (JSONB); `match_key` is a
+/// deterministic dedup key (family|given|dob). Tenant-owned: FORCE RLS isolates
+/// every row (see the add_person migration).
+model Person {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String    @map("tenant_id") @db.Uuid
+  givenName     String    @map("given_name")
+  familyName    String    @map("family_name")
+  middleName    String?   @map("middle_name")
+  preferredName String?   @map("preferred_name")
+  dateOfBirth   DateTime? @map("date_of_birth") @db.Date
+  gender        String    @default("unspecified")
+  status        String    @default("active")
+  contacts      Json      @default("[]")
+  matchKey      String    @map("match_key")
+  mergedInto    String?   @map("merged_into") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  createdBy     String?   @map("created_by") @db.Uuid
+  updatedBy     String?   @map("updated_by") @db.Uuid
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, matchKey])
+  @@map("person")
+}
