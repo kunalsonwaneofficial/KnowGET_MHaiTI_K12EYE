@@ -2,13 +2,13 @@
 
 **Membership** · Phase 2 (Enterprise Domain Engineering) · Program A (Identity & Organization)
 
-|                |                                                                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D01-M04 — Membership                                                                                                          |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + on live PostgreSQL. CI pending on `feat/p2-d01-m04-membership` (pre-merge gate). |
-| **Depends on** | P2-D01-M01 (Organization), M02 (Person), M03 (Enterprise Identity), P1-M04 (Authorization/RBAC), Phase 1 baseline (`v0.1.0`)     |
-| **Date**       | 18 July 2026                                                                                                                     |
-| **Next**       | P2-D01-M05 — Authorization                                                                                                       |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D01-M04 — Membership                                                                                                            |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D01-M01 (Organization), M02 (Person), M03 (Enterprise Identity), P1-M04 (Authorization/RBAC), Phase 1 baseline (`v0.1.0`)       |
+| **Date**       | 18 July 2026                                                                                                                       |
+| **Next**       | P2-D01-M05 — Authorization                                                                                                         |
 
 ---
 
