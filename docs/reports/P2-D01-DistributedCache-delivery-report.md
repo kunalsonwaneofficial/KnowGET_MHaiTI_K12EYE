@@ -2,13 +2,13 @@
 
 **Live security wiring** · Phase 2 · Program A (Identity & Organization) · post-certification hardening
 
-|                |                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | Distributed session / rate-limit cache (TD-17 / TD-19 / TD-22)                                                                 |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + live Redis. CI pending on the feature branch (pre-merge).                      |
-| **Depends on** | P1-M04 (rate limiter), P1-M05 (`Cache` port), ADR-0015 (session enforcer)                                                      |
-| **Scope**      | One Redis-backed key-value backend behind the rate limiter, cache and session read-through, **env-gated (in-memory default)**. |
-| **Date**       | 18 July 2026                                                                                                                   |
+|                |                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | Distributed session / rate-limit cache (TD-17 / TD-19 / TD-22)                                                                        |
+| **Status**     | ✅ Complete — merged to `main` (`31a8cde`); CI green. **TD-17/22 resolved; TD-19 cache dimension resolved.** Live behind `REDIS_URL`. |
+| **Depends on** | P1-M04 (rate limiter), P1-M05 (`Cache` port), ADR-0015 (session enforcer)                                                             |
+| **Scope**      | One Redis-backed key-value backend behind the rate limiter, cache and session read-through, **env-gated (in-memory default)**.        |
+| **Date**       | 18 July 2026                                                                                                                          |
 
 ---
 
