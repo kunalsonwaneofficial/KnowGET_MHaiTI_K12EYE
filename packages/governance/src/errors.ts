@@ -260,3 +260,62 @@ export class InvalidDelegationTransitionError extends PlatformError {
     });
   }
 }
+
+/** The requested resolution does not exist in the current tenant. */
+export class ResolutionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Resolution "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A resolution must have a non-empty title. */
+export class EmptyResolutionTitleError extends PlatformError {
+  constructor() {
+    super("A resolution must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested resolution lifecycle transition is not permitted. */
+export class InvalidResolutionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition resolution from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Votes can only be cast while a resolution is open for voting. */
+export class VotingNotOpenError extends PlatformError {
+  constructor(id: string) {
+    super(`Resolution "${id}" is not open for voting`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A voter may cast at most one vote on a resolution. */
+export class DuplicateVoteError extends PlatformError {
+  constructor(voterId: string) {
+    super(`Voter "${voterId}" has already voted on this resolution`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { voterId },
+    });
+  }
+}

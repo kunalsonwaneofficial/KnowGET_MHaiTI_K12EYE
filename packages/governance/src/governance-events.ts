@@ -7,6 +7,7 @@ import type { GovernanceBody } from "./governance-body";
 import type { GovernanceBodyType } from "./governance-body-type";
 import type { Policy } from "./policy";
 import type { PolicyCategory } from "./policy-category";
+import type { Resolution } from "./resolution";
 
 export const GOVERNANCE_BODY_CREATED = "governance.body.created";
 export const GOVERNANCE_BODY_DISSOLVED = "governance.body.dissolved";
@@ -112,3 +113,32 @@ export const delegationRevoked = (
   delegation: Delegation,
 ): DomainEvent<typeof DELEGATION_REVOKED, DelegationPayload> =>
   createEvent(DELEGATION_REVOKED, delegationPayload(delegation), { tenantId: delegation.tenantId });
+
+export const RESOLUTION_APPROVED = "governance.resolution.approved";
+export const RESOLUTION_IMPLEMENTED = "governance.resolution.implemented";
+
+export interface ResolutionPayload {
+  readonly resolutionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly governanceBodyId: Uuid;
+}
+
+const resolutionPayload = (resolution: Resolution): ResolutionPayload => ({
+  resolutionId: resolution.id,
+  organizationId: resolution.organizationId,
+  governanceBodyId: resolution.governanceBodyId,
+});
+
+export type ResolutionApprovedEvent = DomainEvent<typeof RESOLUTION_APPROVED, ResolutionPayload>;
+
+export const resolutionApproved = (resolution: Resolution): ResolutionApprovedEvent =>
+  createEvent(RESOLUTION_APPROVED, resolutionPayload(resolution), {
+    tenantId: resolution.tenantId,
+  });
+
+export const resolutionImplemented = (
+  resolution: Resolution,
+): DomainEvent<typeof RESOLUTION_IMPLEMENTED, ResolutionPayload> =>
+  createEvent(RESOLUTION_IMPLEMENTED, resolutionPayload(resolution), {
+    tenantId: resolution.tenantId,
+  });

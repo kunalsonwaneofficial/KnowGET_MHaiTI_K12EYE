@@ -3,6 +3,7 @@ import type { Committee } from "./committee";
 import type { Delegation } from "./delegation";
 import type { GovernanceBody } from "./governance-body";
 import type { Policy, PolicyAcknowledgment } from "./policy";
+import type { Resolution } from "./resolution";
 
 /**
  * Storage contract for governance bodies. Tenant-scoped (explicit argument + RLS
@@ -206,6 +207,46 @@ export class InMemoryDelegationRepository implements DelegationRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const delegation = this.byId.get(id);
     if (delegation && delegation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for resolutions. Tenant-scoped. */
+export interface ResolutionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Resolution | null>;
+  listByGovernanceBody(tenantId: TenantId, governanceBodyId: Uuid): Promise<Resolution[]>;
+  listByTenant(tenantId: TenantId): Promise<Resolution[]>;
+  save(resolution: Resolution): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ResolutionRepository} — the default for tests and bootstrap. */
+export class InMemoryResolutionRepository implements ResolutionRepository {
+  private readonly byId = new Map<string, Resolution>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Resolution | null> {
+    const resolution = this.byId.get(id);
+    return resolution && resolution.tenantId === tenantId ? resolution : null;
+  }
+
+  async listByGovernanceBody(tenantId: TenantId, governanceBodyId: Uuid): Promise<Resolution[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.governanceBodyId === governanceBodyId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Resolution[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(resolution: Resolution): Promise<void> {
+    this.byId.set(resolution.id, resolution);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const resolution = this.byId.get(id);
+    if (resolution && resolution.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
