@@ -2,13 +2,13 @@
 
 **Person Platform** · Phase 2 (Enterprise Domain Engineering) · Program A (Identity & Organization)
 
-|                |                                                                                                                        |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D01-M02 — Person Platform                                                                                           |
-| **Status**     | 🟡 Engineered; in-sandbox gates green + RLS verified on live PostgreSQL. On `feat/p2-d01-m02-person` pending green CI. |
-| **Depends on** | P2-D01-M01 (Organization), Phase 1 baseline (`v0.1.0`)                                                                 |
-| **Date**       | 17 July 2026                                                                                                           |
-| **Next**       | P2-D01-M03 — Enterprise Identity Platform                                                                              |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D01-M02 — Person Platform                                                                                                       |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D01-M01 (Organization), Phase 1 baseline (`v0.1.0`)                                                                             |
+| **Date**       | 17 July 2026                                                                                                                       |
+| **Next**       | P2-D01-M03 — Enterprise Identity Platform                                                                                          |
 
 ---
 

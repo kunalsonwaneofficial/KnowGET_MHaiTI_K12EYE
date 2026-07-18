@@ -24,12 +24,12 @@ Updated at the close of every engineering contract.
 Domains build on the certified `v0.1.0` core following the domain architecture
 pattern (ADR-0010). Program A — Identity & Organization:
 
-| Contract                           | Status         | Notes                                                                                                                                               |
-| ---------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P2-D01-M01 Organization Foundation | ✅ Complete    | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.            |
-| P2-D01-M02 Person Platform         | 🟡 CI-pending  | Person domain (names, demographics, contacts, dedup/merge, lifecycle) + RLS table + REST module. In-sandbox green; RLS verified on live PostgreSQL. |
-| P2-D01-M03 Enterprise Identity     | ⬜ Not started | Next milestone.                                                                                                                                     |
-| P2-D01-M04 … M07                   | ⬜ Not started | Membership, Authorization, Relationship, Domain certification.                                                                                      |
+| Contract                           | Status         | Notes                                                                                                                                                       |
+| ---------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-D01-M01 Organization Foundation | ✅ Complete    | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                    |
+| P2-D01-M02 Person Platform         | ✅ Complete    | Person domain (names, demographics, contacts, dedup/merge, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`. |
+| P2-D01-M03 Enterprise Identity     | ⬜ Not started | Next milestone.                                                                                                                                             |
+| P2-D01-M04 … M07                   | ⬜ Not started | Membership, Authorization, Relationship, Domain certification.                                                                                              |
 
 ## Reusable capabilities available now
 
