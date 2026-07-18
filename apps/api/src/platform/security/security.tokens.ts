@@ -20,5 +20,10 @@ export const AUTHENTICATOR = Symbol("AUTHENTICATOR");
 export const PERSISTED_AUTHENTICATOR = Symbol("PERSISTED_AUTHENTICATOR");
 export const PERSISTED_PRINCIPAL_RESOLVER = Symbol("PERSISTED_PRINCIPAL_RESOLVER");
 
+/** Per-request session/token-revocation check. Provided by `PersistedSecurityModule`
+ * (persisted mode); absent in memory mode, where the guard injects it `@Optional`
+ * and skips the check — preserving the Phase-1 request path. */
+export const SESSION_ENFORCER = Symbol("SESSION_ENFORCER");
+
 /** Internal: the single seeded security graph the other providers derive from. */
 export const SECURITY_GRAPH = Symbol("SECURITY_GRAPH");

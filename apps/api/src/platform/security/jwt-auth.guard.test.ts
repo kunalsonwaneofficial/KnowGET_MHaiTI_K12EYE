@@ -8,6 +8,7 @@ import type { AuthenticatedRequest } from "./authenticated-request";
 import { IS_PUBLIC_KEY } from "./decorators";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { InMemoryPrincipalResolver, type PrincipalResolver } from "./principal-resolver";
+import type { EnforcementInput, SessionEnforcer } from "./session-enforcer";
 
 const CONFIG = defaultSecurityConfig;
 const SUBJECT = "11111111-1111-1111-1111-111111111111" as Uuid;
@@ -98,6 +99,55 @@ describe("JwtAuthGuard", () => {
     await expect(guard.canActivate(context(request))).resolves.toBe(true);
     expect(seen).toEqual([TENANT]);
     expect(request.principal?.tenantId).toBe(TENANT);
+  });
+
+  it("rejects when the session enforcer denies (persisted mode)", async () => {
+    const keyRing = new KeyRing();
+    const enforcer: SessionEnforcer = { enforce: async () => false };
+    const guard = new JwtAuthGuard(
+      stubReflector({ [IS_PUBLIC_KEY]: false }),
+      keyRing,
+      CONFIG,
+      new InMemoryPrincipalResolver([{ identityId: SUBJECT, roles: [], permissions: [] }]),
+      enforcer,
+    );
+    const token = signJwt(
+      { sub: SUBJECT, tenant: TENANT, sid: "sess-1", jti: "jti-1" },
+      { key: keyRing.current().material, issuer: CONFIG.token.issuer },
+    );
+    await expect(guard.canActivate(context(bearer(token)))).rejects.toBeInstanceOf(TokenError);
+  });
+
+  it("passes session/token claims to the enforcer and admits when allowed", async () => {
+    const keyRing = new KeyRing();
+    const seen: EnforcementInput[] = [];
+    const enforcer: SessionEnforcer = {
+      enforce: async (input) => {
+        seen.push(input);
+        return true;
+      },
+    };
+    const guard = new JwtAuthGuard(
+      stubReflector({ [IS_PUBLIC_KEY]: false }),
+      keyRing,
+      CONFIG,
+      new InMemoryPrincipalResolver([{ identityId: SUBJECT, roles: [], permissions: [] }]),
+      enforcer,
+    );
+    const token = signJwt(
+      { sub: SUBJECT, tenant: TENANT, sid: "sess-1", jti: "jti-1" },
+      { key: keyRing.current().material, issuer: CONFIG.token.issuer },
+    );
+    const request = bearer(token);
+    await expect(guard.canActivate(context(request))).resolves.toBe(true);
+    expect(seen).toEqual([
+      { sessionId: "sess-1", tokenId: "jti-1", familyId: undefined, tenantId: TENANT },
+    ]);
+    expect(request.tokenContext).toEqual({
+      sessionId: "sess-1",
+      tokenId: "jti-1",
+      tenantId: TENANT,
+    });
   });
 
   it("admits an authenticated-but-unassigned subject with zero authority", async () => {

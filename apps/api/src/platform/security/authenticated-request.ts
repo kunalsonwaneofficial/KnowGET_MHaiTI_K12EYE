@@ -11,4 +11,11 @@ export interface AuthenticatedRequest {
   readonly socket?: { readonly remoteAddress?: string };
   principal?: Principal;
   auth?: AuthContext;
+  /** Session/token references from the verified token (persisted mode), used by
+   * the logout handler to revoke the presented session. */
+  tokenContext?: {
+    readonly sessionId?: string;
+    readonly tokenId?: string;
+    readonly tenantId?: string;
+  };
 }

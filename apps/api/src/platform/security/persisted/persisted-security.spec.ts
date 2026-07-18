@@ -6,7 +6,6 @@
  * wires with the Prisma adapters in production.
  */
 import { AuthorizationEngine, InMemoryRoleStore } from "@knowget/authorization";
-import { InMemorySessionRepository, SessionManager } from "@knowget/authentication";
 import {
   IdentityAccountService,
   InMemoryIdentityAccountRepository,
@@ -27,7 +26,9 @@ import { verifyJwt } from "@knowget/tokens";
 import type { TenantId, Uuid } from "@knowget/types";
 import { describe, expect, it } from "vitest";
 import { buildPersistedSecurity } from "./persisted-security";
+import { InMemoryRevocationStore } from "./revocation-store";
 import { SecuritySeeder } from "./security-seeder";
+import { InMemorySessionStore } from "./session-store";
 
 const TENANT = "11111111-1111-1111-1111-111111111111" as TenantId;
 const ADMIN = { tenantId: TENANT, email: "admin@knowget.local", password: "ChangeMe!Bootstrap1" };
@@ -90,7 +91,8 @@ describe("persisted security — end to end", () => {
       accounts,
       memberships: memberRepo,
       rolePermissions: (tenantId, names) => roles.permissionsForRoleNames(tenantId, names),
-      sessions: new SessionManager(new InMemorySessionRepository(), defaultSecurityConfig.session),
+      sessionStore: new InMemorySessionStore(),
+      revocations: new InMemoryRevocationStore(),
       audit: new SecurityAuditLogger(),
       config: defaultSecurityConfig,
       signingKey: SIGNING_KEY,
@@ -123,5 +125,23 @@ describe("persisted security — end to end", () => {
       expect(authz.evaluate({ principal, action: "anything.at.all" }).allowed).toBe(true);
       expect(() => authz.assert({ principal, action: "finance.write" })).not.toThrow();
     }
+
+    // Live enforcement: the freshly-issued session is valid until logout, after
+    // which the enforcer rejects it (session revoked + token revoked).
+    const sid = typeof claims.sid === "string" ? claims.sid : undefined;
+    const jti = typeof claims.jti === "string" ? claims.jti : undefined;
+    const tenant = typeof claims.tenant === "string" ? claims.tenant : undefined;
+    expect(
+      await security.enforcer.enforce({ sessionId: sid, tokenId: jti, tenantId: tenant }),
+    ).toBe(true);
+
+    await security.authenticator.logout({
+      sessionId: sid as string,
+      ...(jti !== undefined ? { tokenId: jti } : {}),
+      ...(tenant !== undefined ? { tenant } : {}),
+    });
+    expect(
+      await security.enforcer.enforce({ sessionId: sid, tokenId: jti, tenantId: tenant }),
+    ).toBe(false);
   });
 });
