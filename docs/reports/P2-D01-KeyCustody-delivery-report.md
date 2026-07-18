@@ -2,13 +2,13 @@
 
 **Live security wiring** · Phase 2 · Program A (Identity & Organization) · post-certification hardening
 
-|                |                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | TD-11 — signing-key custody (HSM/KMS behind `KeyRing`/`SecretsProvider`)                                     |
-| **Status**     | 🔄 Implemented; verification green in-sandbox (149 API tests). CI pending on the feature branch (pre-merge). |
-| **Depends on** | P1-M04 (`KeyRing`, crypto services, `signJwt`), ADR-0015/0016 (persisted auth)                               |
-| **Scope**      | Envelope key custody + async token-signer seam (HMAC active, RS256 ready), **env-gated**. Closes TD-11.      |
-| **Date**       | 18 July 2026                                                                                                 |
+|                |                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| **Contract**   | TD-11 — signing-key custody (HSM/KMS behind `KeyRing`/`SecretsProvider`)                                |
+| **Status**     | ✅ Complete — merged to `main` (CI green). Verified in-sandbox (149 API tests).                         |
+| **Depends on** | P1-M04 (`KeyRing`, crypto services, `signJwt`), ADR-0015/0016 (persisted auth)                          |
+| **Scope**      | Envelope key custody + async token-signer seam (HMAC active, RS256 ready), **env-gated**. Closes TD-11. |
+| **Date**       | 18 July 2026                                                                                            |
 
 ---
 
