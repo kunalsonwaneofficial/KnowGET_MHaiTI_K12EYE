@@ -11,6 +11,12 @@ import { z } from "zod";
 export const keyValueEnvSchema = z.object({
   REDIS_URL: z.string().min(1).optional(),
   SESSION_CACHE_TTL_MS: z.coerce.number().int().positive().default(5_000),
+  /**
+   * Rate-limit algorithm: `fixed` (default) is a fixed-window counter; `sliding`
+   * weights the previous window to smooth the boundary burst. Both are shared across
+   * replicas over Redis; the choice is independent of the backend.
+   */
+  RATE_LIMIT_STRATEGY: z.enum(["fixed", "sliding"]).default("fixed"),
 });
 
 export type KeyValueEnv = z.infer<typeof keyValueEnvSchema>;

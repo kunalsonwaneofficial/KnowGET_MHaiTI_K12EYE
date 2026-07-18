@@ -1,5 +1,10 @@
 import type Redis from "ioredis";
-import type { KeyValueStore, WindowCount } from "./key-value-store";
+import {
+  type KeyValueStore,
+  slidingBucketKeys,
+  slidingEstimate,
+  type WindowCount,
+} from "./key-value-store";
 
 /**
  * Atomic fixed-window increment: `INCR`, set the window expiry only on the first
@@ -12,6 +17,19 @@ if count == 1 then
   redis.call('PEXPIRE', KEYS[1], ARGV[1])
 end
 return {count, redis.call('PTTL', KEYS[1])}
+`;
+
+/**
+ * Sliding-window counter step: increment the current bucket (KEYS[1]), set its
+ * two-window expiry on the first hit so it survives to be the next window's
+ * "previous" bucket, and read the previous bucket (KEYS[2]). Atomic so replicas
+ * share the counters; the weighting is applied by the caller.
+ */
+const SLIDING_SCRIPT = `
+local cur = redis.call('INCR', KEYS[1])
+if cur == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
+local prev = tonumber(redis.call('GET', KEYS[2])) or 0
+return {cur, prev}
 `;
 
 /**
@@ -55,5 +73,18 @@ export class RedisKeyValueStore implements KeyValueStore {
       number,
     ];
     return { count, resetAt: Date.now() + (pttl >= 0 ? pttl : windowMs) };
+  }
+
+  async slidingWindow(key: string, windowMs: number): Promise<WindowCount> {
+    const now = Date.now();
+    const { current, previous } = slidingBucketKeys(key, now, windowMs);
+    const [cur, prev] = (await this.redis.eval(
+      SLIDING_SCRIPT,
+      2,
+      current,
+      previous,
+      2 * windowMs,
+    )) as [number, number];
+    return slidingEstimate(now, windowMs, cur, prev);
   }
 }
