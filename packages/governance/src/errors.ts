@@ -200,3 +200,63 @@ export class PolicyNotPublishedError extends PlatformError {
     });
   }
 }
+
+/** The requested delegation does not exist in the current tenant. */
+export class DelegationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Delegation "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** Authority cannot be delegated to oneself. */
+export class SelfDelegationError extends PlatformError {
+  constructor(personId: string) {
+    super("Authority cannot be delegated to oneself", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
+
+/** A delegation's monetary limit must be non-negative. */
+export class InvalidMonetaryLimitError extends PlatformError {
+  constructor(limit: number) {
+    super("A delegation's monetary limit must be non-negative", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { limit },
+    });
+  }
+}
+
+/** A delegation's end date cannot precede its start date. */
+export class InvalidDelegationPeriodError extends PlatformError {
+  constructor(effectiveFrom: string, effectiveUntil: string) {
+    super("A delegation's end date cannot precede its start date", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { effectiveFrom, effectiveUntil },
+    });
+  }
+}
+
+/** The requested delegation lifecycle transition is not permitted. */
+export class InvalidDelegationTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition delegation from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

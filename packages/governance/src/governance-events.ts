@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { AuthorityScope } from "./authority-scope";
 import type { Committee } from "./committee";
+import type { Delegation } from "./delegation";
 import type { GovernanceBody } from "./governance-body";
 import type { GovernanceBodyType } from "./governance-body-type";
 import type { Policy } from "./policy";
@@ -81,3 +83,32 @@ export const policyPublished = (policy: Policy): PolicyPublishedEvent =>
 
 export const policyRetired = (policy: Policy): DomainEvent<typeof POLICY_RETIRED, PolicyPayload> =>
   createEvent(POLICY_RETIRED, policyPayload(policy), { tenantId: policy.tenantId });
+
+export const DELEGATION_GRANTED = "governance.delegation.granted";
+export const DELEGATION_REVOKED = "governance.delegation.revoked";
+
+export interface DelegationPayload {
+  readonly delegationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly delegatorId: Uuid;
+  readonly delegateId: Uuid;
+  readonly scope: AuthorityScope;
+}
+
+const delegationPayload = (delegation: Delegation): DelegationPayload => ({
+  delegationId: delegation.id,
+  organizationId: delegation.organizationId,
+  delegatorId: delegation.delegatorId,
+  delegateId: delegation.delegateId,
+  scope: delegation.scope,
+});
+
+export type DelegationGrantedEvent = DomainEvent<typeof DELEGATION_GRANTED, DelegationPayload>;
+
+export const delegationGranted = (delegation: Delegation): DelegationGrantedEvent =>
+  createEvent(DELEGATION_GRANTED, delegationPayload(delegation), { tenantId: delegation.tenantId });
+
+export const delegationRevoked = (
+  delegation: Delegation,
+): DomainEvent<typeof DELEGATION_REVOKED, DelegationPayload> =>
+  createEvent(DELEGATION_REVOKED, delegationPayload(delegation), { tenantId: delegation.tenantId });

@@ -1,5 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Committee } from "./committee";
+import type { Delegation } from "./delegation";
 import type { GovernanceBody } from "./governance-body";
 import type { Policy, PolicyAcknowledgment } from "./policy";
 
@@ -160,6 +161,53 @@ export class InMemoryPolicyAcknowledgmentRepository implements PolicyAcknowledgm
         a.personId === personId &&
         a.version === version,
     );
+  }
+}
+
+/** Storage contract for delegations of authority. Tenant-scoped. */
+export interface DelegationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Delegation | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Delegation[]>;
+  listByDelegate(tenantId: TenantId, delegateId: Uuid): Promise<Delegation[]>;
+  listByTenant(tenantId: TenantId): Promise<Delegation[]>;
+  save(delegation: Delegation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link DelegationRepository} — the default for tests and bootstrap. */
+export class InMemoryDelegationRepository implements DelegationRepository {
+  private readonly byId = new Map<string, Delegation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Delegation | null> {
+    const delegation = this.byId.get(id);
+    return delegation && delegation.tenantId === tenantId ? delegation : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Delegation[]> {
+    return [...this.byId.values()].filter(
+      (d) => d.tenantId === tenantId && d.organizationId === organizationId,
+    );
+  }
+
+  async listByDelegate(tenantId: TenantId, delegateId: Uuid): Promise<Delegation[]> {
+    return [...this.byId.values()].filter(
+      (d) => d.tenantId === tenantId && d.delegateId === delegateId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Delegation[]> {
+    return [...this.byId.values()].filter((d) => d.tenantId === tenantId);
+  }
+
+  async save(delegation: Delegation): Promise<void> {
+    this.byId.set(delegation.id, delegation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const delegation = this.byId.get(id);
+    if (delegation && delegation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
   }
 }
 
