@@ -5,6 +5,7 @@ import {
   MembershipNotFoundError,
   OrganizationNotFoundForMembershipError,
   PersonNotFoundForMembershipError,
+  UnknownRoleError,
 } from "./errors";
 import {
   changeMembershipRoles,
@@ -23,12 +24,19 @@ import {
   membershipRolesChanged,
   membershipSuspended,
 } from "./membership-events";
-import type { MembershipRepository, OrganizationDirectory, PersonDirectory } from "./ports";
+import type {
+  MembershipRepository,
+  OrganizationDirectory,
+  PersonDirectory,
+  RoleDirectory,
+} from "./ports";
 
 export interface MembershipServiceDeps {
   readonly repository: MembershipRepository;
   readonly persons: PersonDirectory;
   readonly organizations: OrganizationDirectory;
+  /** When supplied, role names are validated against the tenant's catalogue. */
+  readonly roles?: RoleDirectory;
   readonly events?: Pick<EventBus, "publish">;
 }
 
@@ -43,12 +51,14 @@ export class MembershipService {
   private readonly repository: MembershipRepository;
   private readonly persons: PersonDirectory;
   private readonly organizations: OrganizationDirectory;
+  private readonly roles: RoleDirectory | undefined;
   private readonly events: Pick<EventBus, "publish"> | undefined;
 
   constructor(deps: MembershipServiceDeps) {
     this.repository = deps.repository;
     this.persons = deps.persons;
     this.organizations = deps.organizations;
+    this.roles = deps.roles;
     this.events = deps.events;
   }
 
@@ -59,6 +69,7 @@ export class MembershipService {
     if (!(await this.organizations.exists(input.tenantId, input.organizationId))) {
       throw new OrganizationNotFoundForMembershipError(input.organizationId);
     }
+    await this.assertRolesExist(input.tenantId, input.roles);
     const existing = await this.repository.findActiveByPersonAndOrg(
       input.tenantId,
       input.personId,
@@ -90,7 +101,9 @@ export class MembershipService {
   }
 
   async changeRoles(tenantId: TenantId, id: Uuid, roles: readonly string[]): Promise<Membership> {
-    const updated = changeMembershipRoles(await this.require(tenantId, id), roles);
+    const membership = await this.require(tenantId, id);
+    await this.assertRolesExist(tenantId, roles);
+    const updated = changeMembershipRoles(membership, roles);
     await this.repository.save(updated);
     await this.emit(membershipRolesChanged(updated));
     return updated;
@@ -138,6 +151,19 @@ export class MembershipService {
       }
     }
     return [...roles];
+  }
+
+  /** Validate role names against the tenant's role catalogue, when one is wired. */
+  private async assertRolesExist(tenantId: TenantId, roles: readonly string[]): Promise<void> {
+    if (!this.roles) {
+      return;
+    }
+    for (const role of roles) {
+      const name = role.trim();
+      if (name.length > 0 && !(await this.roles.roleExists(tenantId, name))) {
+        throw new UnknownRoleError(name);
+      }
+    }
   }
 
   private async require(tenantId: TenantId, id: Uuid): Promise<Membership> {

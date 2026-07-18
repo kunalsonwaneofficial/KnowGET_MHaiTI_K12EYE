@@ -30,6 +30,15 @@ export interface OrganizationDirectory {
   exists(tenantId: TenantId, organizationId: Uuid): Promise<boolean>;
 }
 
+/**
+ * Read model over the role catalogue: does an active role with this name exist
+ * in the tenant? Optional in the service — when supplied, membership role names
+ * are validated against the tenant's catalogue (P2-D01-M05).
+ */
+export interface RoleDirectory {
+  roleExists(tenantId: TenantId, roleName: string): Promise<boolean>;
+}
+
 /** In-memory {@link MembershipRepository} — the default for tests and bootstrap. */
 export class InMemoryMembershipRepository implements MembershipRepository {
   private readonly byId = new Map<string, Membership>();
