@@ -42,6 +42,14 @@ unchanged.
   backs full-text search (`tsvector`/GIN, `plainto_tsquery`/`ts_rank`) and a `bytea`
   blob store. The frozen sync ports are bridged by async seams; the Prisma adapters
   sit behind an opt-in module so the default build stays Prisma-free.
+- **KMS signing-key custody & token-signer seam (ADR-0019):** under
+  `SECURITY_KEY_CUSTODY=envelope` a `KmsClient` (`wrap`/`unwrap`) unwraps a
+  KMS-wrapped signing key at boot to seed the `KeyRing`, so the key is never held in
+  plaintext at rest; the `plaintext` default is unchanged. Token issuance runs through
+  an async `TokenSigner` seam — the active `HmacTokenSigner` verifies across retained
+  key versions (rotation overlap), and an RS256 `AsymmetricTokenSigner` over a
+  `KmsSigner` port (private key never leaves the device) is ready behind the seam. No
+  frozen change; a cloud-KMS/HSM adapter is the production drop-in.
 
 ### Notes
 
@@ -53,6 +61,10 @@ unchanged.
   notifications, search, files and the session read-through all have distributed
   backends (Redis / Postgres) behind their ports, env-gated with the in-memory
   default unchanged.
+- **TD-11 is resolved:** signing-key custody moves behind the frozen `KeyRing` — a
+  KMS-wrapped key unwrapped at boot (`SECURITY_KEY_CUSTODY=envelope`), an async
+  token-signer seam with multi-version verify, and an asymmetric RS256 signer ready
+  behind a `KmsSigner` port; env-gated with the plaintext default unchanged.
 
 ## [0.2.0] — 2026-07-18 — Phase 2 · Program A: Identity & Organization (certified baseline)
 
