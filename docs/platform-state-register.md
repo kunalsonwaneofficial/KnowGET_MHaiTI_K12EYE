@@ -167,9 +167,25 @@ session-store validate (revocation still checked; logout/replay invalidate; a sh
 TTL bounds staleness). Env-gated, so the in-memory single-instance default is
 unchanged; the ioredis adapter lives at the composition root and is verified live (a
 `REDIS_URL`-gated integration test in CI's `redis` service and in sandbox, plus a
-cross-instance shared-counter check). The remaining TD-19 backends — object store
-(files), search, distributed job runner, notifications — are later follow-ups. See
+cross-instance shared-counter check). See
 `docs/reports/P2-D01-DistributedCache-delivery-report.md`.
+
+**Distributed shared services — jobs, notifications, search, files (ADR-0018 —
+closes TD-19).** The four remaining shared services now have distributed backends
+behind their existing ports, env-gated with in-memory defaults. **Redis** (via
+`REDIS_URL`) backs a shared job queue (a sorted set scored by `availableAt`, with
+atomic Lua claim so replicas never double-run, retry/backoff and dead-letter) and a
+shared in-app inbox. **Postgres** (via `SERVICES_STORE=persisted`) backs full-text
+search (a generated `tsvector` + GIN index, `plainto_tsquery`/`ts_rank` ranking,
+JSONB `@>` filters) and a `bytea` blob store. The frozen ports' synchronous surfaces
+(`SearchIndex`, and the concrete job queue / inbox) are bridged by async app-level
+seams (the async-rate-limiter pattern); the Prisma adapters sit behind an opt-in
+`PersistedServicesModule` so the default build stays Prisma-free (TD-12). The
+Postgres tables are global (the ports are tenant-agnostic; tenant travels as a key
+prefix / filterable field). Verified live on Redis (job + inbox integration, shared
+across instances) and PostgreSQL (blob round-trip, ranked full-text search with the
+GIN index confirmed). With this, **TD-19 is fully resolved**. See
+`docs/reports/P2-D01-DistributedServices-delivery-report.md`.
 
 ## Shared services (P1-M05)
 
