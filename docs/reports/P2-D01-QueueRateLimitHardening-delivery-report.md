@@ -5,7 +5,7 @@
 |                |                                                                                                               |
 | -------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Contract**   | Reliability refinements deferred by ADR-0017 (limiter) and ADR-0018 (job queue)                               |
-| **Status**     | 🔄 Implemented; verification green in-sandbox (154 API tests, live Redis). CI pending on the feature branch.  |
+| **Status**     | ✅ Complete — merged to `main` (CI green). Verified in-sandbox (154 API tests, live Redis).                   |
 | **Depends on** | ADR-0017 (KeyValue/rate limiter), ADR-0018 (Redis job queue)                                                  |
 | **Scope**      | Job-queue visibility timeout (crash recovery) + sliding-window rate limiter, **env-gated**. No frozen change. |
 | **Date**       | 18 July 2026                                                                                                  |
