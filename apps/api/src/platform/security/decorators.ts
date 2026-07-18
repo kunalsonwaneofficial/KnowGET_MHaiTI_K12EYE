@@ -35,3 +35,23 @@ export const CurrentPrincipal = createParamDecorator(
     return field ? principal[field] : principal;
   },
 );
+
+/** The session/token references from the verified token, populated by the guard. */
+export interface SessionContext {
+  readonly sessionId?: string;
+  readonly tokenId?: string;
+  readonly tenantId?: string;
+}
+
+/**
+ * Injects the {@link SessionContext} (session id, token id, tenant) the
+ * {@link JwtAuthGuard} extracted from the presented token — used by the logout
+ * handler to revoke that session. Empty in memory mode (tokens carry no session
+ * references there).
+ */
+export const CurrentSession = createParamDecorator(
+  (_field: unknown, ctx: ExecutionContext): SessionContext => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+    return request.tokenContext ?? {};
+  },
+);

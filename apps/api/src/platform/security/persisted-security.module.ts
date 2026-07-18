@@ -1,4 +1,4 @@
-import type { SessionManager } from "@knowget/authentication";
+import { PrismaService } from "@knowget/database";
 import type {
   IdentityAccountRepository,
   IdentityAccountService,
@@ -27,7 +27,10 @@ import { PersonModule } from "../../domains/person/person.module";
 import { PERSON_SERVICE } from "../../domains/person/person.tokens";
 import { RolesModule } from "../../domains/roles/roles.module";
 import { ROLE_SERVICE } from "../../domains/roles/roles.tokens";
+import { DATABASE } from "../tokens";
 import { buildPersistedSecurity, type PersistedSecurity } from "./persisted/persisted-security";
+import { PrismaRevocationStore } from "./persisted/prisma-revocation.store";
+import { PrismaSessionStore } from "./persisted/prisma-session.store";
 import { type BootstrapAdmin, SecuritySeeder } from "./persisted/security-seeder";
 import { loadSecurityEnv } from "./security.env";
 import {
@@ -36,7 +39,7 @@ import {
   PERSISTED_PRINCIPAL_RESOLVER,
   SECURITY_AUDIT,
   SECURITY_CONFIG,
-  SESSION_MANAGER,
+  SESSION_ENFORCER,
 } from "./security.tokens";
 
 const PERSISTED_SECURITY = Symbol("PERSISTED_SECURITY");
@@ -68,16 +71,17 @@ const providers: Provider[] = [
       accounts: IdentityAccountRepository,
       memberships: MembershipRepository,
       roles: RoleService,
-      sessions: SessionManager,
       audit: SecurityAuditLogger,
       config: SecurityConfig,
       keyRing: KeyRing,
+      db: PrismaService,
     ): PersistedSecurity =>
       buildPersistedSecurity({
         accounts,
         memberships,
         rolePermissions: (tenantId, names) => roles.permissionsForRoleNames(tenantId, names),
-        sessions,
+        sessionStore: new PrismaSessionStore(db),
+        revocations: new PrismaRevocationStore(db),
         audit,
         config,
         signingKey: keyRing.current().material,
@@ -86,10 +90,10 @@ const providers: Provider[] = [
       IDENTITY_ACCOUNT_REPOSITORY,
       MEMBERSHIP_REPOSITORY,
       ROLE_SERVICE,
-      SESSION_MANAGER,
       SECURITY_AUDIT,
       SECURITY_CONFIG,
       KEY_RING,
+      DATABASE,
     ],
   },
   {
@@ -100,6 +104,11 @@ const providers: Provider[] = [
   {
     provide: PERSISTED_PRINCIPAL_RESOLVER,
     useFactory: (security: PersistedSecurity) => security.principals,
+    inject: [PERSISTED_SECURITY],
+  },
+  {
+    provide: SESSION_ENFORCER,
+    useFactory: (security: PersistedSecurity) => security.enforcer,
     inject: [PERSISTED_SECURITY],
   },
   {
@@ -126,16 +135,17 @@ const providers: Provider[] = [
 /**
  * Opt-in persisted security wiring (SECURITY_STORE=persisted). Imported by the
  * root module only in persisted mode, so memory mode never pulls the Prisma
- * repositories in. It provides the persisted authenticator + principal resolver
- * (the security module picks them up via `@Optional` injection, overriding the
- * in-memory bootstrap) and idempotently seeds the bootstrap administrator on boot.
- * Global so its exports override the security module's defaults app-wide.
+ * repositories in. It provides the persisted authenticator, principal resolver
+ * and per-request session enforcer (the security module + guard pick them up via
+ * `@Optional` injection, overriding the in-memory bootstrap) and idempotently
+ * seeds the bootstrap administrator on boot. Global so its exports override the
+ * security module's defaults app-wide.
  */
 @Global()
 @Module({
   imports: [PersonModule, OrganizationModule, RolesModule, IdentityModule, MembershipModule],
   providers,
-  exports: [PERSISTED_AUTHENTICATOR, PERSISTED_PRINCIPAL_RESOLVER],
+  exports: [PERSISTED_AUTHENTICATOR, PERSISTED_PRINCIPAL_RESOLVER, SESSION_ENFORCER],
 })
 export class PersistedSecurityModule implements OnModuleInit {
   constructor(@Inject(SECURITY_SEEDER) private readonly seeder: SecuritySeeder) {}

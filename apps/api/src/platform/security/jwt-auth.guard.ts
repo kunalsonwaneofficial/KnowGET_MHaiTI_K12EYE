@@ -3,12 +3,19 @@ import type { SecurityConfig } from "@knowget/security";
 import type { KeyRing } from "@knowget/security";
 import { type JwtClaims, TokenError, verifyJwt } from "@knowget/tokens";
 import type { Uuid } from "@knowget/types";
-import { type CanActivate, type ExecutionContext, Inject, Injectable } from "@nestjs/common";
+import {
+  type CanActivate,
+  type ExecutionContext,
+  Inject,
+  Injectable,
+  Optional,
+} from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { AuthenticatedRequest } from "./authenticated-request";
 import { IS_PUBLIC_KEY } from "./decorators";
 import type { PrincipalResolver } from "./principal-resolver";
-import { KEY_RING, PRINCIPAL_RESOLVER, SECURITY_CONFIG } from "./security.tokens";
+import { KEY_RING, PRINCIPAL_RESOLVER, SECURITY_CONFIG, SESSION_ENFORCER } from "./security.tokens";
+import type { SessionEnforcer } from "./session-enforcer";
 
 const BEARER_PREFIX = "Bearer ";
 
@@ -26,6 +33,9 @@ export class JwtAuthGuard implements CanActivate {
     @Inject(KEY_RING) private readonly keyRing: KeyRing,
     @Inject(SECURITY_CONFIG) private readonly config: SecurityConfig,
     @Inject(PRINCIPAL_RESOLVER) private readonly principals: PrincipalResolver,
+    // Present only in persisted mode (SECURITY_STORE=persisted); absent in memory
+    // mode, where the live session/revocation check is skipped (Phase-1 path).
+    @Optional() @Inject(SESSION_ENFORCER) private readonly enforcer?: SessionEnforcer,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -42,8 +52,28 @@ export class JwtAuthGuard implements CanActivate {
 
     // The optional `tenant` claim (set by tenant-qualified login in persisted
     // mode) scopes the persisted principal resolver; the in-memory resolver
-    // ignores it, so the default (memory) path is unchanged.
+    // ignores it, so the default (memory) path is unchanged. `sid`/`jti`/`fid`
+    // identify the session, token and refresh-family for live enforcement.
     const tenant = typeof claims.tenant === "string" ? claims.tenant : undefined;
+    const sessionId = typeof claims.sid === "string" ? claims.sid : undefined;
+    const tokenId = typeof claims.jti === "string" ? claims.jti : undefined;
+    const familyId = typeof claims.fid === "string" ? claims.fid : undefined;
+
+    // Persisted mode only: reject a token whose session has been revoked or has
+    // lapsed, or whose id/family has been revoked. Absent in memory mode, so the
+    // Phase-1 request path is unchanged.
+    if (this.enforcer) {
+      const allowed = await this.enforcer.enforce({
+        sessionId,
+        tokenId,
+        familyId,
+        tenantId: tenant,
+      });
+      if (!allowed) {
+        throw new TokenError("Session is no longer valid");
+      }
+    }
+
     const resolved = await this.principals.resolve(claims.sub, tenant);
     // Authenticated but unassigned subjects proceed with zero authority so that
     // downstream permission checks default-deny (least privilege) rather than
@@ -57,6 +87,13 @@ export class JwtAuthGuard implements CanActivate {
 
     request.principal = principal;
     request.auth = { principal, authenticatedAt: new Date((claims.iat ?? 0) * 1000).toISOString() };
+    // Surfaced to the logout handler (via `@CurrentSession`) so it can revoke the
+    // presented session/token. Only meaningful in persisted mode.
+    request.tokenContext = {
+      ...(sessionId !== undefined ? { sessionId } : {}),
+      ...(tokenId !== undefined ? { tokenId } : {}),
+      ...(tenant !== undefined ? { tenantId: tenant } : {}),
+    };
     return true;
   }
 

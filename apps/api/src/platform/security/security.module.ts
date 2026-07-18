@@ -52,7 +52,7 @@ const principalResolverProvider: Provider = {
 const authenticatorProvider: Provider = {
   provide: AUTHENTICATOR,
   useFactory: (graph: SecurityGraph, persisted?: Authenticator) =>
-    persisted ?? new EngineAuthenticator(graph.authentication, graph.config),
+    persisted ?? new EngineAuthenticator(graph.authentication, graph.config, graph.sessions),
   inject: [SECURITY_GRAPH, { token: PERSISTED_AUTHENTICATOR, optional: true }],
 };
 

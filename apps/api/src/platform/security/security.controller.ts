@@ -3,7 +3,14 @@ import { ValidationError } from "@knowget/exceptions";
 import { Body, Controller, Get, HttpCode, Inject, Post } from "@nestjs/common";
 import { z } from "zod";
 import type { Authenticator } from "./authenticator";
-import { CurrentPrincipal, Public, RateLimit, RequirePermissions } from "./decorators";
+import {
+  CurrentPrincipal,
+  CurrentSession,
+  Public,
+  RateLimit,
+  RequirePermissions,
+  type SessionContext,
+} from "./decorators";
 import { AUTHENTICATOR } from "./security.tokens";
 
 const loginSchema = z.object({
@@ -55,6 +62,24 @@ export class SecurityController {
       refreshToken: result.refreshToken,
       expiresInMs: result.expiresInMs,
     };
+  }
+
+  /**
+   * End the current session (sign out). Revokes the session and records the
+   * presented token as revoked, so both are rejected on the next request
+   * (persisted mode). Requires a valid bearer token.
+   */
+  @Post("logout")
+  @HttpCode(204)
+  async logout(@CurrentSession() session: SessionContext): Promise<void> {
+    if (!session.sessionId) {
+      return;
+    }
+    await this.authenticator.logout({
+      sessionId: session.sessionId,
+      ...(session.tokenId !== undefined ? { tokenId: session.tokenId } : {}),
+      ...(session.tenantId !== undefined ? { tenant: session.tenantId } : {}),
+    });
   }
 
   /** Return the authenticated principal (requires a valid bearer token). */
