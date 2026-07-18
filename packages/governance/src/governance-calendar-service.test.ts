@@ -4,6 +4,7 @@ import {
   CommitteeNotFoundForGovernanceError,
   GovernanceCalendarEntryNotFoundError,
   OrganizationNotFoundForGovernanceError,
+  PersonNotFoundForGovernanceError,
 } from "./errors";
 import { GovernanceCalendarService } from "./governance-calendar-service";
 import {
@@ -11,13 +12,16 @@ import {
   InMemoryGovernanceBodyRepository,
   InMemoryGovernanceCalendarRepository,
   type OrganizationDirectory,
+  type PersonDirectory,
 } from "./ports";
 
 const TENANT = "11111111-1111-1111-1111-111111111111" as TenantId;
 const ORG = "22222222-2222-2222-2222-222222222222" as Uuid;
+const PERSON = "33333333-3333-3333-3333-333333333333" as Uuid;
 const MISSING = "99999999-9999-9999-9999-999999999999" as Uuid;
 
 const orgDir: OrganizationDirectory = { exists: async (_t, id) => id === ORG };
+const personDir: PersonDirectory = { exists: async (_t, id) => id === PERSON };
 
 let service: GovernanceCalendarService;
 
@@ -27,6 +31,7 @@ beforeEach(() => {
     organizations: orgDir,
     governanceBodies: new InMemoryGovernanceBodyRepository(),
     committees: new InMemoryCommitteeRepository(),
+    persons: personDir,
   });
 });
 
@@ -75,11 +80,22 @@ describe("GovernanceCalendarService", () => {
     expect(upcoming.map((e) => e.title)).toEqual(["March"]);
   });
 
-  it("completes an entry recording minutes", async () => {
+  it("completes an entry recording minutes and validated attendees", async () => {
     const entry = await schedule("2026-04-01", "Audit review");
-    const completed = await service.complete(TENANT, entry.id, { minutes: "Findings noted." });
+    const completed = await service.complete(TENANT, entry.id, {
+      minutes: "Findings noted.",
+      attendeeIds: [PERSON],
+    });
     expect(completed.status).toBe("completed");
     expect(completed.minutes).toBe("Findings noted.");
+    expect(completed.attendeeIds).toEqual([PERSON]);
+  });
+
+  it("rejects completion recording an attendee who is not a person in the tenant", async () => {
+    const entry = await schedule("2026-04-02", "Board meeting");
+    await expect(
+      service.complete(TENANT, entry.id, { attendeeIds: [MISSING] }),
+    ).rejects.toBeInstanceOf(PersonNotFoundForGovernanceError);
   });
 
   it("isolates tenants", async () => {

@@ -206,12 +206,21 @@ const services: Provider[] = [
       organizations: OrganizationDirectory,
       governanceBodies: GovernanceBodyRepository,
       committees: CommitteeRepository,
-    ) => new GovernanceCalendarService({ repository, organizations, governanceBodies, committees }),
+      persons: PersonDirectory,
+    ) =>
+      new GovernanceCalendarService({
+        repository,
+        organizations,
+        governanceBodies,
+        committees,
+        persons,
+      }),
     inject: [
       GOVERNANCE_CALENDAR_REPOSITORY,
       GOVERNANCE_ORGANIZATION_DIRECTORY,
       GOVERNANCE_BODY_REPOSITORY,
       GOVERNANCE_COMMITTEE_REPOSITORY,
+      GOVERNANCE_PERSON_DIRECTORY,
     ],
   },
   {

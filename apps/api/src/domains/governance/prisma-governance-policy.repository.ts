@@ -162,13 +162,4 @@ export class PrismaGovernancePolicyAcknowledgmentRepository implements PolicyAck
       return rows.map(toAcknowledgment);
     });
   }
-
-  exists(tenantId: TenantId, policyId: Uuid, personId: Uuid, version: number): Promise<boolean> {
-    return withTenant(this.db, tenantId, async (tx: TransactionClient) => {
-      const count = await tx.governancePolicyAcknowledgment.count({
-        where: { policyId, personId, version },
-      });
-      return count > 0;
-    });
-  }
 }

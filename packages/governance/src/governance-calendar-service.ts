@@ -4,6 +4,7 @@ import {
   GovernanceCalendarEntryNotFoundError,
   OrganizationNotFoundForGovernanceError,
   ParentGovernanceBodyNotFoundError,
+  PersonNotFoundForGovernanceError,
 } from "./errors";
 import {
   cancelEntry,
@@ -19,6 +20,7 @@ import type {
   GovernanceBodyRepository,
   GovernanceCalendarRepository,
   OrganizationDirectory,
+  PersonDirectory,
 } from "./ports";
 
 export interface GovernanceCalendarServiceDeps {
@@ -26,6 +28,7 @@ export interface GovernanceCalendarServiceDeps {
   readonly organizations: OrganizationDirectory;
   readonly governanceBodies: GovernanceBodyRepository;
   readonly committees: CommitteeRepository;
+  readonly persons: PersonDirectory;
 }
 
 /** A date-only ISO string (YYYY-MM-DD) for overdue/upcoming checks. */
@@ -45,12 +48,14 @@ export class GovernanceCalendarService {
   private readonly organizations: OrganizationDirectory;
   private readonly governanceBodies: GovernanceBodyRepository;
   private readonly committees: CommitteeRepository;
+  private readonly persons: PersonDirectory;
 
   constructor(deps: GovernanceCalendarServiceDeps) {
     this.repository = deps.repository;
     this.organizations = deps.organizations;
     this.governanceBodies = deps.governanceBodies;
     this.committees = deps.committees;
+    this.persons = deps.persons;
   }
 
   async schedule(input: ScheduleEntryParams): Promise<GovernanceCalendarEntry> {
@@ -81,7 +86,11 @@ export class GovernanceCalendarService {
     id: Uuid,
     params?: CompleteEntryParams,
   ): Promise<GovernanceCalendarEntry> {
-    const updated = completeEntry(await this.require(tenantId, id), params);
+    const entry = await this.require(tenantId, id);
+    for (const personId of params?.attendeeIds ?? []) {
+      await this.assertPersonExists(tenantId, personId);
+    }
+    const updated = completeEntry(entry, params);
     await this.repository.save(updated);
     return updated;
   }
@@ -129,6 +138,12 @@ export class GovernanceCalendarService {
   private async assertCommitteeExists(tenantId: TenantId, committeeId: Uuid): Promise<void> {
     if (!(await this.committees.findById(tenantId, committeeId))) {
       throw new CommitteeNotFoundForGovernanceError(committeeId);
+    }
+  }
+
+  private async assertPersonExists(tenantId: TenantId, personId: Uuid): Promise<void> {
+    if (!(await this.persons.exists(tenantId, personId))) {
+      throw new PersonNotFoundForGovernanceError(personId);
     }
   }
 

@@ -95,11 +95,16 @@ export interface PolicyRepository {
   remove(tenantId: TenantId, id: Uuid): Promise<void>;
 }
 
-/** Storage contract for policy acknowledgments. Tenant-scoped. */
+/**
+ * Storage contract for policy acknowledgments. Tenant-scoped. An acknowledgment is
+ * an immutable, append-only compliance record keyed by (tenant, policy, person,
+ * version); `save` is idempotent on that key (re-acknowledging a version is a no-op
+ * beyond refreshing the timestamp), so the ledger never carries audit/soft-delete
+ * columns.
+ */
 export interface PolicyAcknowledgmentRepository {
   save(acknowledgment: PolicyAcknowledgment): Promise<void>;
   listByPolicy(tenantId: TenantId, policyId: Uuid): Promise<PolicyAcknowledgment[]>;
-  exists(tenantId: TenantId, policyId: Uuid, personId: Uuid, version: number): Promise<boolean>;
 }
 
 /** In-memory {@link PolicyRepository} — the default for tests and bootstrap. */
@@ -139,31 +144,32 @@ export class InMemoryPolicyRepository implements PolicyRepository {
   }
 }
 
-/** In-memory {@link PolicyAcknowledgmentRepository} — the default for tests. */
+/**
+ * In-memory {@link PolicyAcknowledgmentRepository} — the default for tests.
+ * `save` is idempotent on the natural key (tenant, policy, person, version),
+ * matching the Prisma adapter's upsert so the reference and production
+ * implementations agree on cardinality.
+ */
 export class InMemoryPolicyAcknowledgmentRepository implements PolicyAcknowledgmentRepository {
   private readonly entries: PolicyAcknowledgment[] = [];
 
   async save(acknowledgment: PolicyAcknowledgment): Promise<void> {
-    this.entries.push(acknowledgment);
+    const index = this.entries.findIndex(
+      (a) =>
+        a.tenantId === acknowledgment.tenantId &&
+        a.policyId === acknowledgment.policyId &&
+        a.personId === acknowledgment.personId &&
+        a.version === acknowledgment.version,
+    );
+    if (index >= 0) {
+      this.entries[index] = acknowledgment;
+    } else {
+      this.entries.push(acknowledgment);
+    }
   }
 
   async listByPolicy(tenantId: TenantId, policyId: Uuid): Promise<PolicyAcknowledgment[]> {
     return this.entries.filter((a) => a.tenantId === tenantId && a.policyId === policyId);
-  }
-
-  async exists(
-    tenantId: TenantId,
-    policyId: Uuid,
-    personId: Uuid,
-    version: number,
-  ): Promise<boolean> {
-    return this.entries.some(
-      (a) =>
-        a.tenantId === tenantId &&
-        a.policyId === policyId &&
-        a.personId === personId &&
-        a.version === version,
-    );
   }
 }
 

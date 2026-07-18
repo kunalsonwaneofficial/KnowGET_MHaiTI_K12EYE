@@ -378,7 +378,9 @@ model GovernancePolicy {
 }
 
 /// Policy acknowledgment (P2-D02). A Person's acknowledgment of a published policy
-/// version. Tenant-owned; one per (policy, person, version).
+/// version. Tenant-owned; one per (policy, person, version). An immutable,
+/// append-only compliance ledger — intentionally exempt from the audit/soft-delete
+/// columns the other governance tables carry (records are never edited or removed).
 model GovernancePolicyAcknowledgment {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId       String   @map("tenant_id") @db.Uuid
@@ -475,6 +477,9 @@ model GovernanceCalendarEntry {
   @@map("governance_calendar_entry")
 }
 
+/// Governance approval (P2-D02). A persisted instance of the single reusable
+/// approval workflow (policy/committee/resolution/delegation approval), driven by
+/// the Phase-1 workflow engine. `history` is the append-only decision audit trail.
 model GovernanceApproval {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenantId       String    @map("tenant_id") @db.Uuid

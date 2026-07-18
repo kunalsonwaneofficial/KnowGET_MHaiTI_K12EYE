@@ -6,6 +6,7 @@ import {
   InMemoryGovernanceBodyRepository,
   InMemoryGovernanceCalendarRepository,
   type OrganizationDirectory,
+  type PersonDirectory,
 } from "@knowget/governance";
 import type { TenantId, Uuid } from "@knowget/types";
 import { describe, expect, it } from "vitest";
@@ -23,6 +24,7 @@ const principal: Principal = {
 const noTenant: Principal = { id: "1" as Uuid, roles: [], permissions: [] };
 
 const anyOrg: OrganizationDirectory = { exists: async () => true };
+const anyPerson: PersonDirectory = { exists: async () => true };
 
 function controller(): GovernanceCalendarController {
   return new GovernanceCalendarController(
@@ -31,6 +33,7 @@ function controller(): GovernanceCalendarController {
       organizations: anyOrg,
       governanceBodies: new InMemoryGovernanceBodyRepository(),
       committees: new InMemoryCommitteeRepository(),
+      persons: anyPerson,
     }),
   );
 }
