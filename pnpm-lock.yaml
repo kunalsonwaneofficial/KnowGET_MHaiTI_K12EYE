@@ -126,6 +126,9 @@ importers:
       '@knowget/files':
         specifier: workspace:*
         version: link:../../packages/files
+      '@knowget/governance':
+        specifier: workspace:*
+        version: link:../../packages/governance
       '@knowget/health':
         specifier: workspace:*
         version: link:../../packages/health
