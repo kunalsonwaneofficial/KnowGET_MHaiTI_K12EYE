@@ -2,13 +2,13 @@
 
 **Institutional Governance Platform (IGP)** · Phase 2 (Enterprise Domain Engineering) · Program B (Institutional Governance)
 
-|                |                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D02 — Institutional Governance Platform                                                                                                 |
-| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Awaiting CI on the PR before merge. |
-| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), Phase 1 baseline (`v0.1.0`)                                                                    |
-| **Date**       | 18 July 2026                                                                                                                               |
-| **Next**       | P2-D03 — Student Lifecycle Intelligence Platform (SLIP)                                                                                    |
+|                |                                                                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D02 — Institutional Governance Platform                                                                                                  |
+| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. CI green (PR #20); merged to `main`. |
+| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), Phase 1 baseline (`v0.1.0`)                                                                     |
+| **Date**       | 18 July 2026                                                                                                                                |
+| **Next**       | P2-D03 — Student Lifecycle Intelligence Platform (SLIP)                                                                                     |
 
 ---
 
