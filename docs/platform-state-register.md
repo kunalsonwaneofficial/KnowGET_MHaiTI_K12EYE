@@ -31,7 +31,7 @@ pattern (ADR-0010). Program A — Identity & Organization:
 | P2-D01-M03 Enterprise Identity     | ✅ Complete    | Enterprise identity domain (tenant-scoped login accounts, identifiers, credential, lifecycle, lockout) linked to Person + RLS table (GIN identifier lookup) + REST module + auth-engine bridge. CI green; RLS verified on live PostgreSQL. Live on `main`.                      |
 | P2-D01-M04 Membership              | ✅ Complete    | Membership domain (Person→Organization role assignment, lifecycle, effective period) + RLS table + REST module + persisted tenant-scoped PrincipalResolver. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                          |
 | P2-D01-M05 Authorization           | ✅ Complete    | Tenant-scoped role catalogue (name→permissions, lifecycle, system-role protection) + RLS table + REST module; authorization made data-driven via a permission-resolution decorator; membership role-name validation. CI green; RLS verified on live PostgreSQL. Live on `main`. |
-| P2-D01-M06 Relationship            | ⬜ Not started | Next milestone.                                                                                                                                                                                                                                                                 |
+| P2-D01-M06 Relationship            | 🔄 In progress | Relationship domain (typed person↔person associations: guardian/parent/sibling/spouse/emergency-contact, directionality + counterpart, lifecycle) + RLS table + REST module. Verified in-sandbox & on live PostgreSQL; CI pending on `feat/p2-d01-m06-relationship`.            |
 | P2-D01-M07 Domain certification    | ⬜ Not started | Identity & Organization sub-domain certification.                                                                                                                                                                                                                               |
 
 ## Reusable capabilities available now
@@ -78,6 +78,7 @@ pattern (ADR-0010). Program A — Identity & Organization:
 | `@knowget/enterprise-identity` | IdentityAccount aggregate — Person-linked, tenant-scoped login accounts: identifiers (normalized keys), credential, lifecycle, lockout, events, port; auth-engine bridge (P2-D01-M03) |
 | `@knowget/membership`          | Membership aggregate — Person→Organization role assignment: role-name set, lifecycle, effective period, events, port; persisted PrincipalResolver (P2-D01-M04)                        |
 | `@knowget/roles`               | Role catalogue aggregate — tenant-scoped RBAC roles (name→permissions), lifecycle, system-role protection, events, port; role existence + permission-union resolution (P2-D01-M05)    |
+| `@knowget/relationship`        | Relationship aggregate — typed person↔person associations (guardian/parent/sibling/spouse/emergency-contact), directionality + counterpart, lifecycle, events, port (P2-D01-M06)      |
 
 ## Data platform (P1-M03)
 
