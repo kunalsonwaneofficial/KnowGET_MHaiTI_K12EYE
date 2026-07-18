@@ -5,7 +5,7 @@
 |                |                                                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | **Contract**   | P2-D01-M06 — Relationship                                                                                                          |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + on live PostgreSQL. CI pending on `feat/p2-d01-m06-relationship` (pre-merge gate). |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
 | **Depends on** | P2-D01-M02 (Person), Phase 1 baseline (`v0.1.0`)                                                                                   |
 | **Date**       | 18 July 2026                                                                                                                       |
 | **Next**       | P2-D01-M07 — Domain certification                                                                                                  |
