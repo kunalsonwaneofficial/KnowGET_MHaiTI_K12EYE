@@ -11,6 +11,8 @@ import { PlatformModule } from "./platform/platform.module";
 import { PersistedSecurityModule } from "./platform/security/persisted-security.module";
 import { loadSecurityEnv } from "./platform/security/security.env";
 import { SecurityModule } from "./platform/security/security.module";
+import { loadServicesEnv } from "./platform/services/backends/services.env";
+import { PersistedServicesModule } from "./platform/services/persisted-services.module";
 import { ServicesModule } from "./platform/services/services.module";
 
 /**
@@ -20,6 +22,11 @@ import { ServicesModule } from "./platform/services/services.module";
  */
 const persistedSecurity =
   loadSecurityEnv().SECURITY_STORE === "persisted" ? [PersistedSecurityModule] : [];
+
+/** Postgres-backed shared services (blob store, full-text search) are opt-in via
+ * SERVICES_STORE=persisted, so the default build stays Prisma-free (TD-12). */
+const persistedServices =
+  loadServicesEnv().SERVICES_STORE === "persisted" ? [PersistedServicesModule] : [];
 
 /**
  * Root application module. Builds on the Phase-1 platform core (kernel, data,
@@ -44,6 +51,7 @@ const persistedSecurity =
     MembershipModule,
     RelationshipModule,
     ...persistedSecurity,
+    ...persistedServices,
   ],
 })
 export class AppModule {}

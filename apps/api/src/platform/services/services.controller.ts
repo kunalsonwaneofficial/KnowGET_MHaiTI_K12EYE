@@ -1,8 +1,8 @@
 import type { Cache } from "@knowget/cache";
 import { DocumentBuilder, HtmlRenderer } from "@knowget/documents";
-import type { SearchIndex } from "@knowget/search";
 import { Controller, Get, Inject } from "@nestjs/common";
 import { Public } from "../security/decorators";
+import type { SearchService } from "./backends/search-service";
 import { CACHE, SEARCH_INDEX } from "./services.tokens";
 
 interface ServiceDescriptor {
@@ -37,7 +37,7 @@ const CATALOG: readonly ServiceDescriptor[] = [
 export class ServicesController {
   constructor(
     @Inject(CACHE) private readonly cache: Cache,
-    @Inject(SEARCH_INDEX) private readonly search: SearchIndex,
+    @Inject(SEARCH_INDEX) private readonly search: SearchService,
   ) {}
 
   @Get()
@@ -55,9 +55,9 @@ export class ServicesController {
     await this.cache.set(key, "ok", { ttlMs: 1000 });
     const cached = (await this.cache.get<string>(key)) ?? "miss";
 
-    this.search.index({ id: key, text: "shared services self test" });
-    const hits = this.search.search({ text: "self test" }).total;
-    this.search.remove(key);
+    await this.search.index({ id: key, text: "shared services self test" });
+    const hits = (await this.search.search({ text: "self test" })).total;
+    await this.search.remove(key);
 
     const html = new HtmlRenderer().render(
       new DocumentBuilder().heading(2, "Self-test").paragraph("ok").build(),

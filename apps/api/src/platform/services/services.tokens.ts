@@ -10,3 +10,8 @@ export const TRANSLATOR = Symbol("TRANSLATOR");
 export const OUTBOX = Symbol("OUTBOX");
 export const MEDIA_PROCESSOR = Symbol("MEDIA_PROCESSOR");
 export const EVENT_BUS = Symbol("EVENT_BUS");
+
+/** Postgres-backed overrides provided by `PersistedServicesModule` (SERVICES_STORE=persisted);
+ * absent (⇒ in-memory fallback) otherwise. Injected `@Optional` by the services module. */
+export const PERSISTED_BLOB_STORE = Symbol("PERSISTED_BLOB_STORE");
+export const PERSISTED_SEARCH_INDEX = Symbol("PERSISTED_SEARCH_INDEX");
