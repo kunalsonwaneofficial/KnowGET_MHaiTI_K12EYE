@@ -5,7 +5,7 @@
 |                |                                                                                                                                |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | **Contract**   | Live security hardening — the deferred TD-16 remainder from P2-D01-M07                                                         |
-| **Status**     | 🔄 Implemented; verification green in-sandbox. CI pending on `feat/p2-d01-security-hardening` (pre-merge gate).                |
+| **Status**     | ✅ Complete — merged to `main` (`04000fc`); CI green. Live behind `SECURITY_STORE=persisted` (memory default).                 |
 | **Depends on** | P2-D01-M01…M07 (the certified Identity & Organization sub-domain), P1-M04 (security engine)                                    |
 | **Scope**      | Identity + principal→role live wiring, **env-gated (memory default)**. Session/revocation persistence deferred (chosen scope). |
 | **Date**       | 18 July 2026                                                                                                                   |
