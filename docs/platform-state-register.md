@@ -126,9 +126,22 @@ is an opt-in `@Global` module with an `@Optional` fallback, so the default
 (memory) path never imports Prisma and stays in-sandbox testable; an idempotent
 seeder provisions the bootstrap administrator on boot. The composition is
 port-based and proven end to end in-sandbox (seed → tenant-qualified login →
-verify → resolve → authorize) with only the Prisma DI wiring CI-only. Session and
-token-revocation persistence remain the next security follow-up. See
+verify → resolve → authorize) with only the Prisma DI wiring CI-only. See
 `docs/reports/P2-D01-SecurityHardening-delivery-report.md`.
+
+**Session & token-revocation persistence (post-P2-D01 certification, ADR-0015 —
+closes TD-16).** Sessions and token revocation are now persisted, tenant-scoped
+(FORCE RLS on `security_session` / `security_revocation`) **and enforced per
+request** in persisted mode. The persisted access token carries a `jti`; the JWT
+guard consults an `@Optional` `SessionEnforcer` that validates the session (through
+the frozen `SessionManager` — idle/absolute timeout + revoked) and honours
+token/family revocation, fail-closed; `POST /secure/logout` revokes the session and
+records the token, so both take effect on the next request. The enforcer is absent
+in memory mode, so the Phase-1 request path is unchanged. Proven end to end
+in-sandbox and on live-PostgreSQL RLS; one session read-and-touch per request is the
+sliding-expiry cost (TD-22). With this, **TD-16 is fully resolved**; refresh-token
+rotation remains TD-18. See
+`docs/reports/P2-D01-SessionRevocationPersistence-delivery-report.md`.
 
 ## Shared services (P1-M05)
 

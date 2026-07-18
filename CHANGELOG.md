@@ -3,6 +3,35 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — Security hardening (post-0.2.0)
+
+Post-certification hardening of the live security path, on the frozen Phase-1 core
+and the certified `v0.2.0` Identity & Organization program. All env-gated behind
+`SECURITY_STORE=persisted` (memory remains the default); the memory request path is
+unchanged.
+
+### Added
+
+- **Live security wiring (ADR-0014):** with `SECURITY_STORE=persisted` the running
+  app authenticates and authorizes against the certified persisted, tenant-scoped
+  identity / principal→role / role→permission stores. Tenant travels as a JWT claim
+  (no frozen-code change); an opt-in `@Global` module with an `@Optional` fallback
+  keeps memory mode Prisma-free; an idempotent seeder provisions the bootstrap admin.
+- **Session & token-revocation persistence (ADR-0015):** `security_session` and
+  `security_revocation` tables (FORCE RLS, tenant-isolated); sessions and token
+  revocation persisted behind ports and **enforced per request** via an `@Optional`
+  `SessionEnforcer` on the JWT guard (fail-closed). A `jti` claim on the persisted
+  access token and a `POST /secure/logout` route make revocation effective and
+  durable.
+
+### Notes
+
+- **TD-16 is fully resolved:** identity, principal→role, role→permission, sessions
+  and token revocation are all persisted, tenant-scoped and enforced under
+  `SECURITY_STORE=persisted`. Promoting `persisted` to the default is an operational
+  toggle; refresh-token rotation/replay remains TD-18; the per-request session
+  read-and-touch is TD-22.
+
 ## [0.2.0] — 2026-07-18 — Phase 2 · Program A: Identity & Organization (certified baseline)
 
 The first Phase-2 domain program, built on the frozen Phase-1 core. Six domains
