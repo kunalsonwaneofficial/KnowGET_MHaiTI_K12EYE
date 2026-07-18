@@ -1,16 +1,17 @@
 import type { Principal } from "@knowget/auth";
-import { AuthenticationEngine } from "@knowget/authentication";
 import { ValidationError } from "@knowget/exceptions";
-import type { SecurityConfig } from "@knowget/security";
 import { Body, Controller, Get, HttpCode, Inject, Post } from "@nestjs/common";
 import { z } from "zod";
+import type { Authenticator } from "./authenticator";
 import { CurrentPrincipal, Public, RateLimit, RequirePermissions } from "./decorators";
-import { AUTHENTICATION_ENGINE, SECURITY_CONFIG } from "./security.tokens";
+import { AUTHENTICATOR } from "./security.tokens";
 
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
   device: z.string().optional(),
+  /** Tenant to sign in to. Required in persisted mode; ignored in memory mode. */
+  tenant: z.string().uuid().optional(),
 });
 
 interface LoginResponse {
@@ -28,10 +29,7 @@ interface LoginResponse {
  */
 @Controller("secure")
 export class SecurityController {
-  constructor(
-    @Inject(AUTHENTICATION_ENGINE) private readonly authentication: AuthenticationEngine,
-    @Inject(SECURITY_CONFIG) private readonly config: SecurityConfig,
-  ) {}
+  constructor(@Inject(AUTHENTICATOR) private readonly authenticator: Authenticator) {}
 
   /** Exchange credentials for an access token. Public but tightly rate-limited. */
   @Public()
@@ -45,17 +43,17 @@ export class SecurityController {
         details: { issues: parsed.error.issues },
       });
     }
-    const result = await this.authentication.authenticate({
-      type: "email",
-      value: parsed.data.email,
+    const result = await this.authenticator.login({
+      email: parsed.data.email,
       password: parsed.data.password,
       ...(parsed.data.device !== undefined ? { device: parsed.data.device } : {}),
+      ...(parsed.data.tenant !== undefined ? { tenant: parsed.data.tenant } : {}),
     });
     return {
       tokenType: "Bearer",
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
-      expiresInMs: this.config.token.accessTokenTtlMs,
+      expiresInMs: result.expiresInMs,
     };
   }
 

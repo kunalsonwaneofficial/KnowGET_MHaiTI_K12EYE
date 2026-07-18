@@ -40,7 +40,11 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const claims = this.verify(this.extractToken(request));
 
-    const resolved = await this.principals.resolve(claims.sub);
+    // The optional `tenant` claim (set by tenant-qualified login in persisted
+    // mode) scopes the persisted principal resolver; the in-memory resolver
+    // ignores it, so the default (memory) path is unchanged.
+    const tenant = typeof claims.tenant === "string" ? claims.tenant : undefined;
+    const resolved = await this.principals.resolve(claims.sub, tenant);
     // Authenticated but unassigned subjects proceed with zero authority so that
     // downstream permission checks default-deny (least privilege) rather than
     // failing open or rejecting identity outright. The `sub` is an opaque,

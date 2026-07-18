@@ -116,6 +116,20 @@ frozen engine — TD-16 progressively resolved). Bootstrap secrets are required 
 layer is additionally verified in-sandbox by an isolated type-check and an
 in-process `SecurityModule` integration spec.
 
+**Live security hardening (post-P2-D01 certification, ADR-0014).** The persisted
+stores are now wirable as the running app's security path behind an env flag,
+`SECURITY_STORE=persisted` (default `memory`). Tenant is propagated as a **JWT
+claim** — the app re-signs the access token after the frozen engine verifies
+credentials — so P1-M04's token issuer and `Session` type stay untouched; the
+guard passes the claim to a tenant-scoped `PrincipalResolver`. The persisted path
+is an opt-in `@Global` module with an `@Optional` fallback, so the default
+(memory) path never imports Prisma and stays in-sandbox testable; an idempotent
+seeder provisions the bootstrap administrator on boot. The composition is
+port-based and proven end to end in-sandbox (seed → tenant-qualified login →
+verify → resolve → authorize) with only the Prisma DI wiring CI-only. Session and
+token-revocation persistence remain the next security follow-up. See
+`docs/reports/P2-D01-SecurityHardening-delivery-report.md`.
+
 ## Shared services (P1-M05)
 
 Twelve horizontal capabilities every Phase-2 domain consumes rather than
