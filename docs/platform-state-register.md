@@ -187,6 +187,23 @@ across instances) and PostgreSQL (blob round-trip, ranked full-text search with 
 GIN index confirmed). With this, **TD-19 is fully resolved**. See
 `docs/reports/P2-D01-DistributedServices-delivery-report.md`.
 
+**KMS signing-key custody & token-signer seam (ADR-0019 — resolves TD-11).** The
+JWT signing key is no longer forced to live plaintext in the environment. Under
+`SECURITY_KEY_CUSTODY=envelope`, a `KmsClient` (`wrap`/`unwrap`; `LocalKmsClient`
+uses AES-256-GCM under a KEK) unwraps a wrapped signing key at boot to seed the
+`KeyRing`, so every consumer — signer, guard, frozen engine — uses the custodied
+material transparently; the `plaintext` default (`SECURITY_JWT_SECRET`) is unchanged.
+Token issuance runs through an async `TokenSigner` seam: the active `HmacTokenSigner`
+composes the frozen `signJwt`/`verifyJwt` over the `KeyRing`, signing with the current
+key and **verifying across retained prior versions** (a rotation overlap window,
+resolving the single-current-key limit). An RS256 `AsymmetricTokenSigner` over a
+`KmsSigner` port (private key never leaves the device; verify is local via the public
+key) is built and tested behind the seam via an in-process RSA software-key double —
+a cloud-KMS/HSM adapter is the production drop-in that also moves the KEK root of
+trust into hardware. Env-gated, fail-closed, no frozen change; verified in-sandbox
+(envelope round-trip, multi-version verify, RS256 sign/verify, and `buildSecurityGraph`
+booting in both modes). See `docs/reports/P2-D01-KeyCustody-delivery-report.md`.
+
 ## Shared services (P1-M05)
 
 Twelve horizontal capabilities every Phase-2 domain consumes rather than

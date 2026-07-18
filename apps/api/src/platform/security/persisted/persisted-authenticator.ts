@@ -12,6 +12,7 @@ import { issueRefreshToken, signJwt } from "@knowget/tokens";
 import type { TenantId } from "@knowget/types";
 import { tenantIdentityRepository } from "../../../domains/identity/identity-authentication.bridge";
 import type { SessionValidityCache } from "../../keyvalue/session-cache";
+import type { TokenSigner } from "../signing/token-signer";
 import type {
   Authenticator,
   LoginInput,
@@ -50,6 +51,11 @@ export class PersistedAuthenticator implements Authenticator {
     private readonly config: SecurityConfig,
     private readonly signingKey: Buffer,
     private readonly sessionCache?: SessionValidityCache,
+    // Active token-signer seam (TD-11). When provided, access tokens are issued
+    // through it (HMAC over the KeyRing by default; a KMS/HSM signer implements the
+    // same port). Absent ⇒ the frozen HS256 `signJwt` with `signingKey` directly,
+    // preserving the prior behavior for in-memory/test construction.
+    private readonly signer?: TokenSigner,
   ) {}
 
   async login(input: LoginInput): Promise<LoginResult> {
@@ -152,20 +158,23 @@ export class PersistedAuthenticator implements Authenticator {
       // Session-bound: never outlive the session's absolute expiry.
       expiresAt: Math.min(refresh.expiresAt, session.expiresAt),
     });
-    const accessToken = signJwt(
-      {
-        sub: identityId,
-        sid: session.id,
-        tenant: tenantId,
-        jti: secureToken(16),
-        fid: refresh.familyId,
-      },
-      {
-        key: this.signingKey,
-        expiresInMs: this.config.token.accessTokenTtlMs,
-        issuer: this.config.token.issuer,
-      },
-    );
+    const claims = {
+      sub: identityId,
+      sid: session.id,
+      tenant: tenantId,
+      jti: secureToken(16),
+      fid: refresh.familyId,
+    };
+    const accessToken = this.signer
+      ? await this.signer.sign(claims, {
+          expiresInMs: this.config.token.accessTokenTtlMs,
+          issuer: this.config.token.issuer,
+        })
+      : signJwt(claims, {
+          key: this.signingKey,
+          expiresInMs: this.config.token.accessTokenTtlMs,
+          issuer: this.config.token.issuer,
+        });
     return {
       accessToken,
       refreshToken: refresh.token,

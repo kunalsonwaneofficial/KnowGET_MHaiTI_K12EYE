@@ -7,6 +7,7 @@ import { PermissionsGuard } from "./permissions.guard";
 import type { PrincipalResolver } from "./principal-resolver";
 import { RateLimitGuard } from "./rate-limit.guard";
 import { SecurityController } from "./security.controller";
+import { HmacTokenSigner } from "./signing/token-signer";
 import { loadSecurityEnv } from "./security.env";
 import { buildSecurityGraph, type SecurityGraph } from "./security.providers";
 import {
@@ -24,6 +25,7 @@ import {
   SECURITY_CONFIG,
   SECURITY_GRAPH,
   SESSION_MANAGER,
+  TOKEN_SIGNER,
 } from "./security.tokens";
 
 /** Expose one field of the shared graph under its own injection token. */
@@ -81,6 +83,7 @@ const defaultRateLimitProvider: Provider = {
   providers: [
     graphProvider,
     fromGraph(KEY_RING, (g) => g.keyRing),
+    fromGraph(TOKEN_SIGNER, (g) => new HmacTokenSigner(g.keyRing)),
     fromGraph(SECURITY_CONFIG, (g) => g.config),
     fromGraph(AUTHORIZATION_ENGINE, (g) => g.authorization),
     fromGraph(AUTHENTICATION_ENGINE, (g) => g.authentication),
@@ -99,6 +102,7 @@ const defaultRateLimitProvider: Provider = {
   ],
   exports: [
     KEY_RING,
+    TOKEN_SIGNER,
     SECURITY_CONFIG,
     AUTHORIZATION_ENGINE,
     AUTHENTICATION_ENGINE,

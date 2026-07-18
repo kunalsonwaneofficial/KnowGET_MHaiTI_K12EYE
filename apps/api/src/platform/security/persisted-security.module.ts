@@ -43,7 +43,9 @@ import {
   SECURITY_AUDIT,
   SECURITY_CONFIG,
   SESSION_ENFORCER,
+  TOKEN_SIGNER,
 } from "./security.tokens";
+import type { TokenSigner } from "./signing/token-signer";
 
 const PERSISTED_SECURITY = Symbol("PERSISTED_SECURITY");
 const SECURITY_SEEDER = Symbol("SECURITY_SEEDER");
@@ -79,6 +81,7 @@ const providers: Provider[] = [
       keyRing: KeyRing,
       db: PrismaService,
       sessionCache: SessionValidityCache,
+      signer: TokenSigner,
     ): PersistedSecurity =>
       buildPersistedSecurity({
         accounts,
@@ -91,6 +94,7 @@ const providers: Provider[] = [
         config,
         signingKey: keyRing.current().material,
         sessionCache,
+        signer,
       }),
     inject: [
       IDENTITY_ACCOUNT_REPOSITORY,
@@ -101,6 +105,7 @@ const providers: Provider[] = [
       KEY_RING,
       DATABASE,
       SESSION_VALIDITY_CACHE,
+      TOKEN_SIGNER,
     ],
   },
   {

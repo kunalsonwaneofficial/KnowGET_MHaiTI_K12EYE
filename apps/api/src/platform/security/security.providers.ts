@@ -17,6 +17,8 @@ import {
   SecurityAuditLogger,
   type SecurityConfig,
 } from "@knowget/security";
+import { LocalKmsClient } from "./kms/kms-client";
+import { readKek, resolveEnvelopeKeyRing } from "./kms/key-custody";
 import { InMemoryPrincipalResolver, type PrincipalResolver } from "./principal-resolver";
 import type { SecurityEnv } from "./security.env";
 
@@ -41,8 +43,21 @@ export interface SecurityGraph {
   readonly bootstrap: { readonly identityId: string; readonly email: string };
 }
 
-/** Resolve the JWT signing key ring, requiring an explicit secret in production. */
-function resolveKeyRing(env: SecurityEnv): KeyRing {
+/**
+ * Resolve the JWT signing key ring per the custody mode (TD-11). `envelope` unwraps
+ * a KMS-wrapped key so it is never held in plaintext; `plaintext` takes the key from
+ * `SECURITY_JWT_SECRET`, requiring it in production rather than booting ephemeral.
+ */
+async function resolveKeyRing(env: SecurityEnv): Promise<KeyRing> {
+  if (env.SECURITY_KEY_CUSTODY === "envelope") {
+    if (!env.SECURITY_KMS_MASTER_KEY || !env.SECURITY_JWT_KEY_WRAPPED) {
+      throw new ConfigurationError(
+        "SECURITY_KEY_CUSTODY=envelope requires SECURITY_KMS_MASTER_KEY and SECURITY_JWT_KEY_WRAPPED",
+      );
+    }
+    const kms = new LocalKmsClient(readKek(env.SECURITY_KMS_MASTER_KEY));
+    return resolveEnvelopeKeyRing(env.SECURITY_JWT_KEY_WRAPPED, kms);
+  }
   if (env.SECURITY_JWT_SECRET) {
     return new KeyRing(Buffer.from(env.SECURITY_JWT_SECRET, "utf8"));
   }
@@ -78,7 +93,7 @@ function resolveBootstrapCredentials(env: SecurityEnv): { email: string; passwor
  * both the identity store and the principal/role assignment consistently.
  */
 export async function buildSecurityGraph(env: SecurityEnv): Promise<SecurityGraph> {
-  const keyRing = resolveKeyRing(env);
+  const keyRing = await resolveKeyRing(env);
   const config: SecurityConfig = defaultSecurityConfig;
 
   const roleStore = new InMemoryRoleStore(BOOTSTRAP_ROLES);
