@@ -44,11 +44,15 @@ export class PrismaBlobStore implements BlobStore {
   constructor(private readonly db: PrismaService) {}
 
   async put(key: string, data: Buffer, options?: PutOptions): Promise<BlobMetadata> {
+    // Prisma's `Bytes` input is `Uint8Array<ArrayBuffer>`, but a Node `Buffer` is
+    // typed `Buffer<ArrayBufferLike>` (its backing store may be a `SharedArrayBuffer`).
+    // Copy into a plain `ArrayBuffer`-backed view so the write is well-typed.
+    const bytes = new Uint8Array(data);
     const fields = {
       contentType: options?.contentType ?? DEFAULT_CONTENT_TYPE,
       checksum: checksumOf(data),
       size: data.byteLength,
-      data,
+      data: bytes,
     };
     const row = await this.db.client.serviceBlob.upsert({
       where: { key },
