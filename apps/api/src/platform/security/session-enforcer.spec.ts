@@ -2,6 +2,9 @@ import { SessionManager } from "@knowget/authentication";
 import { defaultSecurityConfig } from "@knowget/security";
 import type { TenantId } from "@knowget/types";
 import { beforeEach, describe, expect, it } from "vitest";
+import { KeyValueCache } from "../keyvalue/key-value-cache";
+import { InMemoryKeyValueStore } from "../keyvalue/key-value-store";
+import { SessionValidityCache } from "../keyvalue/session-cache";
 import { InMemoryRevocationStore } from "./persisted/revocation-store";
 import { InMemorySessionStore } from "./persisted/session-store";
 import { tenantSessionRepository } from "./persisted/tenant-session.repository";
@@ -68,5 +71,31 @@ describe("PersistedSessionEnforcer", () => {
     expect(await enforcer.enforce({ sessionId: sid, tokenId: "jti-ok", tenantId: TENANT })).toBe(
       true,
     );
+  });
+
+  it("read-through cache skips the store validate until invalidated (TD-22)", async () => {
+    const cache = new SessionValidityCache(new KeyValueCache(new InMemoryKeyValueStore()), 60_000);
+    const cached = new PersistedSessionEnforcer(
+      sessions,
+      revocations,
+      defaultSecurityConfig,
+      cache,
+    );
+    const sid = await createSession(TENANT);
+
+    // First call validates against the store and caches the result.
+    expect(await cached.enforce({ sessionId: sid, tenantId: TENANT })).toBe(true);
+
+    // Revoke directly in the store — the cached fast path still admits it...
+    const manager = new SessionManager(
+      tenantSessionRepository(sessions, TENANT),
+      defaultSecurityConfig.session,
+    );
+    await manager.revoke(sid);
+    expect(await cached.enforce({ sessionId: sid, tenantId: TENANT })).toBe(true);
+
+    // ...until the cache entry is invalidated, after which the store is re-checked.
+    await cache.invalidate(TENANT, sid);
+    expect(await cached.enforce({ sessionId: sid, tenantId: TENANT })).toBe(false);
   });
 });

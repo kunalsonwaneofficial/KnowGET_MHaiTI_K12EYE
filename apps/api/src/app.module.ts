@@ -5,6 +5,7 @@ import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
 import { RelationshipModule } from "./domains/relationship/relationship.module";
 import { RolesModule } from "./domains/roles/roles.module";
+import { KeyValueModule } from "./platform/keyvalue/keyvalue.module";
 import { ObservabilityModule } from "./platform/observability/observability.module";
 import { PlatformModule } from "./platform/platform.module";
 import { PersistedSecurityModule } from "./platform/security/persisted-security.module";
@@ -32,6 +33,7 @@ const persistedSecurity =
 @Module({
   imports: [
     PlatformModule,
+    KeyValueModule,
     SecurityModule,
     ServicesModule,
     ObservabilityModule,
