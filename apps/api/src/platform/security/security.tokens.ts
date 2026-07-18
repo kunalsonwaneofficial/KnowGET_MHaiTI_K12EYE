@@ -18,6 +18,10 @@ export const DEFAULT_RATE_LIMIT = Symbol("DEFAULT_RATE_LIMIT");
 /** Exchanges credentials for tokens (memory or persisted, chosen by env). */
 export const AUTHENTICATOR = Symbol("AUTHENTICATOR");
 
+/** Active JWT signer/verifier seam (TD-11): HMAC over the KeyRing by default; an
+ * asymmetric KMS/HSM signer implements the same port. */
+export const TOKEN_SIGNER = Symbol("TOKEN_SIGNER");
+
 /** Persisted-mode overrides, provided by `PersistedSecurityModule` when enabled;
  * absent (⇒ memory fallback) otherwise. Injected `@Optional` by the security module. */
 export const PERSISTED_AUTHENTICATOR = Symbol("PERSISTED_AUTHENTICATOR");

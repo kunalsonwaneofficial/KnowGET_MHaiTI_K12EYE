@@ -5,6 +5,7 @@ import type { SessionValidityCache } from "../../keyvalue/session-cache";
 import type { Authenticator } from "../authenticator";
 import type { PrincipalResolver } from "../principal-resolver";
 import { PersistedSessionEnforcer, type SessionEnforcer } from "../session-enforcer";
+import type { TokenSigner } from "../signing/token-signer";
 import { PersistedAuthenticator } from "./persisted-authenticator";
 import {
   PersistedPrincipalResolver,
@@ -26,6 +27,8 @@ export interface PersistedSecurityDeps {
   readonly signingKey: Buffer;
   /** Optional session read-through cache (TD-22); shared with the enforcer. */
   readonly sessionCache?: SessionValidityCache;
+  /** Active token signer (TD-11); when set, access tokens are issued through it. */
+  readonly signer?: TokenSigner;
 }
 
 export interface PersistedSecurity {
@@ -53,6 +56,7 @@ export function buildPersistedSecurity(deps: PersistedSecurityDeps): PersistedSe
       deps.config,
       deps.signingKey,
       deps.sessionCache,
+      deps.signer,
     ),
     principals: new PersistedPrincipalResolver(
       deps.accounts,
