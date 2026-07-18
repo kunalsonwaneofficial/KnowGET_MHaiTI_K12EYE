@@ -26,7 +26,8 @@
     "@knowget/shared": "workspace:*",
     "@knowget/types": "workspace:*",
     "@knowget/exceptions": "workspace:*",
-    "@knowget/events": "workspace:*"
+    "@knowget/events": "workspace:*",
+    "@knowget/workflow": "workspace:*"
   },
   "devDependencies": {
     "@knowget/config": "workspace:*",

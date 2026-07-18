@@ -366,3 +366,27 @@ export class CommitteeNotFoundForGovernanceError extends PlatformError {
     });
   }
 }
+
+/** The requested approval process does not exist in the current tenant. */
+export class ApprovalNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Approval "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** Segregation of duties: an approval cannot be decided by the person who submitted it. */
+export class SelfApprovalError extends PlatformError {
+  constructor(personId: string) {
+    super("An approval cannot be decided by the person who submitted it", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}

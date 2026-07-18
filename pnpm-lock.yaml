@@ -724,6 +724,9 @@ importers:
       '@knowget/types':
         specifier: workspace:*
         version: link:../types
+      '@knowget/workflow':
+        specifier: workspace:*
+        version: link:../workflow
     devDependencies:
       '@knowget/config':
         specifier: workspace:*

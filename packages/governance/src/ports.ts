@@ -1,6 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Committee } from "./committee";
 import type { Delegation } from "./delegation";
+import type { ApprovalKind, GovernanceApproval } from "./governance-approval";
 import type { GovernanceBody } from "./governance-body";
 import type { GovernanceCalendarEntry } from "./governance-calendar";
 import type { Policy, PolicyAcknowledgment } from "./policy";
@@ -291,6 +292,64 @@ export class InMemoryGovernanceCalendarRepository implements GovernanceCalendarR
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const entry = this.byId.get(id);
     if (entry && entry.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for governance approval processes. Tenant-scoped. */
+export interface GovernanceApprovalRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<GovernanceApproval | null>;
+  listBySubject(
+    tenantId: TenantId,
+    kind: ApprovalKind,
+    subjectId: Uuid,
+  ): Promise<GovernanceApproval[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<GovernanceApproval[]>;
+  listByTenant(tenantId: TenantId): Promise<GovernanceApproval[]>;
+  save(approval: GovernanceApproval): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link GovernanceApprovalRepository} — the default for tests. */
+export class InMemoryGovernanceApprovalRepository implements GovernanceApprovalRepository {
+  private readonly byId = new Map<string, GovernanceApproval>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<GovernanceApproval | null> {
+    const approval = this.byId.get(id);
+    return approval && approval.tenantId === tenantId ? approval : null;
+  }
+
+  async listBySubject(
+    tenantId: TenantId,
+    kind: ApprovalKind,
+    subjectId: Uuid,
+  ): Promise<GovernanceApproval[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.kind === kind && a.subjectId === subjectId,
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<GovernanceApproval[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<GovernanceApproval[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(approval: GovernanceApproval): Promise<void> {
+    this.byId.set(approval.id, approval);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const approval = this.byId.get(id);
+    if (approval && approval.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
