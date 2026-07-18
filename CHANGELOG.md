@@ -23,14 +23,20 @@ unchanged.
   `SessionEnforcer` on the JWT guard (fail-closed). A `jti` claim on the persisted
   access token and a `POST /secure/logout` route make revocation effective and
   durable.
+- **Refresh-token rotation & replay detection (ADR-0016):** `security_refresh_token`
+  table (FORCE RLS); refresh tokens are persisted (SHA-256 hash only), single-use,
+  and rotate within a **session-bound family**. `POST /secure/refresh` rotates the
+  token and re-issues an access token for the same session; replaying a consumed
+  token revokes the family and its session, and the access token's `fid` claim makes
+  the guard reject every token in that family. Logout ends the whole lineage.
 
 ### Notes
 
-- **TD-16 is fully resolved:** identity, principal→role, role→permission, sessions
-  and token revocation are all persisted, tenant-scoped and enforced under
-  `SECURITY_STORE=persisted`. Promoting `persisted` to the default is an operational
-  toggle; refresh-token rotation/replay remains TD-18; the per-request session
-  read-and-touch is TD-22.
+- **TD-16 and TD-18 are resolved:** identity, principal→role, role→permission,
+  sessions, token revocation, and refresh-token rotation/replay are all persisted,
+  tenant-scoped and enforced under `SECURITY_STORE=persisted`. Promoting `persisted`
+  to the default is an operational toggle; the per-request session read-and-touch is
+  TD-22.
 
 ## [0.2.0] — 2026-07-18 — Phase 2 · Program A: Identity & Organization (certified baseline)
 

@@ -143,6 +143,19 @@ sliding-expiry cost (TD-22). With this, **TD-16 is fully resolved**; refresh-tok
 rotation remains TD-18. See
 `docs/reports/P2-D01-SessionRevocationPersistence-delivery-report.md`.
 
+**Refresh-token rotation & replay detection (ADR-0016 — resolves TD-18).** Refresh
+tokens are persisted, tenant-scoped (FORCE RLS on `security_refresh_token`),
+single-use, and rotate within a **session-bound family**. `POST /secure/refresh`
+consumes the presented token and issues a successor plus a fresh access token for
+the same (re-validated) session; presenting an already-consumed token is a replay
+that revokes the whole family and its session (the access token's `fid` claim then
+makes the guard reject every token in the family). Logout revokes session + token +
+family. The raw token is never stored (SHA-256 hash only); family revocation reuses
+the `RevocationStore`. Persisted-only (memory mode throws) and port-based — the
+rotate → replay → revoke loop is proven in-sandbox and on live-PostgreSQL RLS. One
+login = one session = one refresh family, collapsed together by logout or replay.
+See `docs/reports/P2-D01-RefreshTokenRotation-delivery-report.md`.
+
 ## Shared services (P1-M05)
 
 Twelve horizontal capabilities every Phase-2 domain consumes rather than
