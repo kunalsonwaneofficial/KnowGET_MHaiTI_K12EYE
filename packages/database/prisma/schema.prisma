@@ -160,3 +160,27 @@ model Membership {
   @@index([tenantId, organizationId])
   @@map("membership")
 }
+
+/// Role catalogue domain (P2-D01-M05) — a tenant-scoped RBAC role: a named grant
+/// of permissions that memberships reference by name and the authorization engine
+/// expands a principal's roles into. `is_system` marks built-in roles protected
+/// from deletion. Tenant-owned: FORCE RLS isolates every row (see the add_role
+/// migration).
+model Role {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  name        String
+  description String?
+  permissions String[]
+  status      String    @default("active")
+  isSystem    Boolean   @default(false) @map("is_system")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, name])
+  @@map("role")
+}
