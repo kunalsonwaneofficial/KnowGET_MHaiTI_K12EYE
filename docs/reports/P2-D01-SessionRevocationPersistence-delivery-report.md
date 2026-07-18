@@ -5,7 +5,7 @@
 |                |                                                                                                                                         |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **Contract**   | Session & token-revocation persistence — the last of TD-16                                                                              |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + live-PostgreSQL RLS. CI pending on the feature branch (pre-merge).                      |
+| **Status**     | ✅ Complete — merged to `main` (`1cff22a`); CI green. **TD-16 fully resolved.** Live behind `SECURITY_STORE=persisted`.                 |
 | **Depends on** | ADR-0014 (live security hardening), P2-D01-M01…M07, P1-M04 (security engine, sessions, tokens)                                          |
 | **Scope**      | Persist **and enforce** sessions + token revocation, tenant-scoped, **env-gated (memory default)**. Refresh-token rotation stays TD-18. |
 | **Date**       | 18 July 2026                                                                                                                            |
