@@ -209,3 +209,42 @@ model Relationship {
   @@index([tenantId, toPersonId])
   @@map("relationship")
 }
+
+/// Security session persistence (P2-D01 security hardening — TD-16). The
+/// server-side record of an authenticated session; the access token's `sid` claim
+/// references it, so revoking a row (revoked=true) or letting it lapse makes the
+/// guard reject that session's tokens on the next request. `id` is the opaque
+/// session token (not a UUID); the timestamps are epoch-milliseconds (the frozen
+/// `Session` contract, P1-M04). Tenant-owned: FORCE RLS isolates every row (see
+/// the add_security_session_revocation migration).
+model SecuritySession {
+  id             String  @id
+  tenantId       String  @map("tenant_id") @db.Uuid
+  identityId     String  @map("identity_id") @db.Uuid
+  createdAt      BigInt  @map("created_at")
+  lastActivityAt BigInt  @map("last_activity_at")
+  expiresAt      BigInt  @map("expires_at")
+  device         String?
+  revoked        Boolean @default(false)
+
+  @@index([tenantId])
+  @@index([tenantId, identityId])
+  @@map("security_session")
+}
+
+/// Token / family revocation persistence (P2-D01 security hardening — TD-16). The
+/// durable backing for the token revocation registry: a revoked access-token id
+/// (`jti`, kind='token') or refresh-token family (kind='family'). The guard
+/// rejects a presented token whose id or family is listed. Tenant-owned: FORCE
+/// RLS isolates every row (see the add_security_session_revocation migration).
+model SecurityRevocation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  kind      String
+  ref       String
+  revokedAt DateTime @default(now()) @map("revoked_at")
+
+  @@unique([tenantId, kind, ref])
+  @@index([tenantId])
+  @@map("security_revocation")
+}
