@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/roles",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Role catalogue domain — tenant-scoped RBAC roles (name → permissions), lifecycle, permission resolution and events (P2-D01-M05).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
