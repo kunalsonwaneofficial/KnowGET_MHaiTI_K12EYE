@@ -40,6 +40,7 @@ export const CurrentPrincipal = createParamDecorator(
 export interface SessionContext {
   readonly sessionId?: string;
   readonly tokenId?: string;
+  readonly familyId?: string;
   readonly tenantId?: string;
 }
 

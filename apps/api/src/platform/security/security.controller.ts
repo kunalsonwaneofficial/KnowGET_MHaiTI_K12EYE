@@ -21,6 +21,12 @@ const loginSchema = z.object({
   tenant: z.string().uuid().optional(),
 });
 
+const refreshSchema = z.object({
+  refreshToken: z.string().min(1),
+  /** Tenant to refresh within. Required in persisted mode. */
+  tenant: z.string().uuid().optional(),
+});
+
 interface LoginResponse {
   readonly tokenType: "Bearer";
   readonly accessToken: string;
@@ -65,6 +71,35 @@ export class SecurityController {
   }
 
   /**
+   * Rotate a refresh token for a fresh access token (persisted mode). Public and
+   * rate-limited — the refresh token itself is the credential (the access token may
+   * have expired). Reusing a consumed token is detected as replay and revokes the
+   * whole refresh family.
+   */
+  @Public()
+  @RateLimit({ windowMs: 60_000, max: 10 })
+  @Post("refresh")
+  @HttpCode(200)
+  async refresh(@Body() body: unknown): Promise<LoginResponse> {
+    const parsed = refreshSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new ValidationError("Invalid refresh request", {
+        details: { issues: parsed.error.issues },
+      });
+    }
+    const result = await this.authenticator.refresh({
+      refreshToken: parsed.data.refreshToken,
+      ...(parsed.data.tenant !== undefined ? { tenant: parsed.data.tenant } : {}),
+    });
+    return {
+      tokenType: "Bearer",
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresInMs: result.expiresInMs,
+    };
+  }
+
+  /**
    * End the current session (sign out). Revokes the session and records the
    * presented token as revoked, so both are rejected on the next request
    * (persisted mode). Requires a valid bearer token.
@@ -78,6 +113,7 @@ export class SecurityController {
     await this.authenticator.logout({
       sessionId: session.sessionId,
       ...(session.tokenId !== undefined ? { tokenId: session.tokenId } : {}),
+      ...(session.familyId !== undefined ? { familyId: session.familyId } : {}),
       ...(session.tenantId !== undefined ? { tenant: session.tenantId } : {}),
     });
   }

@@ -92,6 +92,7 @@ export class JwtAuthGuard implements CanActivate {
     request.tokenContext = {
       ...(sessionId !== undefined ? { sessionId } : {}),
       ...(tokenId !== undefined ? { tokenId } : {}),
+      ...(familyId !== undefined ? { familyId } : {}),
       ...(tenant !== undefined ? { tenantId: tenant } : {}),
     };
     return true;

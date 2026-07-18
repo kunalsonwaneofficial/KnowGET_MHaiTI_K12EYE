@@ -248,3 +248,26 @@ model SecurityRevocation {
   @@index([tenantId])
   @@map("security_revocation")
 }
+
+/// Refresh-token rotation & replay detection (TD-18). A stored, tenant-scoped
+/// refresh token in a rotating **family** bound to a login **session**: rotating
+/// consumes a token (`status` → `rotated`) and issues its successor in the same
+/// family; presenting a consumed token is a replay, which revokes the family (and
+/// its session) via `security_revocation`. `token_hash` is the SHA-256 of the
+/// opaque token — the raw token is never stored; timestamps are epoch-ms. Tenant-
+/// owned: FORCE RLS isolates every row (see the add_security_refresh_token migration).
+model SecurityRefreshToken {
+  id         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String @map("tenant_id") @db.Uuid
+  familyId   String @map("family_id")
+  identityId String @map("identity_id") @db.Uuid
+  sessionId  String @map("session_id")
+  tokenHash  String @map("token_hash")
+  status     String @default("active")
+  issuedAt   BigInt @map("issued_at")
+  expiresAt  BigInt @map("expires_at")
+
+  @@unique([tenantId, tokenHash])
+  @@index([tenantId, familyId])
+  @@map("security_refresh_token")
+}
