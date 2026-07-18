@@ -2,13 +2,13 @@
 
 **Enterprise Identity Platform** · Phase 2 (Enterprise Domain Engineering) · Program A (Identity & Organization)
 
-|                |                                                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D01-M03 — Enterprise Identity Platform                                                                                                 |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + on live PostgreSQL. CI pending on `feat/p2-d01-m03-enterprise-identity` (pre-merge gate). |
-| **Depends on** | P2-D01-M02 (Person), P1-M04 (Security & Authentication), Phase 1 baseline (`v0.1.0`)                                                      |
-| **Date**       | 18 July 2026                                                                                                                              |
-| **Next**       | P2-D01-M04 — Membership                                                                                                                   |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D01-M03 — Enterprise Identity Platform                                                                                          |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D01-M02 (Person), P1-M04 (Security & Authentication), Phase 1 baseline (`v0.1.0`)                                               |
+| **Date**       | 18 July 2026                                                                                                                       |
+| **Next**       | P2-D01-M04 — Membership                                                                                                            |
 
 ---
 
