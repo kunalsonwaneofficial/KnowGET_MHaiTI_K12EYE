@@ -56,4 +56,24 @@ describe.skipIf(!url)("RedisJobQueue (integration)", () => {
     expect((await queue.process()).processed).toBe(0);
     expect(await queue.pending()).toBe(1);
   });
+
+  it("re-queues a job abandoned by a crashed worker (visibility timeout)", async () => {
+    const queue = new RedisJobQueue(redis, { namespace: `${ns}:vis`, visibilityTimeoutMs: 50 });
+    const seen: string[] = [];
+    queue.register<string>("recover", (p) => {
+      seen.push(p);
+    });
+
+    const job = await queue.enqueue("recover", "after-crash");
+    // Simulate a worker that claimed the job then crashed: move it out of ready into
+    // the in-flight set with an already-past visibility deadline, and never complete it.
+    await redis.zrem(`${ns}:vis:ready`, job.id);
+    await redis.zadd(`${ns}:vis:inflight`, 0, job.id);
+    expect(await queue.pending()).toBe(1); // still owed (in-flight), not lost
+
+    // The next process() reaps the abandoned claim back to ready and runs it.
+    expect(await queue.process()).toMatchObject({ processed: 1, succeeded: 1 });
+    expect(seen).toEqual(["after-crash"]);
+    expect(await queue.pending()).toBe(0);
+  });
 });

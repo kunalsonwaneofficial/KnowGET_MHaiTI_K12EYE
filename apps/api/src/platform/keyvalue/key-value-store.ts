@@ -5,6 +5,38 @@ export interface WindowCount {
 }
 
 /**
+ * The two clock-aligned bucket keys for a sliding-window counter at `now`: the
+ * current window's bucket and the immediately-preceding one, whose tail overlaps
+ * the trailing edge of the sliding window.
+ */
+export function slidingBucketKeys(
+  key: string,
+  now: number,
+  windowMs: number,
+): { readonly current: string; readonly previous: string } {
+  const bucket = Math.floor(now / windowMs);
+  return { current: `${key}:${bucket}`, previous: `${key}:${bucket - 1}` };
+}
+
+/**
+ * Sliding-window-counter estimate: the current bucket's count plus the previous
+ * bucket's count weighted by the fraction of the window still overlapped. Smooths
+ * the fixed-window boundary burst without storing every request timestamp.
+ */
+export function slidingEstimate(
+  now: number,
+  windowMs: number,
+  current: number,
+  previous: number,
+): WindowCount {
+  const prevWeight = (windowMs - (now % windowMs)) / windowMs;
+  return {
+    count: previous * prevWeight + current,
+    resetAt: (Math.floor(now / windowMs) + 1) * windowMs,
+  };
+}
+
+/**
  * Backend-agnostic distributed key-value store. The in-memory default is
  * per-instance; a Redis-backed implementation makes it **shared across replicas**
  * — the seam that turns the rate limiter (TD-17), the shared cache (TD-19) and the
@@ -23,6 +55,13 @@ export interface KeyValueStore {
    * rate-limit primitive — atomic so concurrent replicas share one counter.
    */
   incrementWindow(key: string, windowMs: number): Promise<WindowCount>;
+  /**
+   * Record a hit in the current clock-aligned bucket and return the sliding-window
+   * estimate (current bucket + weighted previous bucket). The sliding-window
+   * rate-limit primitive — smoother than a fixed window at the boundary; atomic so
+   * concurrent replicas share the counters.
+   */
+  slidingWindow(key: string, windowMs: number): Promise<WindowCount>;
 }
 
 interface Entry {
@@ -43,6 +82,7 @@ interface Counter {
 export class InMemoryKeyValueStore implements KeyValueStore {
   private readonly entries = new Map<string, Entry>();
   private readonly counters = new Map<string, Counter>();
+  private readonly buckets = new Map<string, { count: number; expiresAt: number }>();
 
   constructor(private readonly clock: () => number = Date.now) {}
 
@@ -84,5 +124,32 @@ export class InMemoryKeyValueStore implements KeyValueStore {
     }
     counter.count += 1;
     return { count: counter.count, resetAt: counter.resetAt };
+  }
+
+  async slidingWindow(key: string, windowMs: number): Promise<WindowCount> {
+    const now = this.clock();
+    const { current, previous } = slidingBucketKeys(key, now, windowMs);
+    return slidingEstimate(
+      now,
+      windowMs,
+      this.bumpBucket(current, now, windowMs),
+      this.readBucket(previous, now),
+    );
+  }
+
+  private bumpBucket(bucketKey: string, now: number, windowMs: number): number {
+    const bucket = this.buckets.get(bucketKey);
+    if (!bucket || bucket.expiresAt <= now) {
+      // A bucket lives two windows so it is still readable as "previous" next window.
+      this.buckets.set(bucketKey, { count: 1, expiresAt: now + 2 * windowMs });
+      return 1;
+    }
+    bucket.count += 1;
+    return bucket.count;
+  }
+
+  private readBucket(bucketKey: string, now: number): number {
+    const bucket = this.buckets.get(bucketKey);
+    return bucket && bucket.expiresAt > now ? bucket.count : 0;
   }
 }

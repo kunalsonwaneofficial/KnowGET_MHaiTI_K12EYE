@@ -45,4 +45,15 @@ describe.skipIf(!url)("RedisKeyValueStore (integration)", () => {
     expect((await replica.incrementWindow(key, 5000)).count).toBe(2);
     expect((await store.incrementWindow(key, 5000)).count).toBe(3);
   });
+
+  it("shares a sliding-window counter across store instances", async () => {
+    const key = `${ns}sw`;
+    const replica = new RedisKeyValueStore(redis);
+    // A one-hour window so all three hits land in the same clock-aligned bucket; the
+    // previous bucket is empty, so the estimate is the raw shared count 1, 2, 3.
+    const windowMs = 3_600_000;
+    expect((await store.slidingWindow(key, windowMs)).count).toBe(1);
+    expect((await replica.slidingWindow(key, windowMs)).count).toBe(2);
+    expect((await store.slidingWindow(key, windowMs)).count).toBe(3);
+  });
 });

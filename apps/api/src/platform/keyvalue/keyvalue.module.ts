@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { Global, Inject, Module, type OnModuleDestroy, type Provider } from "@nestjs/common";
-import { KeyValueRateLimiter } from "./async-rate-limiter";
+import { KeyValueRateLimiter, SlidingWindowRateLimiter } from "./async-rate-limiter";
 import { KeyValueCache } from "./key-value-cache";
 import { InMemoryKeyValueStore, type KeyValueStore } from "./key-value-store";
 import { loadKeyValueEnv } from "./keyvalue.env";
@@ -30,7 +30,10 @@ const providers: Provider[] = [
   },
   {
     provide: ASYNC_RATE_LIMITER,
-    useFactory: (store: KeyValueStore) => new KeyValueRateLimiter(store),
+    useFactory: (store: KeyValueStore) =>
+      loadKeyValueEnv().RATE_LIMIT_STRATEGY === "sliding"
+        ? new SlidingWindowRateLimiter(store)
+        : new KeyValueRateLimiter(store),
     inject: [KEY_VALUE_STORE],
   },
   {

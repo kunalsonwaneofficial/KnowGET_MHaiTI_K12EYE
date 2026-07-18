@@ -35,3 +35,25 @@ export class KeyValueRateLimiter implements AsyncRateLimiter {
     };
   }
 }
+
+/**
+ * Sliding-window rate limiter over the {@link KeyValueStore}. A fixed window lets up
+ * to 2×max requests through across a window boundary; this weights the previous
+ * window's count by its overlap so the effective rate stays near `max` at every
+ * instant. Shared across replicas over Redis; per-instance over the in-memory store.
+ */
+export class SlidingWindowRateLimiter implements AsyncRateLimiter {
+  constructor(private readonly store: KeyValueStore) {}
+
+  async check(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
+    const { count, resetAt } = await this.store.slidingWindow(
+      `${PREFIX}${options.windowMs}:${key}`,
+      options.windowMs,
+    );
+    return {
+      allowed: count <= options.max,
+      remaining: Math.max(0, Math.floor(options.max - count)),
+      resetAt,
+    };
+  }
+}
