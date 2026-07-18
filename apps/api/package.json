@@ -24,6 +24,7 @@
     "@knowget/database": "workspace:*",
     "@knowget/diagnostics": "workspace:*",
     "@knowget/documents": "workspace:*",
+    "@knowget/enterprise-identity": "workspace:*",
     "@knowget/events": "workspace:*",
     "@knowget/exceptions": "workspace:*",
     "@knowget/files": "workspace:*",
