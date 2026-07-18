@@ -103,3 +103,34 @@ model Person {
   @@index([tenantId, matchKey])
   @@map("person")
 }
+
+/// Enterprise Identity domain (P2-D01-M03) — a tenant-scoped login account that
+/// links a Person (`person_id`) to the identifiers and credential they
+/// authenticate with, plus status and failed-login lockout counters. Identifiers
+/// are an embedded JSONB value-object collection; `identifier_keys` is a
+/// normalized, GIN-indexed lookup array powering tenant-scoped identifier
+/// resolution. Tenant-owned: FORCE RLS isolates every row (see the
+/// add_identity_account migration).
+model IdentityAccount {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  personId            String    @map("person_id") @db.Uuid
+  identifiers         Json      @default("[]")
+  identifierKeys      String[]  @map("identifier_keys")
+  credentialHash      String?   @map("credential_hash")
+  status              String    @default("pending")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, personId])
+  // The normalized identifier lookup is served by a GIN index on
+  // `identifier_keys`, created in the add_identity_account migration (like RLS,
+  // it is a migration-only DB feature not expressible in the Prisma schema).
+  @@map("identity_account")
+}
