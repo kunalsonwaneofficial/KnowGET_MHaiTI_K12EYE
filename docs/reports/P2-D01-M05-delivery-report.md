@@ -2,13 +2,13 @@
 
 **Authorization** · Phase 2 (Enterprise Domain Engineering) · Program A (Identity & Organization)
 
-|                |                                                                                                                                     |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D01-M05 — Authorization                                                                                                          |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + on live PostgreSQL. CI pending on `feat/p2-d01-m05-authorization` (pre-merge gate). |
-| **Depends on** | P2-D01-M01…M04 (Organization, Person, Identity, Membership), P1-M04 (Authorization engine/RBAC), Phase 1 baseline (`v0.1.0`)        |
-| **Date**       | 18 July 2026                                                                                                                        |
-| **Next**       | P2-D01-M06 — Relationship                                                                                                           |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D01-M05 — Authorization                                                                                                         |
+| **Status**     | ✅ Complete — CI green (verify incl. Prisma build/migration/tests, audit, E2E); merged to `main`. RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D01-M01…M04 (Organization, Person, Identity, Membership), P1-M04 (Authorization engine/RBAC), Phase 1 baseline (`v0.1.0`)       |
+| **Date**       | 18 July 2026                                                                                                                       |
+| **Next**       | P2-D01-M06 — Relationship                                                                                                          |
 
 ---
 
