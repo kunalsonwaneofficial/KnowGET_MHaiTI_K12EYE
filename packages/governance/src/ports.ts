@@ -2,6 +2,7 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { Committee } from "./committee";
 import type { Delegation } from "./delegation";
 import type { GovernanceBody } from "./governance-body";
+import type { GovernanceCalendarEntry } from "./governance-calendar";
 import type { Policy, PolicyAcknowledgment } from "./policy";
 import type { Resolution } from "./resolution";
 
@@ -247,6 +248,49 @@ export class InMemoryResolutionRepository implements ResolutionRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const resolution = this.byId.get(id);
     if (resolution && resolution.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for governance calendar entries. Tenant-scoped. */
+export interface GovernanceCalendarRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<GovernanceCalendarEntry | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<GovernanceCalendarEntry[]>;
+  listByTenant(tenantId: TenantId): Promise<GovernanceCalendarEntry[]>;
+  save(entry: GovernanceCalendarEntry): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link GovernanceCalendarRepository} — the default for tests. */
+export class InMemoryGovernanceCalendarRepository implements GovernanceCalendarRepository {
+  private readonly byId = new Map<string, GovernanceCalendarEntry>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<GovernanceCalendarEntry | null> {
+    const entry = this.byId.get(id);
+    return entry && entry.tenantId === tenantId ? entry : null;
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<GovernanceCalendarEntry[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<GovernanceCalendarEntry[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(entry: GovernanceCalendarEntry): Promise<void> {
+    this.byId.set(entry.id, entry);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const entry = this.byId.get(id);
+    if (entry && entry.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

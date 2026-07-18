@@ -319,3 +319,50 @@ export class DuplicateVoteError extends PlatformError {
     });
   }
 }
+
+/** The requested governance calendar entry does not exist in the current tenant. */
+export class GovernanceCalendarEntryNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Governance calendar entry "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A governance calendar entry must have a non-empty title. */
+export class EmptyCalendarEntryTitleError extends PlatformError {
+  constructor() {
+    super("A governance calendar entry must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested governance calendar entry transition is not permitted. */
+export class InvalidCalendarEntryTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition governance calendar entry from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A committee referenced by a governance calendar entry does not exist. */
+export class CommitteeNotFoundForGovernanceError extends PlatformError {
+  constructor(committeeId: string) {
+    super(`Committee "${committeeId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { committeeId },
+    });
+  }
+}
