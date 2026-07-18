@@ -12,6 +12,9 @@ export const SECURITY_AUDIT = Symbol("SECURITY_AUDIT");
 export const PRINCIPAL_RESOLVER = Symbol("PRINCIPAL_RESOLVER");
 export const RATE_LIMITER = Symbol("RATE_LIMITER");
 
+/** The default per-client rate-limit budget ({windowMs, max}) for the guard. */
+export const DEFAULT_RATE_LIMIT = Symbol("DEFAULT_RATE_LIMIT");
+
 /** Exchanges credentials for tokens (memory or persisted, chosen by env). */
 export const AUTHENTICATOR = Symbol("AUTHENTICATOR");
 

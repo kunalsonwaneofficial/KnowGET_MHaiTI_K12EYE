@@ -7,6 +7,11 @@ import { PassthroughMediaProcessor } from "@knowget/media";
 import { InAppInbox, NotificationDispatcher } from "@knowget/notifications";
 import { InMemorySearchIndex } from "@knowget/search";
 import { Global, Module, type Provider } from "@nestjs/common";
+import { KeyValueCache } from "../keyvalue/key-value-cache";
+import type { KeyValueStore } from "../keyvalue/key-value-store";
+import { loadKeyValueEnv } from "../keyvalue/keyvalue.env";
+import { KeyValueModule } from "../keyvalue/keyvalue.module";
+import { KEY_VALUE_STORE } from "../keyvalue/keyvalue.tokens";
 import { ServicesController } from "./services.controller";
 import {
   BLOB_STORE,
@@ -32,7 +37,14 @@ function createDispatcher(inbox: InAppInbox): NotificationDispatcher {
 const inAppInboxProvider: Provider = { provide: IN_APP_INBOX, useFactory: () => new InAppInbox() };
 
 const providers: Provider[] = [
-  { provide: CACHE, useFactory: () => new InMemoryCache() },
+  {
+    // Shared distributed cache (TD-19) when REDIS_URL is set — behind the same
+    // async `Cache` port — else the in-memory LRU default.
+    provide: CACHE,
+    useFactory: (kv: KeyValueStore) =>
+      loadKeyValueEnv().REDIS_URL ? new KeyValueCache(kv) : new InMemoryCache(),
+    inject: [KEY_VALUE_STORE],
+  },
   { provide: JOB_QUEUE, useFactory: () => new InMemoryJobQueue() },
   { provide: SCHEDULER, useFactory: () => new Scheduler() },
   { provide: SEARCH_INDEX, useFactory: () => new InMemorySearchIndex() },
@@ -58,6 +70,7 @@ const providers: Provider[] = [
  */
 @Global()
 @Module({
+  imports: [KeyValueModule],
   controllers: [ServicesController],
   providers,
   exports: [

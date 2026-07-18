@@ -11,6 +11,7 @@ import { type SecurityAuditLogger, type SecurityConfig, secureToken } from "@kno
 import { issueRefreshToken, signJwt } from "@knowget/tokens";
 import type { TenantId } from "@knowget/types";
 import { tenantIdentityRepository } from "../../../domains/identity/identity-authentication.bridge";
+import type { SessionValidityCache } from "../../keyvalue/session-cache";
 import type {
   Authenticator,
   LoginInput,
@@ -48,6 +49,7 @@ export class PersistedAuthenticator implements Authenticator {
     private readonly audit: SecurityAuditLogger,
     private readonly config: SecurityConfig,
     private readonly signingKey: Buffer,
+    private readonly sessionCache?: SessionValidityCache,
   ) {}
 
   async login(input: LoginInput): Promise<LoginResult> {
@@ -91,6 +93,7 @@ export class PersistedAuthenticator implements Authenticator {
       // session so every credential in the lineage dies at once.
       await this.revocations.revoke(tenantId, "family", record.familyId);
       await this.sessionManager(tenantId).revoke(record.sessionId);
+      await this.sessionCache?.invalidate(tenantId, record.sessionId);
       this.audit.record({
         type: "authentication.failed",
         actorId: record.identityId,
@@ -114,6 +117,7 @@ export class PersistedAuthenticator implements Authenticator {
     }
     const tenantId = input.tenant as TenantId;
     await this.sessionManager(tenantId).revoke(input.sessionId);
+    await this.sessionCache?.invalidate(tenantId, input.sessionId);
     if (input.tokenId !== undefined) {
       await this.revocations.revoke(tenantId, "token", input.tokenId);
     }

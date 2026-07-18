@@ -29,14 +29,22 @@ unchanged.
   token and re-issues an access token for the same session; replaying a consumed
   token revokes the family and its session, and the access token's `fid` claim makes
   the guard reject every token in that family. Logout ends the whole lineage.
+- **Distributed cache, rate limiter & session read-through (ADR-0017):** one
+  backend-agnostic `KeyValueStore` — Redis when `REDIS_URL` is set, in-memory
+  otherwise — backs an async rate limiter whose fixed-window counter is shared across
+  replicas, a Redis-backed `Cache` behind the existing port, and a session
+  read-through cache that skips the per-request session-store validate. Env-gated;
+  a `redis` service was added to CI for the gated integration test.
 
 ### Notes
 
 - **TD-16 and TD-18 are resolved:** identity, principal→role, role→permission,
   sessions, token revocation, and refresh-token rotation/replay are all persisted,
   tenant-scoped and enforced under `SECURITY_STORE=persisted`. Promoting `persisted`
-  to the default is an operational toggle; the per-request session read-and-touch is
-  TD-22.
+  to the default is an operational toggle.
+- **TD-17 and TD-22 are resolved, and TD-19's cache dimension**, behind `REDIS_URL`
+  (in-memory default unchanged). The other TD-19 backends — object store, search,
+  job runner, notifications — remain follow-ups.
 
 ## [0.2.0] — 2026-07-18 — Phase 2 · Program A: Identity & Organization (certified baseline)
 

@@ -1,5 +1,6 @@
 import { Global, Module, type Provider } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { KeyValueModule } from "../keyvalue/keyvalue.module";
 import { EngineAuthenticator, type Authenticator } from "./authenticator";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { PermissionsGuard } from "./permissions.guard";
@@ -12,6 +13,7 @@ import {
   AUTHENTICATION_ENGINE,
   AUTHENTICATOR,
   AUTHORIZATION_ENGINE,
+  DEFAULT_RATE_LIMIT,
   IDENTITY_REPOSITORY,
   KEY_RING,
   PERSISTED_AUTHENTICATOR,
@@ -56,6 +58,15 @@ const authenticatorProvider: Provider = {
   inject: [SECURITY_GRAPH, { token: PERSISTED_AUTHENTICATOR, optional: true }],
 };
 
+/** The global default per-client rate-limit budget, from security env. */
+const defaultRateLimitProvider: Provider = {
+  provide: DEFAULT_RATE_LIMIT,
+  useFactory: () => {
+    const env = loadSecurityEnv();
+    return { windowMs: env.SECURITY_RATE_LIMIT_WINDOW_MS, max: env.SECURITY_RATE_LIMIT_MAX };
+  },
+};
+
 /**
  * The security layer. Seeds and provides the security graph (keys, policy,
  * RBAC/ABAC, identities, sessions, audit, authentication, principals, rate
@@ -65,6 +76,7 @@ const authenticatorProvider: Provider = {
  */
 @Global()
 @Module({
+  imports: [KeyValueModule],
   controllers: [SecurityController],
   providers: [
     graphProvider,
@@ -77,6 +89,7 @@ const authenticatorProvider: Provider = {
     fromGraph(SECURITY_AUDIT, (g) => g.audit),
     principalResolverProvider,
     authenticatorProvider,
+    defaultRateLimitProvider,
     fromGraph(RATE_LIMITER, (g) => g.rateLimiter),
     // Order is significant: rate limiting runs first, then authentication, then
     // authorization (which relies on the principal the auth guard attaches).

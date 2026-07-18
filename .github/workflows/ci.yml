@@ -35,8 +35,22 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      # Redis for the distributed cache / rate-limiter / session read-through
+      # integration tests (TD-17/19/22). The REDIS_URL-gated tests run against it;
+      # without REDIS_URL they skip.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DATABASE_URL: postgresql://knowget:knowget@localhost:5432/knowget_mhaiti?schema=public
+      REDIS_URL: redis://localhost:6379
 
     steps:
       - uses: actions/checkout@v4

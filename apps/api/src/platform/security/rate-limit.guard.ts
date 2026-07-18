@@ -1,39 +1,47 @@
 import { RateLimitError } from "@knowget/exceptions";
-import { RateLimiter } from "@knowget/security";
 import { type CanActivate, type ExecutionContext, Inject, Injectable } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import type { AsyncRateLimiter, RateLimitOptions } from "../keyvalue/async-rate-limiter";
+import { ASYNC_RATE_LIMITER } from "../keyvalue/keyvalue.tokens";
 import type { AuthenticatedRequest } from "./authenticated-request";
 import { RATE_LIMIT_KEY, type RateLimitMetadata } from "./decorators";
-import { RATE_LIMITER } from "./security.tokens";
+import { DEFAULT_RATE_LIMIT } from "./security.tokens";
 
 interface ResponseLike {
   setHeader(name: string, value: string | number): void;
 }
 
 /**
- * Fixed-window rate limiting keyed by client address. The global default
- * limiter (a shared per-client budget) applies to every route; a route may
- * tighten it with {@link RateLimit}, which gets a dedicated limiter instance
- * (cached per route). Emits `X-RateLimit-*` headers and, on breach, a
- * `Retry-After` header plus {@link RateLimitError} (HTTP 429).
+ * Fixed-window rate limiting keyed by client address, over the injected
+ * {@link AsyncRateLimiter}. With the Redis-backed store the budget is **shared
+ * across replicas** (TD-17); with the in-memory store it is per-instance (the
+ * Phase-1 behaviour). The global default budget applies to every route; a route may
+ * tighten it with {@link RateLimit}, which gets its own counter namespace. Emits
+ * `X-RateLimit-*` headers and, on breach, `Retry-After` + {@link RateLimitError} (429).
  */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
-  private readonly perRoute = new Map<string, RateLimiter>();
-
   constructor(
     private readonly reflector: Reflector,
-    @Inject(RATE_LIMITER) private readonly defaultLimiter: RateLimiter,
+    @Inject(ASYNC_RATE_LIMITER) private readonly limiter: AsyncRateLimiter,
+    @Inject(DEFAULT_RATE_LIMIT) private readonly defaults: RateLimitOptions,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const limiter = this.limiterFor(context);
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const override = this.reflector.getAllAndOverride<RateLimitMetadata>(RATE_LIMIT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    const options: RateLimitOptions = override ?? this.defaults;
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<ResponseLike>();
 
-    const result = limiter.check(this.clientKey(request));
+    // A per-route override gets its own counter namespace so it never shares the
+    // global per-client budget.
+    const scope = override ? `${context.getClass().name}.${context.getHandler().name}` : "global";
+    const result = await this.limiter.check(`${scope}:${this.clientKey(request)}`, options);
 
-    response.setHeader("X-RateLimit-Limit", limiter.limit);
+    response.setHeader("X-RateLimit-Limit", options.max);
     response.setHeader("X-RateLimit-Remaining", result.remaining);
     response.setHeader("X-RateLimit-Reset", Math.ceil(result.resetAt / 1000));
 
@@ -43,23 +51,6 @@ export class RateLimitGuard implements CanActivate {
       throw new RateLimitError("Rate limit exceeded");
     }
     return true;
-  }
-
-  private limiterFor(context: ExecutionContext): RateLimiter {
-    const override = this.reflector.getAllAndOverride<RateLimitMetadata>(RATE_LIMIT_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!override) {
-      return this.defaultLimiter;
-    }
-    const routeKey = `${context.getClass().name}.${context.getHandler().name}`;
-    let limiter = this.perRoute.get(routeKey);
-    if (!limiter) {
-      limiter = new RateLimiter(override);
-      this.perRoute.set(routeKey, limiter);
-    }
-    return limiter;
   }
 
   private clientKey(request: AuthenticatedRequest): string {

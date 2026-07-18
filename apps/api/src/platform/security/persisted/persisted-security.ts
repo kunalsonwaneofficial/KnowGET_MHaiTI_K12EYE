@@ -1,6 +1,7 @@
 import type { IdentityAccountRepository } from "@knowget/enterprise-identity";
 import type { MembershipRepository } from "@knowget/membership";
 import type { SecurityAuditLogger, SecurityConfig } from "@knowget/security";
+import type { SessionValidityCache } from "../../keyvalue/session-cache";
 import type { Authenticator } from "../authenticator";
 import type { PrincipalResolver } from "../principal-resolver";
 import { PersistedSessionEnforcer, type SessionEnforcer } from "../session-enforcer";
@@ -23,6 +24,8 @@ export interface PersistedSecurityDeps {
   readonly audit: SecurityAuditLogger;
   readonly config: SecurityConfig;
   readonly signingKey: Buffer;
+  /** Optional session read-through cache (TD-22); shared with the enforcer. */
+  readonly sessionCache?: SessionValidityCache;
 }
 
 export interface PersistedSecurity {
@@ -49,12 +52,18 @@ export function buildPersistedSecurity(deps: PersistedSecurityDeps): PersistedSe
       deps.audit,
       deps.config,
       deps.signingKey,
+      deps.sessionCache,
     ),
     principals: new PersistedPrincipalResolver(
       deps.accounts,
       deps.memberships,
       deps.rolePermissions,
     ),
-    enforcer: new PersistedSessionEnforcer(deps.sessionStore, deps.revocations, deps.config),
+    enforcer: new PersistedSessionEnforcer(
+      deps.sessionStore,
+      deps.revocations,
+      deps.config,
+      deps.sessionCache,
+    ),
   };
 }

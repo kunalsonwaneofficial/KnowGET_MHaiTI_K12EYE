@@ -27,6 +27,8 @@ import { PersonModule } from "../../domains/person/person.module";
 import { PERSON_SERVICE } from "../../domains/person/person.tokens";
 import { RolesModule } from "../../domains/roles/roles.module";
 import { ROLE_SERVICE } from "../../domains/roles/roles.tokens";
+import { SESSION_VALIDITY_CACHE } from "../keyvalue/keyvalue.tokens";
+import type { SessionValidityCache } from "../keyvalue/session-cache";
 import { DATABASE } from "../tokens";
 import { buildPersistedSecurity, type PersistedSecurity } from "./persisted/persisted-security";
 import { PrismaRefreshTokenStore } from "./persisted/prisma-refresh-token.store";
@@ -76,6 +78,7 @@ const providers: Provider[] = [
       config: SecurityConfig,
       keyRing: KeyRing,
       db: PrismaService,
+      sessionCache: SessionValidityCache,
     ): PersistedSecurity =>
       buildPersistedSecurity({
         accounts,
@@ -87,6 +90,7 @@ const providers: Provider[] = [
         audit,
         config,
         signingKey: keyRing.current().material,
+        sessionCache,
       }),
     inject: [
       IDENTITY_ACCOUNT_REPOSITORY,
@@ -96,6 +100,7 @@ const providers: Provider[] = [
       SECURITY_CONFIG,
       KEY_RING,
       DATABASE,
+      SESSION_VALIDITY_CACHE,
     ],
   },
   {

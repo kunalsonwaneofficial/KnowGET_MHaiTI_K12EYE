@@ -1,6 +1,7 @@
 import { SessionManager } from "@knowget/authentication";
 import type { SecurityConfig } from "@knowget/security";
 import type { TenantId } from "@knowget/types";
+import type { SessionValidityCache } from "../keyvalue/session-cache";
 import type { RevocationStore } from "./persisted/revocation-store";
 import type { SessionStore } from "./persisted/session-store";
 import { tenantSessionRepository } from "./persisted/tenant-session.repository";
@@ -27,18 +28,23 @@ export interface SessionEnforcer {
 
 /**
  * Persisted-mode {@link SessionEnforcer}. **Fail-closed**: a token carrying no
- * tenant or no session reference is rejected (persisted-issued tokens always
- * carry both). It validates the session against the persisted, tenant-scoped
- * store through the frozen `SessionManager` (idle + absolute timeout and the
- * revoked flag — unchanged), then rejects if the token id or its family has been
- * revoked. Reusing `SessionManager.validate` keeps the sliding-activity semantics
- * identical to login-time session handling.
+ * tenant or no session reference is rejected. It validates the session against the
+ * persisted, tenant-scoped store through the frozen `SessionManager` (idle +
+ * absolute timeout and the revoked flag), then rejects if the token id or its
+ * family has been revoked.
+ *
+ * With an optional {@link SessionValidityCache} (TD-22), a recently-validated
+ * session skips the session-store validate (a write-transaction) — the read-through
+ * fast path. Revocation is still checked on every request, so logout/replay (which
+ * revoke the family) stay prompt; only the rare max-concurrent eviction is bounded
+ * by the short cache TTL.
  */
 export class PersistedSessionEnforcer implements SessionEnforcer {
   constructor(
     private readonly sessions: SessionStore,
     private readonly revocations: RevocationStore,
     private readonly config: SecurityConfig,
+    private readonly cache?: SessionValidityCache,
   ) {}
 
   async enforce(input: EnforcementInput): Promise<boolean> {
@@ -47,12 +53,18 @@ export class PersistedSessionEnforcer implements SessionEnforcer {
     }
     const tenantId = input.tenantId as TenantId;
 
-    const manager = new SessionManager(
-      tenantSessionRepository(this.sessions, tenantId),
-      this.config.session,
-    );
-    if (!(await manager.validate(input.sessionId))) {
-      return false;
+    const cached = this.cache ? await this.cache.isValid(tenantId, input.sessionId) : false;
+    if (!cached) {
+      const manager = new SessionManager(
+        tenantSessionRepository(this.sessions, tenantId),
+        this.config.session,
+      );
+      if (!(await manager.validate(input.sessionId))) {
+        return false;
+      }
+      if (this.cache) {
+        await this.cache.markValid(tenantId, input.sessionId);
+      }
     }
 
     if (input.tokenId !== undefined || input.familyId !== undefined) {
