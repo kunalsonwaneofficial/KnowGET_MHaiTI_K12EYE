@@ -47,8 +47,10 @@ function toDomain(row: PersonRow): Person {
   };
 }
 
-/** Persisted (Prisma) fields for a person; contacts are stored as JSONB. */
-function toFields(person: Person): Record<string, unknown> {
+/** Persisted (Prisma) fields for a person; contacts are stored as JSONB. The
+ * return type is inferred (not `Record<string, unknown>`) so the concrete field
+ * types satisfy Prisma's typed create/update input. */
+function toFields(person: Person) {
   return {
     tenantId: person.tenantId,
     givenName: person.name.given,
