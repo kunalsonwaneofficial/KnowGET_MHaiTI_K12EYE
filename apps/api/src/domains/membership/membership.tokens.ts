@@ -1,0 +1,5 @@
+/** Dependency-injection tokens for the membership domain (P2-D01-M04). */
+export const MEMBERSHIP_REPOSITORY = Symbol("MEMBERSHIP_REPOSITORY");
+export const MEMBERSHIP_SERVICE = Symbol("MEMBERSHIP_SERVICE");
+export const MEMBERSHIP_PERSON_DIRECTORY = Symbol("MEMBERSHIP_PERSON_DIRECTORY");
+export const MEMBERSHIP_ORGANIZATION_DIRECTORY = Symbol("MEMBERSHIP_ORGANIZATION_DIRECTORY");

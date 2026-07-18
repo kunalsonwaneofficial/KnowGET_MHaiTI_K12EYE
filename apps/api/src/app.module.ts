@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { IdentityModule } from "./domains/identity/identity.module";
+import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
 import { ObservabilityModule } from "./platform/observability/observability.module";
@@ -12,7 +13,7 @@ import { ServicesModule } from "./platform/services/services.module";
  * security, shared services, observability); Phase-2 enterprise domain modules
  * are imported under `domains/` as they are engineered — the Identity &
  * Organization sub-domain: Organization (M01), Person (M02), Enterprise
- * Identity (M03).
+ * Identity (M03), Membership (M04).
  */
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ServicesModule } from "./platform/services/services.module";
     OrganizationModule,
     PersonModule,
     IdentityModule,
+    MembershipModule,
   ],
 })
 export class AppModule {}
