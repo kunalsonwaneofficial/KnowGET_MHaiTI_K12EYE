@@ -156,6 +156,21 @@ rotate → replay → revoke loop is proven in-sandbox and on live-PostgreSQL RL
 login = one session = one refresh family, collapsed together by logout or replay.
 See `docs/reports/P2-D01-RefreshTokenRotation-delivery-report.md`.
 
+**Distributed cache, rate limiter & session read-through (ADR-0017 — resolves
+TD-17/TD-22, TD-19 cache dimension).** One backend-agnostic `KeyValueStore` seam —
+in-memory by default, Redis when `REDIS_URL` is set — backs three surfaces: an
+**async rate limiter** whose atomic fixed-window counter is shared across replicas
+(the guard is now async); a **Redis-backed `Cache`** behind the existing
+`@knowget/cache` port (wired as the services `CACHE` when `REDIS_URL` is set); and a
+**session read-through cache** that lets the enforcer skip the per-request
+session-store validate (revocation still checked; logout/replay invalidate; a short
+TTL bounds staleness). Env-gated, so the in-memory single-instance default is
+unchanged; the ioredis adapter lives at the composition root and is verified live (a
+`REDIS_URL`-gated integration test in CI's `redis` service and in sandbox, plus a
+cross-instance shared-counter check). The remaining TD-19 backends — object store
+(files), search, distributed job runner, notifications — are later follow-ups. See
+`docs/reports/P2-D01-DistributedCache-delivery-report.md`.
+
 ## Shared services (P1-M05)
 
 Twelve horizontal capabilities every Phase-2 domain consumes rather than
