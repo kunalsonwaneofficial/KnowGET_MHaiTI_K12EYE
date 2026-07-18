@@ -50,6 +50,12 @@ unchanged.
   key versions (rotation overlap), and an RS256 `AsymmetricTokenSigner` over a
   `KmsSigner` port (private key never leaves the device) is ready behind the seam. No
   frozen change; a cloud-KMS/HSM adapter is the production drop-in.
+- **Job-queue visibility timeout & sliding-window rate limiter (ADR-0020):** the Redis
+  job queue claims into an in-flight set scored by a visibility deadline and reaps
+  expired claims, so a **worker that crashes mid-run no longer loses the job**
+  (at-least-once). The `KeyValueStore` gains a clock-aligned sliding-window primitive
+  behind a `SlidingWindowRateLimiter`, selected by `RATE_LIMIT_STRATEGY=sliding` with
+  the fixed-window default unchanged. Composition-root only; no frozen change.
 
 ### Notes
 

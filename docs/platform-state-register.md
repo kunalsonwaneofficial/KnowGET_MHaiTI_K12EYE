@@ -204,6 +204,18 @@ trust into hardware. Env-gated, fail-closed, no frozen change; verified in-sandb
 (envelope round-trip, multi-version verify, RS256 sign/verify, and `buildSecurityGraph`
 booting in both modes). See `docs/reports/P2-D01-KeyCustody-delivery-report.md`.
 
+**Job-queue visibility timeout & sliding-window rate limiter (ADR-0020).** Two
+reliability refinements deferred by ADR-0017/0018, both at the composition root with
+no frozen change. The `RedisJobQueue` now claims jobs into an **in-flight set** scored
+by a visibility deadline instead of dropping them on claim; a reaper at the top of
+`process()` re-queues any in-flight job past its deadline, so a **worker that crashes
+mid-run no longer loses the job** (at-least-once recovery). The `KeyValueStore` gains a
+clock-aligned `slidingWindow` primitive (two weighted buckets) backing a
+`SlidingWindowRateLimiter` that smooths the fixed window's boundary burst; it is
+env-selected (`RATE_LIMIT_STRATEGY=sliding`) with the fixed-window default unchanged.
+Verified live on Redis (abandoned-job recovery; cross-instance sliding counter). See
+`docs/reports/P2-D01-QueueRateLimitHardening-delivery-report.md`.
+
 ## Shared services (P1-M05)
 
 Twelve horizontal capabilities every Phase-2 domain consumes rather than
