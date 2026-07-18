@@ -271,3 +271,31 @@ model SecurityRefreshToken {
   @@index([tenantId, familyId])
   @@map("security_refresh_token")
 }
+
+/// Distributed blob storage (TD-19). A shared, replica-agnostic object store behind
+/// the async `BlobStore` port — bytes in a `bytea` column, keyed globally (the port
+/// is tenant-agnostic; callers namespace keys). `checksum` is the SHA-256 hex for
+/// integrity/dedup. Selected by `SERVICES_STORE=persisted`. Not tenant-owned (no RLS).
+model ServiceBlob {
+  key         String   @id
+  contentType String   @map("content_type")
+  checksum    String
+  size        Int
+  data        Bytes
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("service_blob")
+}
+
+/// Distributed full-text search (TD-19). A shared document index behind the async
+/// search port. `text` is the searchable content; `fields` holds filterable exact-
+/// match attributes (JSONB). A generated `tsv` tsvector column + GIN index (created
+/// in the add_service_search migration, not expressible in Prisma) power ranking.
+/// Global (tenant is a field, not RLS). Selected by `SERVICES_STORE=persisted`.
+model ServiceSearchDocument {
+  id     String @id
+  text   String
+  fields Json   @default("{}")
+
+  @@map("service_search_document")
+}

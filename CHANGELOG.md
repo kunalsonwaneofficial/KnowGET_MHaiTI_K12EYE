@@ -35,6 +35,13 @@ unchanged.
   replicas, a Redis-backed `Cache` behind the existing port, and a session
   read-through cache that skips the per-request session-store validate. Env-gated;
   a `redis` service was added to CI for the gated integration test.
+- **Distributed shared services (ADR-0018):** the four remaining shared services are
+  distributed behind their existing ports, env-gated with in-memory defaults —
+  **Redis** (`REDIS_URL`) backs a shared job queue (atomic Lua claim, retry +
+  dead-letter) and a shared in-app inbox; **Postgres** (`SERVICES_STORE=persisted`)
+  backs full-text search (`tsvector`/GIN, `plainto_tsquery`/`ts_rank`) and a `bytea`
+  blob store. The frozen sync ports are bridged by async seams; the Prisma adapters
+  sit behind an opt-in module so the default build stays Prisma-free.
 
 ### Notes
 
@@ -42,9 +49,10 @@ unchanged.
   sessions, token revocation, and refresh-token rotation/replay are all persisted,
   tenant-scoped and enforced under `SECURITY_STORE=persisted`. Promoting `persisted`
   to the default is an operational toggle.
-- **TD-17 and TD-22 are resolved, and TD-19's cache dimension**, behind `REDIS_URL`
-  (in-memory default unchanged). The other TD-19 backends — object store, search,
-  job runner, notifications — remain follow-ups.
+- **TD-17, TD-19 and TD-22 are resolved:** the rate limiter, cache, jobs,
+  notifications, search, files and the session read-through all have distributed
+  backends (Redis / Postgres) behind their ports, env-gated with the in-memory
+  default unchanged.
 
 ## [0.2.0] — 2026-07-18 — Phase 2 · Program A: Identity & Organization (certified baseline)
 

@@ -51,7 +51,7 @@ const providers: Provider[] = [
 @Global()
 @Module({
   providers,
-  exports: [KEY_VALUE_STORE, ASYNC_RATE_LIMITER, SESSION_VALIDITY_CACHE],
+  exports: [KEY_VALUE_STORE, ASYNC_RATE_LIMITER, SESSION_VALIDITY_CACHE, REDIS_CLIENT],
 })
 export class KeyValueModule implements OnModuleDestroy {
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis | null) {}
