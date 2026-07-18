@@ -1,6 +1,7 @@
-import type { OrganizationDirectory, PersonDirectory } from "@knowget/membership";
+import type { OrganizationDirectory, PersonDirectory, RoleDirectory } from "@knowget/membership";
 import { OrganizationNotFoundError, type OrganizationService } from "@knowget/organization";
 import { PersonNotFoundError, type PersonService } from "@knowget/person";
+import type { RoleService } from "@knowget/roles";
 import type { TenantId, Uuid } from "@knowget/types";
 
 /**
@@ -38,5 +39,14 @@ export class OrganizationServiceDirectory implements OrganizationDirectory {
       }
       throw error;
     }
+  }
+}
+
+/** {@link RoleDirectory} backed by the role catalogue service (P2-D01-M05). */
+export class RoleServiceDirectory implements RoleDirectory {
+  constructor(private readonly roles: RoleService) {}
+
+  roleExists(tenantId: TenantId, roleName: string): Promise<boolean> {
+    return this.roles.roleExists(tenantId, roleName);
   }
 }

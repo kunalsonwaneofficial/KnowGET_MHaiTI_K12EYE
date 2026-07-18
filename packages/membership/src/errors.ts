@@ -70,3 +70,15 @@ export class OrganizationNotFoundForMembershipError extends PlatformError {
     });
   }
 }
+
+/** A referenced role is not defined (or not active) in the tenant's catalogue. */
+export class UnknownRoleError extends PlatformError {
+  constructor(roleName: string) {
+    super(`Role "${roleName}" is not defined in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { roleName },
+    });
+  }
+}

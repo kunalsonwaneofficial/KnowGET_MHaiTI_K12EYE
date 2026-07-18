@@ -5,12 +5,14 @@ import {
   MembershipNotFoundError,
   OrganizationNotFoundForMembershipError,
   PersonNotFoundForMembershipError,
+  UnknownRoleError,
 } from "./errors";
 import { MembershipService } from "./membership-service";
 import {
   InMemoryMembershipRepository,
   type OrganizationDirectory,
   type PersonDirectory,
+  type RoleDirectory,
 } from "./ports";
 
 const TENANT_A = "11111111-1111-1111-1111-111111111111" as TenantId;
@@ -179,5 +181,56 @@ describe("MembershipService — lifecycle & role resolution", () => {
     expect((await service.suspend(TENANT_A, membership.id)).status).toBe("suspended");
     expect((await service.reinstate(TENANT_A, membership.id)).status).toBe("active");
     expect((await service.end(TENANT_A, membership.id, "2027-03-31")).status).toBe("ended");
+  });
+});
+
+describe("MembershipService — role catalogue validation", () => {
+  const directory = new FakeDirectory([
+    [TENANT_A, ADA],
+    [TENANT_A, SCHOOL],
+  ]);
+  // Only "teacher" is a defined role in the tenant.
+  const roles: RoleDirectory = { roleExists: async (_t, name) => name === "teacher" };
+
+  function serviceWithRoles(): MembershipService {
+    return new MembershipService({
+      repository: new InMemoryMembershipRepository(),
+      persons: directory,
+      organizations: directory,
+      roles,
+    });
+  }
+
+  it("grants when every role name is defined in the catalogue", async () => {
+    await expect(
+      serviceWithRoles().grant({
+        tenantId: TENANT_A,
+        personId: ADA,
+        organizationId: SCHOOL,
+        roles: ["teacher"],
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("rejects a grant or role change referencing an unknown role", async () => {
+    const service = serviceWithRoles();
+    await expect(
+      service.grant({
+        tenantId: TENANT_A,
+        personId: ADA,
+        organizationId: SCHOOL,
+        roles: ["teacher", "wizard"],
+      }),
+    ).rejects.toBeInstanceOf(UnknownRoleError);
+
+    const membership = await service.grant({
+      tenantId: TENANT_A,
+      personId: ADA,
+      organizationId: SCHOOL,
+      roles: ["teacher"],
+    });
+    await expect(service.changeRoles(TENANT_A, membership.id, ["sorcerer"])).rejects.toBeInstanceOf(
+      UnknownRoleError,
+    );
   });
 });
