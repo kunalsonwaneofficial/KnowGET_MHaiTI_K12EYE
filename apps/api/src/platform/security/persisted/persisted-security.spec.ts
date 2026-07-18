@@ -26,6 +26,7 @@ import { verifyJwt } from "@knowget/tokens";
 import type { TenantId, Uuid } from "@knowget/types";
 import { describe, expect, it } from "vitest";
 import { buildPersistedSecurity } from "./persisted-security";
+import { InMemoryRefreshTokenStore } from "./refresh-token-store";
 import { InMemoryRevocationStore } from "./revocation-store";
 import { SecuritySeeder } from "./security-seeder";
 import { InMemorySessionStore } from "./session-store";
@@ -92,6 +93,7 @@ describe("persisted security — end to end", () => {
       memberships: memberRepo,
       rolePermissions: (tenantId, names) => roles.permissionsForRoleNames(tenantId, names),
       sessionStore: new InMemorySessionStore(),
+      refreshTokens: new InMemoryRefreshTokenStore(),
       revocations: new InMemoryRevocationStore(),
       audit: new SecurityAuditLogger(),
       config: defaultSecurityConfig,
@@ -126,22 +128,41 @@ describe("persisted security — end to end", () => {
       expect(() => authz.assert({ principal, action: "finance.write" })).not.toThrow();
     }
 
-    // Live enforcement: the freshly-issued session is valid until logout, after
-    // which the enforcer rejects it (session revoked + token revoked).
+    // Live enforcement + refresh rotation + replay defense, end to end.
     const sid = typeof claims.sid === "string" ? claims.sid : undefined;
     const jti = typeof claims.jti === "string" ? claims.jti : undefined;
+    const fid = typeof claims.fid === "string" ? claims.fid : undefined;
     const tenant = typeof claims.tenant === "string" ? claims.tenant : undefined;
     expect(
       await security.enforcer.enforce({ sessionId: sid, tokenId: jti, tenantId: tenant }),
     ).toBe(true);
 
-    await security.authenticator.logout({
-      sessionId: sid as string,
-      ...(jti !== undefined ? { tokenId: jti } : {}),
-      ...(tenant !== undefined ? { tenant } : {}),
+    // Rotate: a fresh access token for the same session is accepted by the guard.
+    const refreshed = await security.authenticator.refresh({
+      tenant: TENANT,
+      refreshToken: login.refreshToken,
     });
+    const refreshedClaims = verifyJwt(refreshed.accessToken, {
+      key: SIGNING_KEY,
+      issuer: defaultSecurityConfig.token.issuer,
+    });
+    expect(refreshedClaims.sid).toBe(sid); // session-bound
     expect(
-      await security.enforcer.enforce({ sessionId: sid, tokenId: jti, tenantId: tenant }),
+      await security.enforcer.enforce({
+        sessionId: refreshedClaims.sid as string,
+        tokenId: refreshedClaims.jti as string,
+        familyId: refreshedClaims.fid as string,
+        tenantId: tenant,
+      }),
+    ).toBe(true);
+
+    // Replay the consumed login token → the family (and its session) are revoked,
+    // and the guard now rejects any token bearing that family.
+    await expect(
+      security.authenticator.refresh({ tenant: TENANT, refreshToken: login.refreshToken }),
+    ).rejects.toThrow();
+    expect(
+      await security.enforcer.enforce({ sessionId: sid, familyId: fid, tenantId: tenant }),
     ).toBe(false);
   });
 });

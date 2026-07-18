@@ -16,6 +16,7 @@ export interface AuthenticatedRequest {
   tokenContext?: {
     readonly sessionId?: string;
     readonly tokenId?: string;
+    readonly familyId?: string;
     readonly tenantId?: string;
   };
 }

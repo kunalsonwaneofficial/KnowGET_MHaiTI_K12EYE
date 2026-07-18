@@ -1,4 +1,5 @@
 import { AuthenticationEngine, type SessionManager } from "@knowget/authentication";
+import { ValidationError } from "@knowget/exceptions";
 import type { SecurityConfig } from "@knowget/security";
 
 /** Credentials presented to sign in. `tenant` is required in persisted mode. */
@@ -16,22 +17,31 @@ export interface LoginResult {
   readonly expiresInMs: number;
 }
 
-/** A request to end a session (sign out). `tokenId`/`tenant` come from the token
- * the caller presented; the persisted authenticator also records a revocation. */
+/** A request to rotate a refresh token for a fresh access token (persisted mode). */
+export interface RefreshInput {
+  readonly refreshToken: string;
+  readonly tenant?: string;
+}
+
+/** A request to end a session (sign out). `tokenId`/`familyId`/`tenant` come from
+ * the token the caller presented; the persisted authenticator revokes the session,
+ * the token id, and the refresh family. */
 export interface LogoutInput {
   readonly sessionId: string;
   readonly tokenId?: string;
+  readonly familyId?: string;
   readonly tenant?: string;
 }
 
 /**
- * Exchanges credentials for tokens and ends sessions. Abstracts the difference
- * between the in-memory bootstrap (`EngineAuthenticator`) and the tenant-qualified
- * persisted store (`PersistedAuthenticator`), so the security controller is
- * mode-agnostic.
+ * Exchanges credentials for tokens, rotates refresh tokens, and ends sessions.
+ * Abstracts the difference between the in-memory bootstrap (`EngineAuthenticator`)
+ * and the tenant-qualified persisted store (`PersistedAuthenticator`), so the
+ * security controller is mode-agnostic.
  */
 export interface Authenticator {
   login(input: LoginInput): Promise<LoginResult>;
+  refresh(input: RefreshInput): Promise<LoginResult>;
   logout(input: LogoutInput): Promise<void>;
 }
 
@@ -60,6 +70,13 @@ export class EngineAuthenticator implements Authenticator {
       refreshToken: result.refreshToken,
       expiresInMs: this.config.token.accessTokenTtlMs,
     };
+  }
+
+  /** Refresh-token rotation is persisted-only (it needs a server-side store). */
+  async refresh(_input: RefreshInput): Promise<LoginResult> {
+    throw new ValidationError(
+      "Refresh-token rotation requires persisted mode (SECURITY_STORE=persisted)",
+    );
   }
 
   async logout(input: LogoutInput): Promise<void> {

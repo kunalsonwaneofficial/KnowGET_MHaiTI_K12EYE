@@ -29,6 +29,7 @@ import { RolesModule } from "../../domains/roles/roles.module";
 import { ROLE_SERVICE } from "../../domains/roles/roles.tokens";
 import { DATABASE } from "../tokens";
 import { buildPersistedSecurity, type PersistedSecurity } from "./persisted/persisted-security";
+import { PrismaRefreshTokenStore } from "./persisted/prisma-refresh-token.store";
 import { PrismaRevocationStore } from "./persisted/prisma-revocation.store";
 import { PrismaSessionStore } from "./persisted/prisma-session.store";
 import { type BootstrapAdmin, SecuritySeeder } from "./persisted/security-seeder";
@@ -81,6 +82,7 @@ const providers: Provider[] = [
         memberships,
         rolePermissions: (tenantId, names) => roles.permissionsForRoleNames(tenantId, names),
         sessionStore: new PrismaSessionStore(db),
+        refreshTokens: new PrismaRefreshTokenStore(db),
         revocations: new PrismaRevocationStore(db),
         audit,
         config,
