@@ -1,5 +1,6 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Committee } from "./committee";
 import type { GovernanceBody } from "./governance-body";
 import type { GovernanceBodyType } from "./governance-body-type";
 
@@ -32,3 +33,24 @@ export const governanceBodyDissolved = (
   body: GovernanceBody,
 ): DomainEvent<typeof GOVERNANCE_BODY_DISSOLVED, GovernanceBodyPayload> =>
   createEvent(GOVERNANCE_BODY_DISSOLVED, bodyPayload(body), { tenantId: body.tenantId });
+
+export const COMMITTEE_CREATED = "governance.committee.created";
+
+export interface CommitteePayload {
+  readonly committeeId: Uuid;
+  readonly organizationId: Uuid;
+  readonly governanceBodyId: Uuid | null;
+}
+
+export type CommitteeCreatedEvent = DomainEvent<typeof COMMITTEE_CREATED, CommitteePayload>;
+
+export const committeeCreated = (committee: Committee): CommitteeCreatedEvent =>
+  createEvent(
+    COMMITTEE_CREATED,
+    {
+      committeeId: committee.id,
+      organizationId: committee.organizationId,
+      governanceBodyId: committee.governanceBodyId,
+    },
+    { tenantId: committee.tenantId },
+  );

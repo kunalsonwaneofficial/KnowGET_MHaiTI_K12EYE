@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Committee } from "./committee";
 import type { GovernanceBody } from "./governance-body";
 
 /**
@@ -21,6 +22,61 @@ export interface GovernanceBodyRepository {
  */
 export interface OrganizationDirectory {
   exists(tenantId: TenantId, organizationId: Uuid): Promise<boolean>;
+}
+
+/**
+ * Read model over the person domain (P2-D01-M02): does this person exist in the
+ * tenant? Committee members, and later delegates and voters, are Persons.
+ */
+export interface PersonDirectory {
+  exists(tenantId: TenantId, personId: Uuid): Promise<boolean>;
+}
+
+/** Storage contract for committees. Tenant-scoped (explicit argument + RLS). */
+export interface CommitteeRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Committee | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Committee[]>;
+  listByGovernanceBody(tenantId: TenantId, governanceBodyId: Uuid): Promise<Committee[]>;
+  listByTenant(tenantId: TenantId): Promise<Committee[]>;
+  save(committee: Committee): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CommitteeRepository} — the default for tests and bootstrap. */
+export class InMemoryCommitteeRepository implements CommitteeRepository {
+  private readonly byId = new Map<string, Committee>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Committee | null> {
+    const committee = this.byId.get(id);
+    return committee && committee.tenantId === tenantId ? committee : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Committee[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByGovernanceBody(tenantId: TenantId, governanceBodyId: Uuid): Promise<Committee[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.governanceBodyId === governanceBodyId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Committee[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(committee: Committee): Promise<void> {
+    this.byId.set(committee.id, committee);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const committee = this.byId.get(id);
+    if (committee && committee.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
 }
 
 /** In-memory {@link GovernanceBodyRepository} — the default for tests and bootstrap. */
