@@ -184,3 +184,28 @@ model Role {
   @@index([tenantId, name])
   @@map("role")
 }
+
+/// Relationship domain (P2-D01-M06) — a typed association between two people, a
+/// directed edge from_person → to_person (e.g. guardian→dependent, sibling↔
+/// sibling). Completes the Identity & Organization people graph. Tenant-owned:
+/// FORCE RLS isolates every row (see the add_relationship migration).
+model Relationship {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId     String    @map("tenant_id") @db.Uuid
+  fromPersonId String    @map("from_person_id") @db.Uuid
+  toPersonId   String    @map("to_person_id") @db.Uuid
+  kind         String
+  status       String    @default("active")
+  startDate    DateTime? @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdBy    String?   @map("created_by") @db.Uuid
+  updatedBy    String?   @map("updated_by") @db.Uuid
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, fromPersonId])
+  @@index([tenantId, toPersonId])
+  @@map("relationship")
+}
