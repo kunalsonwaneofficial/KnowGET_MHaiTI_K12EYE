@@ -1,16 +1,21 @@
 import { Global, Module, type Provider } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { EngineAuthenticator, type Authenticator } from "./authenticator";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { PermissionsGuard } from "./permissions.guard";
+import type { PrincipalResolver } from "./principal-resolver";
 import { RateLimitGuard } from "./rate-limit.guard";
 import { SecurityController } from "./security.controller";
 import { loadSecurityEnv } from "./security.env";
 import { buildSecurityGraph, type SecurityGraph } from "./security.providers";
 import {
   AUTHENTICATION_ENGINE,
+  AUTHENTICATOR,
   AUTHORIZATION_ENGINE,
   IDENTITY_REPOSITORY,
   KEY_RING,
+  PERSISTED_AUTHENTICATOR,
+  PERSISTED_PRINCIPAL_RESOLVER,
   PRINCIPAL_RESOLVER,
   RATE_LIMITER,
   SECURITY_AUDIT,
@@ -32,6 +37,26 @@ const graphProvider: Provider = {
 };
 
 /**
+ * Principal resolver + authenticator select the persisted implementations when
+ * `PersistedSecurityModule` provides them (SECURITY_STORE=persisted), and fall
+ * back to the in-memory bootstrap graph otherwise. The `@Optional` persisted
+ * tokens are absent in memory mode, so the default path is unchanged.
+ */
+const principalResolverProvider: Provider = {
+  provide: PRINCIPAL_RESOLVER,
+  useFactory: (graph: SecurityGraph, persisted?: PrincipalResolver) =>
+    persisted ?? graph.principals,
+  inject: [SECURITY_GRAPH, { token: PERSISTED_PRINCIPAL_RESOLVER, optional: true }],
+};
+
+const authenticatorProvider: Provider = {
+  provide: AUTHENTICATOR,
+  useFactory: (graph: SecurityGraph, persisted?: Authenticator) =>
+    persisted ?? new EngineAuthenticator(graph.authentication, graph.config),
+  inject: [SECURITY_GRAPH, { token: PERSISTED_AUTHENTICATOR, optional: true }],
+};
+
+/**
  * The security layer. Seeds and provides the security graph (keys, policy,
  * RBAC/ABAC, identities, sessions, audit, authentication, principals, rate
  * limiting) and installs the global guard stack — evaluated in order: rate
@@ -50,7 +75,8 @@ const graphProvider: Provider = {
     fromGraph(IDENTITY_REPOSITORY, (g) => g.identities),
     fromGraph(SESSION_MANAGER, (g) => g.sessions),
     fromGraph(SECURITY_AUDIT, (g) => g.audit),
-    fromGraph(PRINCIPAL_RESOLVER, (g) => g.principals),
+    principalResolverProvider,
+    authenticatorProvider,
     fromGraph(RATE_LIMITER, (g) => g.rateLimiter),
     // Order is significant: rate limiting runs first, then authentication, then
     // authorization (which relies on the principal the auth guard attaches).
