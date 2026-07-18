@@ -29,8 +29,9 @@ pattern (ADR-0010). Program A — Identity & Organization:
 | P2-D01-M01 Organization Foundation | ✅ Complete    | Organization domain (hierarchy, lifecycle, events) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                                   |
 | P2-D01-M02 Person Platform         | ✅ Complete    | Person domain (names, demographics, contacts, dedup/merge, lifecycle) + RLS table + REST module. CI green; RLS verified on live PostgreSQL. Live on `main`.                                                                                                |
 | P2-D01-M03 Enterprise Identity     | ✅ Complete    | Enterprise identity domain (tenant-scoped login accounts, identifiers, credential, lifecycle, lockout) linked to Person + RLS table (GIN identifier lookup) + REST module + auth-engine bridge. CI green; RLS verified on live PostgreSQL. Live on `main`. |
-| P2-D01-M04 Membership              | ⬜ Not started | Next milestone.                                                                                                                                                                                                                                            |
-| P2-D01-M05 … M07                   | ⬜ Not started | Authorization, Relationship, Domain certification.                                                                                                                                                                                                         |
+| P2-D01-M04 Membership              | 🔄 In progress | Membership domain (Person→Organization role assignment, lifecycle, effective period) + RLS table + REST module + persisted tenant-scoped PrincipalResolver. Verified in-sandbox & on live PostgreSQL; CI pending on `feat/p2-d01-m04-membership`.          |
+| P2-D01-M05 Authorization           | ⬜ Not started | Next milestone.                                                                                                                                                                                                                                            |
+| P2-D01-M06 … M07                   | ⬜ Not started | Relationship, Domain certification.                                                                                                                                                                                                                        |
 
 ## Reusable capabilities available now
 
@@ -74,6 +75,7 @@ pattern (ADR-0010). Program A — Identity & Organization:
 | `@knowget/organization`        | Organization aggregate, hierarchy ops, lifecycle state machine, events, repository port (P2-D01-M01)                                                                                  |
 | `@knowget/person`              | Person aggregate (name/demographics/contacts), dedup match key, merge, lifecycle, events, port (P2-D01-M02)                                                                           |
 | `@knowget/enterprise-identity` | IdentityAccount aggregate — Person-linked, tenant-scoped login accounts: identifiers (normalized keys), credential, lifecycle, lockout, events, port; auth-engine bridge (P2-D01-M03) |
+| `@knowget/membership`          | Membership aggregate — Person→Organization role assignment: role-name set, lifecycle, effective period, events, port; persisted PrincipalResolver (P2-D01-M04)                        |
 
 ## Data platform (P1-M03)
 
@@ -94,11 +96,12 @@ deny → RBAC → allow policy → default-deny). The `SecurityAuditLogger` hash
 events so tampering is detectable. The API installs a global, ordered guard stack
 — **rate limit → JWT authentication → permissions** — with `@Public`,
 `@RequirePermissions`, `@RateLimit` and `@CurrentPrincipal`; `/secure` reference
-routes exercise it end to end. Session, revocation and principal→role
+routes exercise it end to end. Session and revocation
 stores are in-memory behind interfaces, to be replaced by persistence-backed
-implementations in Phase 2; the **identity** store now has a persisted,
-tenant-scoped implementation (`@knowget/enterprise-identity`, P2-D01-M03) that
-drives the frozen engine via a bridge (TD-16 partially resolved). Bootstrap secrets are required in production
+implementations in Phase 2; the **identity** store (`@knowget/enterprise-identity`,
+P2-D01-M03) and the **principal→role** store (`@knowget/membership`, P2-D01-M04)
+now have persisted, tenant-scoped implementations behind their ports, wired into
+the frozen engine via bridges (TD-16 progressively resolved). Bootstrap secrets are required in production
 (fail-closed). The full API build is CI-verified (Prisma, TD-12); the security
 layer is additionally verified in-sandbox by an isolated type-check and an
 in-process `SecurityModule` integration spec.

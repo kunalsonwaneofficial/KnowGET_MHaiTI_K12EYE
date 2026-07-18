@@ -35,6 +35,7 @@
     "@knowget/kernel": "workspace:*",
     "@knowget/logging": "workspace:*",
     "@knowget/media": "workspace:*",
+    "@knowget/membership": "workspace:*",
     "@knowget/metrics": "workspace:*",
     "@knowget/notifications": "workspace:*",
     "@knowget/organization": "workspace:*",
