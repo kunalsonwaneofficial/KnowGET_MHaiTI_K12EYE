@@ -2,13 +2,13 @@
 
 **Live security wiring** · Phase 2 · Program A (Identity & Organization) · post-certification hardening
 
-|                |                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | Refresh-token rotation & replay detection (TD-18)                                                                  |
-| **Status**     | 🔄 Implemented; verification green in-sandbox + live-PostgreSQL RLS. CI pending on the feature branch (pre-merge). |
-| **Depends on** | ADR-0015 (session/revocation persistence), ADR-0014, P1-M04 (tokens, sessions)                                     |
-| **Scope**      | Session-bound rotating refresh family with replay detection, **env-gated (persisted-only)**. Resolves TD-18.       |
-| **Date**       | 18 July 2026                                                                                                       |
+|                |                                                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | Refresh-token rotation & replay detection (TD-18)                                                                 |
+| **Status**     | ✅ Complete — merged to `main` (`002af54`); CI green. **TD-18 resolved.** Live behind `SECURITY_STORE=persisted`. |
+| **Depends on** | ADR-0015 (session/revocation persistence), ADR-0014, P1-M04 (tokens, sessions)                                    |
+| **Scope**      | Session-bound rotating refresh family with replay detection, **env-gated (persisted-only)**. Resolves TD-18.      |
+| **Date**       | 18 July 2026                                                                                                      |
 
 ---
 
