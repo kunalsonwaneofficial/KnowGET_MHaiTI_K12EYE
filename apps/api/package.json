@@ -46,6 +46,7 @@
     "@knowget/search": "workspace:*",
     "@knowget/security": "workspace:*",
     "@knowget/shared": "workspace:*",
+    "@knowget/student-lifecycle": "workspace:*",
     "@knowget/tokens": "workspace:*",
     "@knowget/tracing": "workspace:*",
     "@knowget/types": "workspace:*",

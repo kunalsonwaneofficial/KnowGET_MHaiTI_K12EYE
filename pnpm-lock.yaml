@@ -180,6 +180,9 @@ importers:
       '@knowget/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@knowget/student-lifecycle':
+        specifier: workspace:*
+        version: link:../../packages/student-lifecycle
       '@knowget/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
