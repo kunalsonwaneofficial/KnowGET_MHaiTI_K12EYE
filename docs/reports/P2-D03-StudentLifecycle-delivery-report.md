@@ -2,13 +2,13 @@
 
 **Student Lifecycle Intelligence Platform (SLIP)** · Phase 2 (Enterprise Domain Engineering) · Program: Student Lifecycle
 
-|                |                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D03 — Student Lifecycle Intelligence Platform                                                                                           |
-| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Awaiting CI on the PR before merge. |
-| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), Phase 1 baseline (`v0.1.0`)                                               |
-| **Date**       | 19 July 2026                                                                                                                               |
-| **Next**       | P2-D04 — Family & Guardian Intelligence Platform (FGIP)                                                                                    |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D03 — Student Lifecycle Intelligence Platform                                                                                   |
+| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. CI green; merged to `main`. |
+| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), Phase 1 baseline (`v0.1.0`)                                       |
+| **Date**       | 19 July 2026                                                                                                                       |
+| **Next**       | P2-D04 — Family & Guardian Intelligence Platform (FGIP)                                                                            |
 
 ---
 
@@ -113,7 +113,7 @@ from first enquiry through alumni status; every lifecycle transition is traceabl
 auditable; student records remain independent of academic, financial and operational
 domains; identity is linked through Person and Membership, not duplicated; and the six
 service tokens are exported so downstream domains consume the platform rather than
-re-modelling students. It is ready to underpin **P2-D04 — Family & Guardian Intelligence
-Platform (FGIP)**, which will relate guardians to these learners. Recommend opening the
-PR, letting CI validate the Prisma build/migration/tests with network access, and
-merging on green.
+re-modelling students. CI validated the Prisma build, migration and DB integration
+tests with network access, and the platform is now **merged and live on `main`**. It is
+ready to underpin **P2-D04 — Family & Guardian Intelligence Platform (FGIP)**, which will
+relate guardians to these learners.
