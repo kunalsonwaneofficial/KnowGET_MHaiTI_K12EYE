@@ -503,3 +503,153 @@ model GovernanceApproval {
   @@index([tenantId, kind, subjectId])
   @@map("governance_approval")
 }
+
+/// Prospect (P2-D03) — a prospective learner in the enquiry funnel, linked to a
+/// Person. Lead metadata (source, campaign, interests) + follow-up history only;
+/// never duplicates identity. Tenant-owned: FORCE RLS (see the add_student_lifecycle
+/// migration).
+model StudentProspect {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  personId       String    @map("person_id") @db.Uuid
+  leadSource     String    @map("lead_source")
+  campaign       String?
+  interests      String[]
+  status         String    @default("new")
+  followUps      Json      @default("[]") @map("follow_ups")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("student_prospect")
+}
+
+/// Applicant (P2-D03) — a formal admissions application, linked to a Person and
+/// optionally converted from a Prospect. Carries the document checklist, interview
+/// and admission decision. Tenant-owned: FORCE RLS.
+model StudentApplicant {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  personId       String    @map("person_id") @db.Uuid
+  prospectId     String?   @map("prospect_id") @db.Uuid
+  programId      String?   @map("program_id") @db.Uuid
+  status         String    @default("draft")
+  documents      Json      @default("[]")
+  interview      Json?
+  decision       Json?
+  submittedOn    DateTime? @map("submitted_on") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, personId])
+  @@map("student_applicant")
+}
+
+/// Student (P2-D03) — the enrolled learner. Identity is a Person and the
+/// institutional affiliation a Membership; the record links to both and never
+/// duplicates them. Carries enrollment/academic/administrative status and the
+/// program / campus / section / academic-year assignment. Tenant-owned: FORCE RLS.
+model Student {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  personId             String    @map("person_id") @db.Uuid
+  membershipId         String?   @map("membership_id") @db.Uuid
+  applicantId          String?   @map("applicant_id") @db.Uuid
+  studentNumber        String    @map("student_number")
+  programId            String?   @map("program_id") @db.Uuid
+  sectionId            String?   @map("section_id") @db.Uuid
+  academicYear         String?   @map("academic_year")
+  rollNumber           String?   @map("roll_number")
+  enrollmentStatus     String    @default("enrolled") @map("enrollment_status")
+  academicStatus       String    @default("good_standing") @map("academic_status")
+  administrativeStatus String    @default("clear") @map("administrative_status")
+  enrolledOn           DateTime? @map("enrolled_on") @db.Date
+  exitedOn             DateTime? @map("exited_on") @db.Date
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentNumber])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, personId])
+  @@map("student")
+}
+
+/// Educational journey (P2-D03) — a student's append-only academic-progression
+/// record (promotions, retentions, transfers, withdrawals, graduation). One per
+/// student. Tenant-owned: FORCE RLS.
+model StudentEducationalJourney {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  entries        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@map("student_educational_journey")
+}
+
+/// Intelligence profile (P2-D03) — a student's AI-ready indicators and intervention
+/// history. Model + integration points only (prediction lives in the Institutional
+/// Intelligence program). One per student. Tenant-owned: FORCE RLS.
+model StudentIntelligenceProfile {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  indicators     Json      @default("{}")
+  interventions  Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@map("student_intelligence_profile")
+}
+
+/// Student timeline entry (P2-D03) — an immutable, append-only institutional event
+/// on a learner's permanent history (admissions, class changes, promotions, awards,
+/// incidents, interventions, graduations). No update or delete; no history is lost.
+/// Tenant-owned: FORCE RLS.
+model StudentTimelineEntry {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  type           String
+  occurredOn     DateTime @map("occurred_on") @db.Date
+  summary        String
+  detail         String?
+  sourceEvent    String?  @map("source_event")
+  recordedAt     DateTime @default(now()) @map("recorded_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, occurredOn])
+  @@map("student_timeline_entry")
+}
