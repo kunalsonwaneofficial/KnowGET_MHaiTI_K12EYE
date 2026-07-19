@@ -1,0 +1,22 @@
+/** Dependency-injection tokens for the Student Lifecycle Intelligence Platform (P2-D03). */
+
+// Repositories (Prisma/RLS adapters over the lifecycle ports).
+export const STUDENT_PROSPECT_REPOSITORY = Symbol("STUDENT_PROSPECT_REPOSITORY");
+export const STUDENT_APPLICANT_REPOSITORY = Symbol("STUDENT_APPLICANT_REPOSITORY");
+export const STUDENT_REPOSITORY = Symbol("STUDENT_REPOSITORY");
+export const STUDENT_JOURNEY_REPOSITORY = Symbol("STUDENT_JOURNEY_REPOSITORY");
+export const STUDENT_INTELLIGENCE_REPOSITORY = Symbol("STUDENT_INTELLIGENCE_REPOSITORY");
+export const STUDENT_TIMELINE_REPOSITORY = Symbol("STUDENT_TIMELINE_REPOSITORY");
+
+// Cross-domain read ports (directories over Person / Organization / Membership).
+export const STUDENT_PERSON_DIRECTORY = Symbol("STUDENT_PERSON_DIRECTORY");
+export const STUDENT_ORGANIZATION_DIRECTORY = Symbol("STUDENT_ORGANIZATION_DIRECTORY");
+export const STUDENT_MEMBERSHIP_DIRECTORY = Symbol("STUDENT_MEMBERSHIP_DIRECTORY");
+
+// Application services.
+export const STUDENT_PROSPECT_SERVICE = Symbol("STUDENT_PROSPECT_SERVICE");
+export const STUDENT_APPLICANT_SERVICE = Symbol("STUDENT_APPLICANT_SERVICE");
+export const STUDENT_SERVICE = Symbol("STUDENT_SERVICE");
+export const STUDENT_JOURNEY_SERVICE = Symbol("STUDENT_JOURNEY_SERVICE");
+export const STUDENT_INTELLIGENCE_SERVICE = Symbol("STUDENT_INTELLIGENCE_SERVICE");
+export const STUDENT_TIMELINE_SERVICE = Symbol("STUDENT_TIMELINE_SERVICE");

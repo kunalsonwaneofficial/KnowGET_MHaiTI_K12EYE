@@ -6,6 +6,7 @@ import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
 import { RelationshipModule } from "./domains/relationship/relationship.module";
 import { RolesModule } from "./domains/roles/roles.module";
+import { StudentLifecycleModule } from "./domains/student-lifecycle/student-lifecycle.module";
 import { KeyValueModule } from "./platform/keyvalue/keyvalue.module";
 import { ObservabilityModule } from "./platform/observability/observability.module";
 import { PlatformModule } from "./platform/platform.module";
@@ -36,7 +37,9 @@ const persistedServices =
  * Organization sub-domain: Organization (M01), Person (M02), Enterprise
  * Identity (M03), Membership (M04), Authorization/Roles (M05), Relationship (M06).
  * Phase-2 D02 adds the Institutional Governance Platform (governance bodies,
- * committees, policies, delegations, resolutions and the governance calendar).
+ * committees, policies, delegations, resolutions and the governance calendar);
+ * D03 adds the Student Lifecycle Intelligence Platform (prospect → applicant →
+ * student → alumni, with educational journey, intelligence profile and timeline).
  * Live security hardening wires the persisted identity/principal→role stores
  * behind `SECURITY_STORE=persisted`.
  */
@@ -54,6 +57,7 @@ const persistedServices =
     MembershipModule,
     RelationshipModule,
     GovernanceModule,
+    StudentLifecycleModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
