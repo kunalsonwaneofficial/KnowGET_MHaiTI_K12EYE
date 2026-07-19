@@ -1,6 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Applicant } from "./applicant";
 import type { Prospect } from "./prospect";
+import type { Student } from "./student";
 
 /**
  * Read model over the person domain (P2-D01-M02): does this person exist in the
@@ -17,6 +18,15 @@ export interface PersonDirectory {
  */
 export interface OrganizationDirectory {
   exists(tenantId: TenantId, organizationId: Uuid): Promise<boolean>;
+}
+
+/**
+ * Read model over the membership domain (P2-D01-M04): does this membership exist in
+ * the tenant? A student's institutional affiliation is a Membership; the lifecycle
+ * links to it rather than duplicating it.
+ */
+export interface MembershipDirectory {
+  exists(tenantId: TenantId, membershipId: Uuid): Promise<boolean>;
 }
 
 /** Storage contract for prospects. Tenant-scoped (explicit argument + RLS). */
@@ -94,6 +104,62 @@ export class InMemoryApplicantRepository implements ApplicantRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const applicant = this.byId.get(id);
     if (applicant && applicant.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for students. Tenant-scoped (explicit argument + RLS). */
+export interface StudentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Student | null>;
+  findByStudentNumber(tenantId: TenantId, studentNumber: string): Promise<Student | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Student[]>;
+  listByPerson(tenantId: TenantId, personId: Uuid): Promise<Student[]>;
+  listByTenant(tenantId: TenantId): Promise<Student[]>;
+  save(student: Student): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link StudentRepository} — the default for tests and bootstrap. */
+export class InMemoryStudentRepository implements StudentRepository {
+  private readonly byId = new Map<string, Student>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Student | null> {
+    const student = this.byId.get(id);
+    return student && student.tenantId === tenantId ? student : null;
+  }
+
+  async findByStudentNumber(tenantId: TenantId, studentNumber: string): Promise<Student | null> {
+    return (
+      [...this.byId.values()].find(
+        (s) => s.tenantId === tenantId && s.studentNumber === studentNumber,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Student[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByPerson(tenantId: TenantId, personId: Uuid): Promise<Student[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.personId === personId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Student[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(student: Student): Promise<void> {
+    this.byId.set(student.id, student);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const student = this.byId.get(id);
+    if (student && student.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

@@ -108,3 +108,74 @@ export class DocumentNotFoundError extends PlatformError {
     });
   }
 }
+
+/** The membership a student is linked to does not exist in the tenant. */
+export class MembershipNotFoundForLifecycleError extends PlatformError {
+  constructor(membershipId: string) {
+    super(`Membership "${membershipId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { membershipId },
+    });
+  }
+}
+
+/** The requested student does not exist in the current tenant. */
+export class StudentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Student "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A student must have a non-empty student number. */
+export class EmptyStudentNumberError extends PlatformError {
+  constructor() {
+    super("A student must have a non-empty student number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The student number is already in use within the tenant. */
+export class DuplicateStudentNumberError extends PlatformError {
+  constructor(studentNumber: string) {
+    super(`Student number "${studentNumber}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentNumber },
+    });
+  }
+}
+
+/** The requested student lifecycle transition is not permitted. */
+export class InvalidStudentTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition student from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A learner may hold at most one active student record per institution. */
+export class DuplicateEnrollmentError extends PlatformError {
+  constructor(personId: string) {
+    super(`Person "${personId}" already has an active enrollment at this organization`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
