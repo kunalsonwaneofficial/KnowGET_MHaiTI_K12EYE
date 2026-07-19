@@ -179,3 +179,74 @@ export class DuplicateEnrollmentError extends PlatformError {
     });
   }
 }
+
+/** The requested educational journey does not exist in the current tenant. */
+export class EducationalJourneyNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Educational journey "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A student has at most one educational journey. */
+export class DuplicateJourneyError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has an educational journey`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** The requested intelligence profile does not exist in the current tenant. */
+export class IntelligenceProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Intelligence profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A student has at most one intelligence profile. */
+export class DuplicateProfileError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has an intelligence profile`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** The requested timeline entry does not exist in the current tenant. */
+export class TimelineEntryNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Timeline entry "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A timeline entry must carry a non-empty summary. */
+export class EmptyTimelineSummaryError extends PlatformError {
+  constructor() {
+    super("A timeline entry must have a non-empty summary", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}

@@ -1,7 +1,10 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Applicant } from "./applicant";
+import type { EducationalJourney } from "./educational-journey";
+import type { IntelligenceProfile } from "./intelligence-profile";
 import type { Prospect } from "./prospect";
 import type { Student } from "./student";
+import type { TimelineEntry } from "./timeline";
 
 /**
  * Read model over the person domain (P2-D01-M02): does this person exist in the
@@ -162,5 +165,129 @@ export class InMemoryStudentRepository implements StudentRepository {
     if (student && student.tenantId === tenantId) {
       this.byId.delete(id);
     }
+  }
+}
+
+/** Storage contract for educational journeys (one per student). Tenant-scoped. */
+export interface EducationalJourneyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EducationalJourney | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<EducationalJourney | null>;
+  listByTenant(tenantId: TenantId): Promise<EducationalJourney[]>;
+  save(journey: EducationalJourney): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EducationalJourneyRepository} — the default for tests. */
+export class InMemoryEducationalJourneyRepository implements EducationalJourneyRepository {
+  private readonly byId = new Map<string, EducationalJourney>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EducationalJourney | null> {
+    const journey = this.byId.get(id);
+    return journey && journey.tenantId === tenantId ? journey : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<EducationalJourney | null> {
+    return (
+      [...this.byId.values()].find((j) => j.tenantId === tenantId && j.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EducationalJourney[]> {
+    return [...this.byId.values()].filter((j) => j.tenantId === tenantId);
+  }
+
+  async save(journey: EducationalJourney): Promise<void> {
+    this.byId.set(journey.id, journey);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const journey = this.byId.get(id);
+    if (journey && journey.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for intelligence profiles (one per student). Tenant-scoped. */
+export interface IntelligenceProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<IntelligenceProfile | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<IntelligenceProfile | null>;
+  listByTenant(tenantId: TenantId): Promise<IntelligenceProfile[]>;
+  save(profile: IntelligenceProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link IntelligenceProfileRepository} — the default for tests. */
+export class InMemoryIntelligenceProfileRepository implements IntelligenceProfileRepository {
+  private readonly byId = new Map<string, IntelligenceProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<IntelligenceProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<IntelligenceProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<IntelligenceProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: IntelligenceProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for timeline entries. Tenant-scoped and **append-only** — there
+ * is no update or delete; the institutional history is permanent.
+ */
+export interface TimelineRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<TimelineEntry | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<TimelineEntry[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<TimelineEntry[]>;
+  listByTenant(tenantId: TenantId): Promise<TimelineEntry[]>;
+  save(entry: TimelineEntry): Promise<void>;
+}
+
+/** In-memory {@link TimelineRepository} — the default for tests. */
+export class InMemoryTimelineRepository implements TimelineRepository {
+  private readonly byId = new Map<string, TimelineEntry>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<TimelineEntry | null> {
+    const entry = this.byId.get(id);
+    return entry && entry.tenantId === tenantId ? entry : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<TimelineEntry[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<TimelineEntry[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<TimelineEntry[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(entry: TimelineEntry): Promise<void> {
+    this.byId.set(entry.id, entry);
   }
 }
