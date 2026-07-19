@@ -28,7 +28,7 @@ async function setup(): Promise<{ svc: IntelligenceProfileService; studentId: Uu
 describe("IntelligenceProfileService", () => {
   it("creates a profile, updates indicators and records interventions", async () => {
     const { svc, studentId } = await setup();
-    const profile = await svc.create({ tenantId: TENANT, studentId, organizationId: ORG });
+    const profile = await svc.create({ tenantId: TENANT, studentId });
     expect(profile.indicators.academicRisk).toBeNull();
 
     const updated = await svc.updateIndicators(TENANT, profile.id, {
@@ -44,15 +44,15 @@ describe("IntelligenceProfileService", () => {
     });
     expect(withIntervention.interventions).toHaveLength(1);
 
-    await expect(
-      svc.create({ tenantId: TENANT, studentId, organizationId: ORG }),
-    ).rejects.toBeInstanceOf(DuplicateProfileError);
+    await expect(svc.create({ tenantId: TENANT, studentId })).rejects.toBeInstanceOf(
+      DuplicateProfileError,
+    );
   });
 
   it("rejects a profile for an unknown student", async () => {
     const { svc } = await setup();
-    await expect(
-      svc.create({ tenantId: TENANT, studentId: ORG, organizationId: ORG }),
-    ).rejects.toBeInstanceOf(StudentNotFoundError);
+    await expect(svc.create({ tenantId: TENANT, studentId: ORG })).rejects.toBeInstanceOf(
+      StudentNotFoundError,
+    );
   });
 });

@@ -25,7 +25,6 @@ export class EducationalJourneyController {
     return this.service.start({
       tenantId: tenantOf(principal),
       studentId: dto.studentId as Uuid,
-      organizationId: dto.organizationId as Uuid,
     });
   }
 

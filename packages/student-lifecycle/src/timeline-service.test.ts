@@ -28,7 +28,6 @@ describe("TimelineService", () => {
     await svc.record({
       tenantId: TENANT,
       studentId,
-      organizationId: ORG,
       type: "promotion",
       summary: "Promoted to grade 2",
       occurredOn: "2031-04-01",
@@ -36,7 +35,6 @@ describe("TimelineService", () => {
     await svc.record({
       tenantId: TENANT,
       studentId,
-      organizationId: ORG,
       type: "admission",
       summary: "Admitted",
       occurredOn: "2030-06-01",
@@ -50,13 +48,12 @@ describe("TimelineService", () => {
   it("rejects an empty summary and an unknown student", async () => {
     const { svc, studentId } = await setup();
     await expect(
-      svc.record({ tenantId: TENANT, studentId, organizationId: ORG, type: "note", summary: "  " }),
+      svc.record({ tenantId: TENANT, studentId, type: "note", summary: "  " }),
     ).rejects.toBeInstanceOf(EmptyTimelineSummaryError);
     await expect(
       svc.record({
         tenantId: TENANT,
         studentId: ORG,
-        organizationId: ORG,
         type: "note",
         summary: "x",
       }),

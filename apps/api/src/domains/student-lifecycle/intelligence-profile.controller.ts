@@ -29,7 +29,6 @@ export class IntelligenceProfileController {
     return this.service.create({
       tenantId: tenantOf(principal),
       studentId: dto.studentId as Uuid,
-      organizationId: dto.organizationId as Uuid,
     });
   }
 

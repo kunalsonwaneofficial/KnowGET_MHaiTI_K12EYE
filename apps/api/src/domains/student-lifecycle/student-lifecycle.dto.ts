@@ -82,7 +82,7 @@ const journeyEventType = z.enum([
   "graduation",
 ]);
 
-export const startJourneySchema = z.object({ studentId: uuid, organizationId: uuid });
+export const startJourneySchema = z.object({ studentId: uuid });
 export const recordProgressionSchema = z.object({
   type: journeyEventType,
   academicYear: z.string().optional(),
@@ -95,7 +95,7 @@ export const recordProgressionSchema = z.object({
 // --- Intelligence profile ---------------------------------------------------------
 const riskLevel = z.enum(["low", "medium", "high"]);
 
-export const createProfileSchema = z.object({ studentId: uuid, organizationId: uuid });
+export const createProfileSchema = z.object({ studentId: uuid });
 export const updateIndicatorsSchema = z.object({
   academicRisk: riskLevel.nullable().optional(),
   academicTrajectory: z.string().nullable().optional(),
@@ -127,7 +127,6 @@ const timelineEntryType = z.enum([
 
 export const recordTimelineSchema = z.object({
   studentId: uuid,
-  organizationId: uuid,
   type: timelineEntryType,
   summary: z.string().min(1),
   occurredOn: isoDate.optional(),

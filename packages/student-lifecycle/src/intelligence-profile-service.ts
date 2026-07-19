@@ -5,7 +5,6 @@ import {
   StudentNotFoundError,
 } from "./errors";
 import {
-  type CreateProfileParams,
   createProfile,
   type IntelligenceIndicators,
   type IntelligenceProfile,
@@ -14,17 +13,23 @@ import {
   updateIndicators,
 } from "./intelligence-profile";
 import type { IntelligenceProfileRepository, StudentRepository } from "./ports";
+import type { Student } from "./student";
 
 export interface IntelligenceProfileServiceDeps {
   readonly repository: IntelligenceProfileRepository;
   readonly students: StudentRepository;
 }
 
+export interface CreateProfileInput {
+  readonly tenantId: TenantId;
+  readonly studentId: Uuid;
+}
+
 /**
  * Application service for the AI-ready intelligence profile. Opens one profile per
- * student (validating the student exists), lets source domains update the learner
- * indicators, and records support interventions. Establishes the model and
- * integration points; prediction lives in the Institutional Intelligence program.
+ * student (deriving the organization from the student), lets source domains update
+ * the learner indicators, and records support interventions. Establishes the model
+ * and integration points; prediction lives in the Institutional Intelligence program.
  */
 export class IntelligenceProfileService {
   private readonly repository: IntelligenceProfileRepository;
@@ -35,12 +40,16 @@ export class IntelligenceProfileService {
     this.students = deps.students;
   }
 
-  async create(input: CreateProfileParams): Promise<IntelligenceProfile> {
-    await this.assertStudentExists(input.tenantId, input.studentId);
+  async create(input: CreateProfileInput): Promise<IntelligenceProfile> {
+    const student = await this.requireStudent(input.tenantId, input.studentId);
     if (await this.repository.findByStudent(input.tenantId, input.studentId)) {
       throw new DuplicateProfileError(input.studentId);
     }
-    const profile = createProfile(input);
+    const profile = createProfile({
+      tenantId: input.tenantId,
+      studentId: input.studentId,
+      organizationId: student.organizationId,
+    });
     await this.repository.save(profile);
     return profile;
   }
@@ -77,10 +86,12 @@ export class IntelligenceProfileService {
     return this.repository.listByTenant(tenantId);
   }
 
-  private async assertStudentExists(tenantId: TenantId, studentId: Uuid): Promise<void> {
-    if (!(await this.students.findById(tenantId, studentId))) {
+  private async requireStudent(tenantId: TenantId, studentId: Uuid): Promise<Student> {
+    const student = await this.students.findById(tenantId, studentId);
+    if (!student) {
       throw new StudentNotFoundError(studentId);
     }
+    return student;
   }
 
   private async require(tenantId: TenantId, id: Uuid): Promise<IntelligenceProfile> {

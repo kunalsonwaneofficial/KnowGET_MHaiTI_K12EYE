@@ -23,7 +23,6 @@ export class TimelineController {
     return this.service.record({
       tenantId: tenantOf(principal),
       studentId: dto.studentId as Uuid,
-      organizationId: dto.organizationId as Uuid,
       type: dto.type,
       summary: dto.summary,
       ...(dto.occurredOn !== undefined ? { occurredOn: dto.occurredOn } : {}),

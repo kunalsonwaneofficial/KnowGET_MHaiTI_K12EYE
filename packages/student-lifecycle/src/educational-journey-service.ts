@@ -3,7 +3,6 @@ import {
   type EducationalJourney,
   type RecordProgressionParams,
   recordProgression,
-  type StartJourneyParams,
   startJourney,
 } from "./educational-journey";
 import {
@@ -12,17 +11,23 @@ import {
   StudentNotFoundError,
 } from "./errors";
 import type { EducationalJourneyRepository, StudentRepository } from "./ports";
+import type { Student } from "./student";
 
 export interface EducationalJourneyServiceDeps {
   readonly repository: EducationalJourneyRepository;
   readonly students: StudentRepository;
 }
 
+export interface StartJourneyInput {
+  readonly tenantId: TenantId;
+  readonly studentId: Uuid;
+}
+
 /**
  * Application service for educational journeys — the longitudinal academic record.
- * Opens one journey per student (validating the student exists) and appends
- * progression events (promotion, retention, transfer, withdrawal, graduation). The
- * record is append-only and complete.
+ * Opens one journey per student (deriving the organization from the student, so the
+ * two can never disagree) and appends progression events (promotion, retention,
+ * transfer, withdrawal, graduation). The record is append-only and complete.
  */
 export class EducationalJourneyService {
   private readonly repository: EducationalJourneyRepository;
@@ -33,12 +38,16 @@ export class EducationalJourneyService {
     this.students = deps.students;
   }
 
-  async start(input: StartJourneyParams): Promise<EducationalJourney> {
-    await this.assertStudentExists(input.tenantId, input.studentId);
+  async start(input: StartJourneyInput): Promise<EducationalJourney> {
+    const student = await this.requireStudent(input.tenantId, input.studentId);
     if (await this.repository.findByStudent(input.tenantId, input.studentId)) {
       throw new DuplicateJourneyError(input.studentId);
     }
-    const journey = startJourney(input);
+    const journey = startJourney({
+      tenantId: input.tenantId,
+      studentId: input.studentId,
+      organizationId: student.organizationId,
+    });
     await this.repository.save(journey);
     return journey;
   }
@@ -65,10 +74,12 @@ export class EducationalJourneyService {
     return this.repository.listByTenant(tenantId);
   }
 
-  private async assertStudentExists(tenantId: TenantId, studentId: Uuid): Promise<void> {
-    if (!(await this.students.findById(tenantId, studentId))) {
+  private async requireStudent(tenantId: TenantId, studentId: Uuid): Promise<Student> {
+    const student = await this.students.findById(tenantId, studentId);
+    if (!student) {
       throw new StudentNotFoundError(studentId);
     }
+    return student;
   }
 
   private async require(tenantId: TenantId, id: Uuid): Promise<EducationalJourney> {

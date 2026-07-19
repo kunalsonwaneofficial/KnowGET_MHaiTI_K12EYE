@@ -28,7 +28,7 @@ async function setup(): Promise<{ svc: EducationalJourneyService; studentId: Uui
 describe("EducationalJourneyService", () => {
   it("opens one journey per student and appends progression", async () => {
     const { svc, studentId } = await setup();
-    const journey = await svc.start({ tenantId: TENANT, studentId, organizationId: ORG });
+    const journey = await svc.start({ tenantId: TENANT, studentId });
     expect(journey.entries).toHaveLength(0);
 
     const updated = await svc.record(TENANT, journey.id, {
@@ -41,15 +41,15 @@ describe("EducationalJourneyService", () => {
     expect(updated.entries[0]?.type).toBe("promotion");
     expect(await svc.getForStudent(TENANT, studentId)).not.toBeNull();
 
-    await expect(
-      svc.start({ tenantId: TENANT, studentId, organizationId: ORG }),
-    ).rejects.toBeInstanceOf(DuplicateJourneyError);
+    await expect(svc.start({ tenantId: TENANT, studentId })).rejects.toBeInstanceOf(
+      DuplicateJourneyError,
+    );
   });
 
   it("rejects a journey for an unknown student", async () => {
     const { svc } = await setup();
-    await expect(
-      svc.start({ tenantId: TENANT, studentId: ORG, organizationId: ORG }),
-    ).rejects.toBeInstanceOf(StudentNotFoundError);
+    await expect(svc.start({ tenantId: TENANT, studentId: ORG })).rejects.toBeInstanceOf(
+      StudentNotFoundError,
+    );
   });
 });

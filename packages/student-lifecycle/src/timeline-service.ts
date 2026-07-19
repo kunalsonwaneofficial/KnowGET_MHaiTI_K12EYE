@@ -1,11 +1,15 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import { StudentNotFoundError, TimelineEntryNotFoundError } from "./errors";
 import type { StudentRepository, TimelineRepository } from "./ports";
+import type { Student } from "./student";
 import {
   type RecordTimelineEntryParams,
   recordTimelineEntry,
   type TimelineEntry,
 } from "./timeline";
+
+/** Timeline-entry input; the organization is derived from the student. */
+export type RecordTimelineInput = Omit<RecordTimelineEntryParams, "organizationId">;
 
 /** Order timeline entries chronologically (by occurrence, then recording time). */
 const byTime = (a: TimelineEntry, b: TimelineEntry): number => {
@@ -34,9 +38,9 @@ export class TimelineService {
     this.students = deps.students;
   }
 
-  async record(input: RecordTimelineEntryParams): Promise<TimelineEntry> {
-    await this.assertStudentExists(input.tenantId, input.studentId);
-    const entry = recordTimelineEntry(input);
+  async record(input: RecordTimelineInput): Promise<TimelineEntry> {
+    const student = await this.requireStudent(input.tenantId, input.studentId);
+    const entry = recordTimelineEntry({ ...input, organizationId: student.organizationId });
     await this.repository.save(entry);
     return entry;
   }
@@ -61,9 +65,11 @@ export class TimelineService {
     return [...(await this.repository.listByTenant(tenantId))].sort(byTime);
   }
 
-  private async assertStudentExists(tenantId: TenantId, studentId: Uuid): Promise<void> {
-    if (!(await this.students.findById(tenantId, studentId))) {
+  private async requireStudent(tenantId: TenantId, studentId: Uuid): Promise<Student> {
+    const student = await this.students.findById(tenantId, studentId);
+    if (!student) {
       throw new StudentNotFoundError(studentId);
     }
+    return student;
   }
 }
