@@ -12,6 +12,11 @@ milestone.
 > at the composition root) now also covers the eight governance adapters; TD-01
 > (in-process events/outbox) covers the eight `governance.*` events. One new low
 > item, **TD-23** (approval subject decoupled by design). No `TODO`/`FIXME` markers.
+>
+> **P2-D03 student-lifecycle review:** no new blocking debt. TD-21 covers the six
+> student-lifecycle adapters; TD-01 covers the nine `student.*` events. One new low
+> item, **TD-24** (single-active-enrollment enforced in-service, DB backstop deferred).
+> No `TODO`/`FIXME` markers.
 
 | #     | Item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Interface protecting callers                                                                                                   | Resolved by                                                                 |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
@@ -38,5 +43,6 @@ milestone.
 
 | TD-22 | ~~Per-request session validation reads and touches the session store on every authenticated request~~ **(resolved).** A read-through `SessionValidityCache` (over the shared `KeyValueStore`) skips the store validate on the fast path; revocation is still checked and logout/replay invalidate the entry (ADR-0017). | `SessionEnforcer` (apps/api security) | ✅ ADR-0017 |
 | TD-23 | Governance **approval** references its subject opaquely (`kind` + `subjectId`) and is **not** foreign-key-validated against the referenced aggregate (policy/committee/resolution/delegation), keeping the one reusable workflow decoupled from the six aggregates (ADR-0021). Tightening to a validated subject reference is a later refinement behind the service. | `GovernanceApprovalService` (`@knowget/governance`) | later (validated subject reference) |
+| TD-24 | The **single active enrollment per institution** invariant is enforced in the service (check-then-act via `listByPerson` + `isOnRoll`), with no DB backstop, so two concurrent `enroll` calls for the same person+org have a TOCTOU window. The unique student number already has a DB `@@unique`. A partial unique index on `(tenant_id, person_id, organization_id) WHERE enrollment_status IN ('enrolled','active','on_leave') AND deleted_at IS NULL` would backstop it (ADR-0022). | `StudentService` (`@knowget/student-lifecycle`) | later (partial unique index) |
 
 No `TODO` markers exist in the codebase; deferrals are tracked here instead.

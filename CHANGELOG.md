@@ -3,6 +3,47 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D03 · Program: Student Lifecycle Intelligence Platform
+
+The highest business domain of Phase 2, on the certified `v0.2.0` baseline and the
+frozen Phase-1 core. The authoritative model of a learner's institutional journey,
+delivered as one `@knowget/student-lifecycle` package (ADR-0022).
+
+### Added
+
+- **Student Lifecycle Intelligence Platform (ADR-0022):** six aggregates in one
+  `@knowget/student-lifecycle` package — **Prospect** (the enquiry funnel), **Applicant**
+  (admissions lifecycle with document checklist, interview and decision), **Student**
+  (the enrolled learner, linked through Person + Membership and never duplicating
+  identity, driving `enrolled → active → on_leave → transferred | withdrawn | graduated
+  → alumni` with a unique student number and a single active enrollment per institution),
+  **Educational Journey** (append-only progression), **Intelligence Profile** (AI-ready
+  indicators + intervention history, model + integration points only), and an immutable,
+  append-only **Timeline**. Each is a pure aggregate behind a repository port, a
+  Prisma/RLS adapter at the composition root, an application service on the event bus, and
+  a permission-gated (`student:read`/`:write`), tenant-scoped REST controller; Person,
+  Organization and Membership existence enter through injected directory ports.
+- **Student events:** nine `student.*` domain events on the platform bus —
+  `prospect.created`, `application.submitted`, `applicant.approved`, and `enrolled`,
+  `promoted`, `transferred`, `withdrawn`, `graduated`, `became_alumni` — the foundation
+  for the downstream academic domains.
+- **Persistence:** six tables (`student_prospect`, `student_applicant`, `student`,
+  `student_educational_journey`, `student_intelligence_profile`, `student_timeline_entry`)
+  with **FORCE ROW LEVEL SECURITY** + tenant-isolation, verified on live PostgreSQL; the
+  student number is DB-unique per tenant; the timeline is an immutable append-only ledger.
+- **API:** `StudentLifecycleModule` wires six repositories, three directories and six
+  services, registered in the root module; all six service tokens are exported for
+  in-process cross-domain consumption.
+
+### Notes
+
+- No frozen-code change. Domain Prisma adapters remain at the composition root (TD-21).
+  New low-priority TD-24: single-active-enrollment is service-enforced, DB backstop
+  deferred. The consistency pass had the journey/intelligence/timeline services derive
+  organization from the student (closing a cross-domain-integrity gap). Gates green
+  (build, lint, typecheck, 26 package + 174 API tests); the Prisma build/migration/tests
+  run in CI (TD-12).
+
 ## [Unreleased] — P2-D02 · Program B: Institutional Governance Platform
 
 The first contract of Phase 2 Program B, on the certified `v0.2.0` Identity &
