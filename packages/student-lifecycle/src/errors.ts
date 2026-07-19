@@ -61,3 +61,50 @@ export class EmptyFollowUpNoteError extends PlatformError {
     });
   }
 }
+
+/** The requested applicant does not exist in the current tenant. */
+export class ApplicantNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Applicant "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested application lifecycle transition is not permitted. */
+export class InvalidApplicantTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition application from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A required document must carry a non-empty type. */
+export class EmptyDocumentTypeError extends PlatformError {
+  constructor() {
+    super("A required document must have a non-empty type", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The referenced application document is not on the applicant's checklist. */
+export class DocumentNotFoundError extends PlatformError {
+  constructor(type: string) {
+    super(`Document "${type}" is not on this application's checklist`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { type },
+    });
+  }
+}

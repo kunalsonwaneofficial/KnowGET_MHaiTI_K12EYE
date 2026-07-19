@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Applicant } from "./applicant";
 import type { Prospect } from "./prospect";
 
 /**
@@ -53,6 +54,46 @@ export class InMemoryProspectRepository implements ProspectRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const prospect = this.byId.get(id);
     if (prospect && prospect.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for applicants. Tenant-scoped (explicit argument + RLS). */
+export interface ApplicantRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Applicant | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Applicant[]>;
+  listByTenant(tenantId: TenantId): Promise<Applicant[]>;
+  save(applicant: Applicant): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ApplicantRepository} — the default for tests and bootstrap. */
+export class InMemoryApplicantRepository implements ApplicantRepository {
+  private readonly byId = new Map<string, Applicant>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Applicant | null> {
+    const applicant = this.byId.get(id);
+    return applicant && applicant.tenantId === tenantId ? applicant : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Applicant[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Applicant[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(applicant: Applicant): Promise<void> {
+    this.byId.set(applicant.id, applicant);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const applicant = this.byId.get(id);
+    if (applicant && applicant.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
