@@ -2,13 +2,13 @@
 
 **Family & Guardian Intelligence Platform (FGIP)** · Phase 2 (Enterprise Domain Engineering) · Program: Student Lifecycle
 
-|                |                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D04 — Family & Guardian Intelligence Platform                                                                                           |
-| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Awaiting CI on the PR before merge. |
-| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), P2-D03 (Student Lifecycle), Phase 1 baseline (`v0.1.0`)                   |
-| **Date**       | 21 July 2026                                                                                                                               |
-| **Next**       | P2-D05 — Learner Wellbeing, Safety & Success Platform (LWSSP)                                                                              |
+|                |                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D04 — Family & Guardian Intelligence Platform                                                                                   |
+| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. CI green; merged to `main`. |
+| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), P2-D03 (Student Lifecycle), Phase 1 baseline (`v0.1.0`)           |
+| **Date**       | 21 July 2026                                                                                                                       |
+| **Next**       | P2-D05 — Learner Wellbeing, Safety & Success Platform (LWSSP)                                                                      |
 
 ---
 
@@ -123,7 +123,7 @@ P2-D04 meets its quality gates and definition of done: the platform accurately m
 real-world family and guardianship structures; legal, educational, financial and
 emergency responsibilities are independently managed; family interactions are reusable
 across all institutional domains; and the seven service tokens are exported so downstream
-domains consume FGIP rather than maintaining their own parent or guardian records. It is
-ready to underpin **P2-D05 — Learner Wellbeing, Safety & Success Platform (LWSSP)**.
-Recommend opening the PR, letting CI validate the Prisma build/migration/tests with
-network access, and merging on green.
+domains consume FGIP rather than maintaining their own parent or guardian records. CI
+validated the Prisma build, migration and DB integration tests with network access, and
+the platform is now **merged and live on `main`**. It is ready to underpin **P2-D05 —
+Learner Wellbeing, Safety & Success Platform (LWSSP)**.
