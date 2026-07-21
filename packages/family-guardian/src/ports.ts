@@ -1,4 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Consent } from "./consent";
+import type { ConsentType } from "./consent-type";
+import type { EmergencyContact } from "./emergency-contact";
 import type { Family } from "./family";
 import type { Guardian } from "./guardian";
 import type { StudentGuardianRelationship } from "./student-guardian-relationship";
@@ -27,6 +30,15 @@ export interface OrganizationDirectory {
  */
 export interface StudentDirectory {
   exists(tenantId: TenantId, studentId: Uuid): Promise<boolean>;
+}
+
+/**
+ * Read model over the governance policy registry (P2-D02): does this policy exist in
+ * the tenant? Consents may be linked to a policy without depending on
+ * `@knowget/governance` directly.
+ */
+export interface PolicyDirectory {
+  exists(tenantId: TenantId, policyId: Uuid): Promise<boolean>;
 }
 
 /** Storage contract for families. Tenant-scoped (explicit argument + RLS). */
@@ -209,6 +221,121 @@ export class InMemoryStudentGuardianRelationshipRepository implements StudentGua
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const relationship = this.byId.get(id);
     if (relationship && relationship.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for consents. Tenant-scoped and **append-only** — no update or
+ * delete; the consent history is permanent.
+ */
+export interface ConsentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Consent | null>;
+  findLatest(
+    tenantId: TenantId,
+    studentId: Uuid,
+    consentType: ConsentType,
+  ): Promise<Consent | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Consent[]>;
+  listByStudentAndType(
+    tenantId: TenantId,
+    studentId: Uuid,
+    consentType: ConsentType,
+  ): Promise<Consent[]>;
+  listByTenant(tenantId: TenantId): Promise<Consent[]>;
+  save(consent: Consent): Promise<void>;
+}
+
+/** In-memory {@link ConsentRepository} — the default for tests and bootstrap. */
+export class InMemoryConsentRepository implements ConsentRepository {
+  private readonly byId = new Map<string, Consent>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Consent | null> {
+    const consent = this.byId.get(id);
+    return consent && consent.tenantId === tenantId ? consent : null;
+  }
+
+  async findLatest(
+    tenantId: TenantId,
+    studentId: Uuid,
+    consentType: ConsentType,
+  ): Promise<Consent | null> {
+    return (
+      (await this.listByStudentAndType(tenantId, studentId, consentType)).reduce<Consent | null>(
+        (latest, c) => (latest === null || c.version > latest.version ? c : latest),
+        null,
+      ) ?? null
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Consent[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.studentId === studentId,
+    );
+  }
+
+  async listByStudentAndType(
+    tenantId: TenantId,
+    studentId: Uuid,
+    consentType: ConsentType,
+  ): Promise<Consent[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.studentId === studentId && c.consentType === consentType,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Consent[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(consent: Consent): Promise<void> {
+    this.byId.set(consent.id, consent);
+  }
+}
+
+/** Storage contract for emergency contacts. Tenant-scoped (explicit argument + RLS). */
+export interface EmergencyContactRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EmergencyContact | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EmergencyContact[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EmergencyContact[]>;
+  listByTenant(tenantId: TenantId): Promise<EmergencyContact[]>;
+  save(contact: EmergencyContact): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EmergencyContactRepository} — the default for tests and bootstrap. */
+export class InMemoryEmergencyContactRepository implements EmergencyContactRepository {
+  private readonly byId = new Map<string, EmergencyContact>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EmergencyContact | null> {
+    const contact = this.byId.get(id);
+    return contact && contact.tenantId === tenantId ? contact : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EmergencyContact[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EmergencyContact[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EmergencyContact[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(contact: EmergencyContact): Promise<void> {
+    this.byId.set(contact.id, contact);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const contact = this.byId.get(id);
+    if (contact && contact.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

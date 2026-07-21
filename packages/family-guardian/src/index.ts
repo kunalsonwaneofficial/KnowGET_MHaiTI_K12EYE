@@ -10,10 +10,15 @@ export * from "./verification-status";
 export * from "./guardian-contact";
 export * from "./relationship-type";
 export * from "./responsibility";
+export * from "./consent-type";
+export * from "./emergency-authorization";
+export * from "./emergency-contact-attempt";
 // aggregates
 export * from "./family";
 export * from "./guardian";
 export * from "./student-guardian-relationship";
+export * from "./consent";
+export * from "./emergency-contact";
 // events + ports
 export * from "./family-guardian-events";
 export * from "./ports";
@@ -21,3 +26,5 @@ export * from "./ports";
 export * from "./family-service";
 export * from "./guardian-service";
 export * from "./student-guardian-relationship-service";
+export * from "./consent-service";
+export * from "./emergency-contact-service";

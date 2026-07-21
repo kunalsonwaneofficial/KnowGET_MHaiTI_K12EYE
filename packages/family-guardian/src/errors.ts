@@ -298,3 +298,113 @@ export class InvalidEmergencyPriorityError extends PlatformError {
     });
   }
 }
+
+// --- Consent errors --------------------------------------------------------------
+
+/** The requested consent record does not exist in the current tenant. */
+export class ConsentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Consent "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** There is no active consent of this type to withdraw. */
+export class NoConsentToWithdrawError extends PlatformError {
+  constructor(consentType: string) {
+    super(`No "${consentType}" consent has been granted to withdraw`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { consentType },
+    });
+  }
+}
+
+/** The latest consent of this type has already been withdrawn. */
+export class ConsentAlreadyWithdrawnError extends PlatformError {
+  constructor(consentType: string) {
+    super(`"${consentType}" consent has already been withdrawn`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { consentType },
+    });
+  }
+}
+
+/** A consent's expiry date must not precede the date it takes effect. */
+export class InvalidConsentPeriodError extends PlatformError {
+  constructor() {
+    super("A consent's expiry date must not precede its effective date", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The policy a consent is linked to does not exist in the tenant (P2-D02). */
+export class PolicyNotFoundForConsentError extends PlatformError {
+  constructor(policyId: string) {
+    super(`Policy "${policyId}" not found; cannot link the consent to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { policyId },
+    });
+  }
+}
+
+// --- Emergency contact errors ----------------------------------------------------
+
+/** The requested emergency contact does not exist in the current tenant. */
+export class EmergencyContactNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Emergency contact "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** Another active emergency contact for this student already holds this priority. */
+export class DuplicateEmergencyPriorityError extends PlatformError {
+  constructor(studentId: string, priority: number) {
+    super(`Priority "${priority}" is already assigned for student "${studentId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId, priority },
+    });
+  }
+}
+
+/** An emergency contact must carry a non-empty relationship label. */
+export class EmptyEmergencyRelationshipError extends PlatformError {
+  constructor() {
+    super("An emergency contact must have a non-empty relationship label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The emergency contact is archived and can no longer be modified. */
+export class EmergencyContactArchivedError extends PlatformError {
+  constructor(id: string) {
+    super(`Emergency contact "${id}" is archived and cannot be modified`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
