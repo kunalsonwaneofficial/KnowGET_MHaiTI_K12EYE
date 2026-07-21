@@ -3,6 +3,49 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D04 · Program: Student Lifecycle · Family & Guardian Intelligence Platform
+
+The second contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline
+and the frozen Phase-1 core. The authoritative model of families and guardianship,
+delivered as one `@knowget/family-guardian` package (ADR-0023).
+
+### Added
+
+- **Family & Guardian Intelligence Platform (ADR-0023):** seven aggregates in one
+  `@knowget/family-guardian` package — **Family** (a household unit, deliberately
+  independent of Student, with members, addresses, a primary contact and a
+  merge/split/archive lifecycle), **Guardian** (Person-linked, with a basis of legal
+  authority, an independent identity-verification track and a pending → active →
+  suspended → archived lifecycle), **Student–Guardian Relationship** (the many-to-many
+  join to a P2-D03 Student, with independently-managed legal / educational / financial
+  responsibilities and pickup / medical authorizations, and custody validation — legal
+  responsibility requires the guardian to hold legal authority), **Consent** (an
+  immutable, versioned, append-only ledger across six consent types, policy-linked to
+  P2-D02), **Emergency Contact** (a prioritized calling hierarchy per student), and
+  per-family **Communication** and **Intelligence** profiles (AI-ready, model +
+  integration points only). Each is a pure aggregate behind a repository port, a
+  Prisma/RLS adapter at the composition root, an application service on the event bus,
+  and a permission-gated (`family:read`/`:write`), tenant-scoped REST controller; Person,
+  Organization, Student (P2-D03) and Policy (P2-D02) existence enter through injected
+  directory ports.
+- **Persistence:** seven `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`family`,
+  `guardian`, `student_guardian_relationship`, `family_consent`, `emergency_contact`,
+  `communication_profile`, `family_intelligence_profile`) with the standard
+  `tenant_isolation` policy, soft-delete + audit columns (the consent ledger excepted —
+  append-only), and unique constraints on family number, guardian (person+org), consent
+  version, and one profile per family — verified on live PostgreSQL.
+- **Events:** eight `family.*` domain events — `family.registered`,
+  `family.guardian.registered`, `family.guardian.assigned`, `family.guardian.removed`,
+  `family.consent.granted`, `family.consent.withdrawn`, `family.emergency_contact.updated`,
+  `family.pickup_authorization.changed`.
+- **Docs:** ADR-0023, the P2-D04 delivery report, and platform-state / technical-debt
+  (TD-25, TD-26) / register updates.
+
+### Notes
+
+- Independent audit found no High/Medium correctness bugs; the domain was certified
+  internally consistent. All seven service tokens are exported for downstream domains.
+
 ## [Unreleased] — P2-D03 · Program: Student Lifecycle Intelligence Platform
 
 The highest business domain of Phase 2, on the certified `v0.2.0` baseline and the
