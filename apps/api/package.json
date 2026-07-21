@@ -27,6 +27,7 @@
     "@knowget/enterprise-identity": "workspace:*",
     "@knowget/events": "workspace:*",
     "@knowget/exceptions": "workspace:*",
+    "@knowget/family-guardian": "workspace:*",
     "@knowget/files": "workspace:*",
     "@knowget/governance": "workspace:*",
     "@knowget/health": "workspace:*",

@@ -123,6 +123,9 @@ importers:
       '@knowget/exceptions':
         specifier: workspace:*
         version: link:../../packages/exceptions
+      '@knowget/family-guardian':
+        specifier: workspace:*
+        version: link:../../packages/family-guardian
       '@knowget/files':
         specifier: workspace:*
         version: link:../../packages/files
