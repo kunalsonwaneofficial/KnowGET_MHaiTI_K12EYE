@@ -30,6 +30,18 @@ export class OrganizationNotFoundForFamilyError extends PlatformError {
   }
 }
 
+/** The student a guardian is being related to does not exist in the tenant (P2-D03). */
+export class StudentNotFoundForFamilyError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
 // --- Family errors ---------------------------------------------------------------
 
 /** The requested family does not exist in the current tenant. */
@@ -218,6 +230,71 @@ export class GuardianContactNotFoundError extends PlatformError {
       httpStatus: 404,
       isOperational: true,
       details: { value },
+    });
+  }
+}
+
+// --- Student–Guardian relationship errors ---------------------------------------
+
+/** The requested student–guardian relationship does not exist in the current tenant. */
+export class RelationshipNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Student–guardian relationship "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** This guardian is already actively linked to this student. */
+export class DuplicateRelationshipError extends PlatformError {
+  constructor(studentId: string, guardianId: string) {
+    super(`Guardian "${guardianId}" is already linked to student "${studentId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId, guardianId },
+    });
+  }
+}
+
+/** The relationship has ended and can no longer be modified. */
+export class RelationshipEndedError extends PlatformError {
+  constructor(id: string) {
+    super(`Student–guardian relationship "${id}" has ended and cannot be modified`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * Legal responsibility was requested for a guardian that holds no legal authority —
+ * custody validation. Grant the guardian a legal authority first.
+ */
+export class CustodyValidationError extends PlatformError {
+  constructor(guardianId: string) {
+    super(`Guardian "${guardianId}" holds no legal authority; cannot grant legal responsibility`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { guardianId },
+    });
+  }
+}
+
+/** An emergency priority must be a positive integer (1 is highest). */
+export class InvalidEmergencyPriorityError extends PlatformError {
+  constructor(priority: number) {
+    super(`Emergency priority "${priority}" must be a positive integer`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { priority },
     });
   }
 }

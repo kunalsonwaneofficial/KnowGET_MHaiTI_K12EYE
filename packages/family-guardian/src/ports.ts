@@ -1,6 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Family } from "./family";
 import type { Guardian } from "./guardian";
+import type { StudentGuardianRelationship } from "./student-guardian-relationship";
 
 /**
  * Read model over the person domain (P2-D01-M02): does this person exist in the
@@ -137,6 +138,77 @@ export class InMemoryGuardianRepository implements GuardianRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const guardian = this.byId.get(id);
     if (guardian && guardian.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for student–guardian relationships. Tenant-scoped. */
+export interface StudentGuardianRelationshipRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<StudentGuardianRelationship | null>;
+  findActive(
+    tenantId: TenantId,
+    studentId: Uuid,
+    guardianId: Uuid,
+  ): Promise<StudentGuardianRelationship | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<StudentGuardianRelationship[]>;
+  listByGuardian(tenantId: TenantId, guardianId: Uuid): Promise<StudentGuardianRelationship[]>;
+  listByTenant(tenantId: TenantId): Promise<StudentGuardianRelationship[]>;
+  save(relationship: StudentGuardianRelationship): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link StudentGuardianRelationshipRepository} — the default for tests. */
+export class InMemoryStudentGuardianRelationshipRepository implements StudentGuardianRelationshipRepository {
+  private readonly byId = new Map<string, StudentGuardianRelationship>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<StudentGuardianRelationship | null> {
+    const relationship = this.byId.get(id);
+    return relationship && relationship.tenantId === tenantId ? relationship : null;
+  }
+
+  async findActive(
+    tenantId: TenantId,
+    studentId: Uuid,
+    guardianId: Uuid,
+  ): Promise<StudentGuardianRelationship | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId &&
+          r.studentId === studentId &&
+          r.guardianId === guardianId &&
+          r.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<StudentGuardianRelationship[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.studentId === studentId,
+    );
+  }
+
+  async listByGuardian(
+    tenantId: TenantId,
+    guardianId: Uuid,
+  ): Promise<StudentGuardianRelationship[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.guardianId === guardianId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<StudentGuardianRelationship[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(relationship: StudentGuardianRelationship): Promise<void> {
+    this.byId.set(relationship.id, relationship);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const relationship = this.byId.get(id);
+    if (relationship && relationship.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
