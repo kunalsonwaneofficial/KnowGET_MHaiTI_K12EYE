@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { CommunicationProfile } from "./communication-profile";
 import type { Consent } from "./consent";
 import type { ConsentType } from "./consent-type";
 import type { EmergencyContact } from "./emergency-contact";
@@ -336,6 +337,57 @@ export class InMemoryEmergencyContactRepository implements EmergencyContactRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const contact = this.byId.get(id);
     if (contact && contact.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for family communication profiles (one per family). Tenant-scoped. */
+export interface CommunicationProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CommunicationProfile | null>;
+  findByFamily(tenantId: TenantId, familyId: Uuid): Promise<CommunicationProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CommunicationProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<CommunicationProfile[]>;
+  save(profile: CommunicationProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CommunicationProfileRepository} — the default for tests. */
+export class InMemoryCommunicationProfileRepository implements CommunicationProfileRepository {
+  private readonly byId = new Map<string, CommunicationProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CommunicationProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByFamily(tenantId: TenantId, familyId: Uuid): Promise<CommunicationProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.familyId === familyId) ??
+      null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CommunicationProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CommunicationProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: CommunicationProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

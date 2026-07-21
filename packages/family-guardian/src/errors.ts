@@ -408,3 +408,63 @@ export class EmergencyContactArchivedError extends PlatformError {
     });
   }
 }
+
+// --- Communication profile errors ------------------------------------------------
+
+/** The requested communication profile does not exist in the current tenant. */
+export class CommunicationProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Communication profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A family already has a communication profile. */
+export class DuplicateCommunicationProfileError extends PlatformError {
+  constructor(familyId: string) {
+    super(`Family "${familyId}" already has a communication profile`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { familyId },
+    });
+  }
+}
+
+/** A communication schedule must carry a non-empty label. */
+export class EmptyScheduleLabelError extends PlatformError {
+  constructor() {
+    super("A communication schedule must have a non-empty label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The referenced schedule label is not on this communication profile. */
+export class ScheduleNotFoundError extends PlatformError {
+  constructor(label: string) {
+    super(`Schedule "${label}" is not on this communication profile`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { label },
+    });
+  }
+}
+
+/** A notification preference must carry a non-empty category. */
+export class EmptyNotificationCategoryError extends PlatformError {
+  constructor() {
+    super("A notification preference must have a non-empty category", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
