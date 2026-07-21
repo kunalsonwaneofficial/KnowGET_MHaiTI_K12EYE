@@ -293,3 +293,115 @@ export class EmptySafeguardingEntryError extends PlatformError {
     });
   }
 }
+
+// --- Learner support plan errors -------------------------------------------------
+
+/** The requested learner support plan does not exist in the current tenant. */
+export class SupportPlanNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Learner support plan "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A learner already has a support plan. */
+export class DuplicateSupportPlanError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has a support plan`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** A support entry (accommodation, strategy, goal) must be non-empty. */
+export class EmptySupportEntryError extends PlatformError {
+  constructor(field: string) {
+    super(`A support entry must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** The referenced support goal is not on this plan. */
+export class SupportGoalNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Support goal "${id}" is not on this plan`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Intervention plan errors ----------------------------------------------------
+
+/** The requested intervention plan does not exist in the current tenant. */
+export class InterventionPlanNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Intervention plan "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A learner already has an intervention plan. */
+export class DuplicateInterventionPlanError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has an intervention plan`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** An intervention entry (description, note, outcome) must be non-empty. */
+export class EmptyInterventionEntryError extends PlatformError {
+  constructor(field: string) {
+    super(`An intervention entry must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** The referenced intervention is not on this plan. */
+export class InterventionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Intervention "${id}" is not on this plan`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The intervention is already completed or cancelled and cannot be modified. */
+export class InterventionNotOpenError extends PlatformError {
+  constructor(id: string) {
+    super(`Intervention "${id}" is not open`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

@@ -2,6 +2,8 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { BehaviourRecord } from "./behaviour-record";
 import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
+import type { InterventionPlan } from "./intervention-plan";
+import type { LearnerSupportPlan } from "./learner-support-plan";
 import type { SafeguardingCase } from "./safeguarding-case";
 import type { WellbeingProfile } from "./wellbeing-profile";
 
@@ -271,6 +273,105 @@ export class InMemorySafeguardingCaseRepository implements SafeguardingCaseRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const kase = this.byId.get(id);
     if (kase && kase.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for learner support plans (one per student). Tenant-scoped. */
+export interface LearnerSupportPlanRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LearnerSupportPlan | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<LearnerSupportPlan | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LearnerSupportPlan[]>;
+  listByTenant(tenantId: TenantId): Promise<LearnerSupportPlan[]>;
+  save(plan: LearnerSupportPlan): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LearnerSupportPlanRepository} — the default for tests and bootstrap. */
+export class InMemoryLearnerSupportPlanRepository implements LearnerSupportPlanRepository {
+  private readonly byId = new Map<string, LearnerSupportPlan>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LearnerSupportPlan | null> {
+    const plan = this.byId.get(id);
+    return plan && plan.tenantId === tenantId ? plan : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<LearnerSupportPlan | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<LearnerSupportPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LearnerSupportPlan[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(plan: LearnerSupportPlan): Promise<void> {
+    this.byId.set(plan.id, plan);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const plan = this.byId.get(id);
+    if (plan && plan.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for intervention plans (one per student). Tenant-scoped. */
+export interface InterventionPlanRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<InterventionPlan | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<InterventionPlan | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<InterventionPlan[]>;
+  listByTenant(tenantId: TenantId): Promise<InterventionPlan[]>;
+  save(plan: InterventionPlan): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link InterventionPlanRepository} — the default for tests and bootstrap. */
+export class InMemoryInterventionPlanRepository implements InterventionPlanRepository {
+  private readonly byId = new Map<string, InterventionPlan>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<InterventionPlan | null> {
+    const plan = this.byId.get(id);
+    return plan && plan.tenantId === tenantId ? plan : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<InterventionPlan | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<InterventionPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<InterventionPlan[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(plan: InterventionPlan): Promise<void> {
+    this.byId.set(plan.id, plan);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const plan = this.byId.get(id);
+    if (plan && plan.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

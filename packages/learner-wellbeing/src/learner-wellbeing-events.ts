@@ -9,6 +9,9 @@ import type {
 import type { BehaviourRecord } from "./behaviour-record";
 import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
+import type { Intervention } from "./intervention";
+import type { InterventionPlan } from "./intervention-plan";
+import type { LearnerSupportPlan } from "./learner-support-plan";
 import type { SafeguardingRiskLevel } from "./safeguarding";
 import type { SafeguardingCase } from "./safeguarding-case";
 
@@ -208,3 +211,73 @@ export const safeguardingCaseEscalated = (
     { ...safeguardingPayload(kase), escalatedTo },
     { tenantId: kase.tenantId },
   );
+
+// --- Learner support plan --------------------------------------------------------
+export const SUPPORT_PLAN_UPDATED = "wellbeing.support_plan.updated";
+
+export interface SupportPlanUpdatedPayload {
+  readonly supportPlanId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+}
+
+export type SupportPlanUpdatedEvent = DomainEvent<
+  typeof SUPPORT_PLAN_UPDATED,
+  SupportPlanUpdatedPayload
+>;
+
+export const supportPlanUpdated = (plan: LearnerSupportPlan): SupportPlanUpdatedEvent =>
+  createEvent(
+    SUPPORT_PLAN_UPDATED,
+    { supportPlanId: plan.id, organizationId: plan.organizationId, studentId: plan.studentId },
+    { tenantId: plan.tenantId },
+  );
+
+// --- Intervention plan -----------------------------------------------------------
+export const INTERVENTION_ASSIGNED = "wellbeing.intervention.assigned";
+export const INTERVENTION_COMPLETED = "wellbeing.intervention.completed";
+
+export interface InterventionEventPayload {
+  readonly interventionPlanId: Uuid;
+  readonly interventionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly responsibleStaff: Uuid;
+}
+
+export type InterventionAssignedEvent = DomainEvent<
+  typeof INTERVENTION_ASSIGNED,
+  InterventionEventPayload
+>;
+
+export type InterventionCompletedEvent = DomainEvent<
+  typeof INTERVENTION_COMPLETED,
+  InterventionEventPayload
+>;
+
+const interventionPayload = (
+  plan: InterventionPlan,
+  intervention: Intervention,
+): InterventionEventPayload => ({
+  interventionPlanId: plan.id,
+  interventionId: intervention.id,
+  organizationId: plan.organizationId,
+  studentId: plan.studentId,
+  responsibleStaff: intervention.responsibleStaff,
+});
+
+export const interventionAssigned = (
+  plan: InterventionPlan,
+  intervention: Intervention,
+): InterventionAssignedEvent =>
+  createEvent(INTERVENTION_ASSIGNED, interventionPayload(plan, intervention), {
+    tenantId: plan.tenantId,
+  });
+
+export const interventionCompleted = (
+  plan: InterventionPlan,
+  intervention: Intervention,
+): InterventionCompletedEvent =>
+  createEvent(INTERVENTION_COMPLETED, interventionPayload(plan, intervention), {
+    tenantId: plan.tenantId,
+  });
