@@ -9,6 +9,8 @@ import type {
 import type { BehaviourRecord } from "./behaviour-record";
 import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
+import type { SafeguardingRiskLevel } from "./safeguarding";
+import type { SafeguardingCase } from "./safeguarding-case";
 
 // --- Health record ---------------------------------------------------------------
 export const HEALTH_RECORD_CREATED = "wellbeing.health_record.created";
@@ -155,5 +157,54 @@ export const counsellingCaseClosed = (kase: CounsellingCase): CounsellingCaseClo
   createEvent(
     COUNSELLING_CASE_CLOSED,
     { ...counsellingPayload(kase), sessionCount: kase.sessions.length },
+    { tenantId: kase.tenantId },
+  );
+
+// --- Safeguarding case -----------------------------------------------------------
+export const SAFEGUARDING_CASE_OPENED = "wellbeing.safeguarding_case.opened";
+export const SAFEGUARDING_CASE_ESCALATED = "wellbeing.safeguarding_case.escalated";
+
+/**
+ * Safeguarding events carry routing and risk metadata for coordination — never the
+ * concern text or report content. The most sensitive surface in the platform.
+ */
+export interface SafeguardingCaseEventPayload {
+  readonly safeguardingCaseId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly riskLevel: SafeguardingRiskLevel;
+}
+
+export type SafeguardingCaseOpenedEvent = DomainEvent<
+  typeof SAFEGUARDING_CASE_OPENED,
+  SafeguardingCaseEventPayload
+>;
+
+export interface SafeguardingCaseEscalatedPayload extends SafeguardingCaseEventPayload {
+  readonly escalatedTo: string;
+}
+
+export type SafeguardingCaseEscalatedEvent = DomainEvent<
+  typeof SAFEGUARDING_CASE_ESCALATED,
+  SafeguardingCaseEscalatedPayload
+>;
+
+const safeguardingPayload = (kase: SafeguardingCase): SafeguardingCaseEventPayload => ({
+  safeguardingCaseId: kase.id,
+  organizationId: kase.organizationId,
+  studentId: kase.studentId,
+  riskLevel: kase.riskLevel,
+});
+
+export const safeguardingCaseOpened = (kase: SafeguardingCase): SafeguardingCaseOpenedEvent =>
+  createEvent(SAFEGUARDING_CASE_OPENED, safeguardingPayload(kase), { tenantId: kase.tenantId });
+
+export const safeguardingCaseEscalated = (
+  kase: SafeguardingCase,
+  escalatedTo: string,
+): SafeguardingCaseEscalatedEvent =>
+  createEvent(
+    SAFEGUARDING_CASE_ESCALATED,
+    { ...safeguardingPayload(kase), escalatedTo },
     { tenantId: kase.tenantId },
   );

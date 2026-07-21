@@ -2,6 +2,7 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { BehaviourRecord } from "./behaviour-record";
 import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
+import type { SafeguardingCase } from "./safeguarding-case";
 import type { WellbeingProfile } from "./wellbeing-profile";
 
 /**
@@ -214,6 +215,56 @@ export class InMemoryCounsellingCaseRepository implements CounsellingCaseReposit
   }
 
   async save(kase: CounsellingCase): Promise<void> {
+    this.byId.set(kase.id, kase);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const kase = this.byId.get(id);
+    if (kase && kase.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for safeguarding cases. A learner may have more than one case over
+ * time, so lookups are by id or list-by-student. Tenant-scoped.
+ */
+export interface SafeguardingCaseRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SafeguardingCase | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<SafeguardingCase[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SafeguardingCase[]>;
+  listByTenant(tenantId: TenantId): Promise<SafeguardingCase[]>;
+  save(kase: SafeguardingCase): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SafeguardingCaseRepository} — the default for tests and bootstrap. */
+export class InMemorySafeguardingCaseRepository implements SafeguardingCaseRepository {
+  private readonly byId = new Map<string, SafeguardingCase>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SafeguardingCase | null> {
+    const kase = this.byId.get(id);
+    return kase && kase.tenantId === tenantId ? kase : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<SafeguardingCase[]> {
+    return [...this.byId.values()].filter(
+      (k) => k.tenantId === tenantId && k.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SafeguardingCase[]> {
+    return [...this.byId.values()].filter(
+      (k) => k.tenantId === tenantId && k.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SafeguardingCase[]> {
+    return [...this.byId.values()].filter((k) => k.tenantId === tenantId);
+  }
+
+  async save(kase: SafeguardingCase): Promise<void> {
     this.byId.set(kase.id, kase);
   }
 

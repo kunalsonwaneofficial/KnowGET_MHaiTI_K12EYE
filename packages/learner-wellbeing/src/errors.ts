@@ -255,3 +255,41 @@ export class CounsellingGoalNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Safeguarding case errors ----------------------------------------------------
+
+/** The requested safeguarding case does not exist in the current tenant. */
+export class SafeguardingCaseNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Safeguarding case "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The safeguarding case is resolved and cannot be modified. */
+export class SafeguardingCaseResolvedError extends PlatformError {
+  constructor(id: string) {
+    super(`Safeguarding case "${id}" is resolved`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A safeguarding entry (concern, category, report, escalation, resolution) must be non-empty. */
+export class EmptySafeguardingEntryError extends PlatformError {
+  constructor(field: string) {
+    super(`A safeguarding entry must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
