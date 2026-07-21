@@ -4,6 +4,7 @@ import type { Consent } from "./consent";
 import type { ConsentType } from "./consent-type";
 import type { EmergencyContact } from "./emergency-contact";
 import type { Family } from "./family";
+import type { FamilyIntelligenceProfile } from "./family-intelligence-profile";
 import type { Guardian } from "./guardian";
 import type { StudentGuardianRelationship } from "./student-guardian-relationship";
 
@@ -382,6 +383,63 @@ export class InMemoryCommunicationProfileRepository implements CommunicationProf
   }
 
   async save(profile: CommunicationProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for family intelligence profiles (one per family). Tenant-scoped. */
+export interface FamilyIntelligenceProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<FamilyIntelligenceProfile | null>;
+  findByFamily(tenantId: TenantId, familyId: Uuid): Promise<FamilyIntelligenceProfile | null>;
+  listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<FamilyIntelligenceProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<FamilyIntelligenceProfile[]>;
+  save(profile: FamilyIntelligenceProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link FamilyIntelligenceProfileRepository} — the default for tests. */
+export class InMemoryFamilyIntelligenceProfileRepository implements FamilyIntelligenceProfileRepository {
+  private readonly byId = new Map<string, FamilyIntelligenceProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<FamilyIntelligenceProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByFamily(
+    tenantId: TenantId,
+    familyId: Uuid,
+  ): Promise<FamilyIntelligenceProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.familyId === familyId) ??
+      null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<FamilyIntelligenceProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<FamilyIntelligenceProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: FamilyIntelligenceProfile): Promise<void> {
     this.byId.set(profile.id, profile);
   }
 

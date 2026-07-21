@@ -468,3 +468,52 @@ export class EmptyNotificationCategoryError extends PlatformError {
     });
   }
 }
+
+// --- Family intelligence profile errors ------------------------------------------
+
+/** The requested family intelligence profile does not exist in the current tenant. */
+export class FamilyIntelligenceProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Family intelligence profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A family already has an intelligence profile. */
+export class DuplicateFamilyIntelligenceProfileError extends PlatformError {
+  constructor(familyId: string) {
+    super(`Family "${familyId}" already has an intelligence profile`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { familyId },
+    });
+  }
+}
+
+/** A family interaction must carry a non-empty summary. */
+export class EmptyInteractionSummaryError extends PlatformError {
+  constructor() {
+    super("A family interaction must have a non-empty summary", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A participation rate must be a number between 0 and 1 inclusive. */
+export class InvalidParticipationRateError extends PlatformError {
+  constructor(rate: number) {
+    super(`Participation rate "${rate}" must be between 0 and 1`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { rate },
+    });
+  }
+}
