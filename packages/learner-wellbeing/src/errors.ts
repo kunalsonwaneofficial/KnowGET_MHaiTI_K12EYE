@@ -119,3 +119,89 @@ export class MedicalAlertNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Behaviour record errors -----------------------------------------------------
+
+/** The requested behaviour record does not exist in the current tenant. */
+export class BehaviourRecordNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Behaviour record "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A learner already has a behaviour record. */
+export class DuplicateBehaviourRecordError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has a behaviour record`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** A behaviour entry (note, category, description, goal, action) must be non-empty. */
+export class EmptyBehaviourEntryError extends PlatformError {
+  constructor(field: string) {
+    super(`A behaviour entry must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** The referenced behaviour observation is not on this record. */
+export class BehaviourObservationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Behaviour observation "${id}" is not on this record`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The referenced behaviour incident is not on this record. */
+export class BehaviourIncidentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Behaviour incident "${id}" is not on this record`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The referenced restorative action is not on this incident. */
+export class RestorativeActionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Restorative action "${id}" is not on this incident`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The referenced behaviour goal is not on this record. */
+export class BehaviourGoalNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Behaviour goal "${id}" is not on this record`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

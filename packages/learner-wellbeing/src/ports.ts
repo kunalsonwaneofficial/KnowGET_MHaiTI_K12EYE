@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { BehaviourRecord } from "./behaviour-record";
 import type { HealthRecord } from "./health-record";
 import type { WellbeingProfile } from "./wellbeing-profile";
 
@@ -107,6 +108,54 @@ export class InMemoryHealthRecordRepository implements HealthRecordRepository {
   }
 
   async save(record: HealthRecord): Promise<void> {
+    this.byId.set(record.id, record);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const record = this.byId.get(id);
+    if (record && record.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for behaviour records (one per student). Tenant-scoped. */
+export interface BehaviourRecordRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<BehaviourRecord | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<BehaviourRecord | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<BehaviourRecord[]>;
+  listByTenant(tenantId: TenantId): Promise<BehaviourRecord[]>;
+  save(record: BehaviourRecord): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link BehaviourRecordRepository} — the default for tests and bootstrap. */
+export class InMemoryBehaviourRecordRepository implements BehaviourRecordRepository {
+  private readonly byId = new Map<string, BehaviourRecord>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<BehaviourRecord | null> {
+    const record = this.byId.get(id);
+    return record && record.tenantId === tenantId ? record : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<BehaviourRecord | null> {
+    return (
+      [...this.byId.values()].find((r) => r.tenantId === tenantId && r.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<BehaviourRecord[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<BehaviourRecord[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(record: BehaviourRecord): Promise<void> {
     this.byId.set(record.id, record);
   }
 
