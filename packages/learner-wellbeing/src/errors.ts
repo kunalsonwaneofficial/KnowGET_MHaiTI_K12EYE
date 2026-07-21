@@ -205,3 +205,53 @@ export class BehaviourGoalNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Counselling case errors -----------------------------------------------------
+
+/** The requested counselling case does not exist in the current tenant. */
+export class CounsellingCaseNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Counselling case "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The counselling case is closed and cannot be modified. */
+export class CounsellingCaseClosedError extends PlatformError {
+  constructor(id: string) {
+    super(`Counselling case "${id}" is closed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A counselling entry (concern, note, referral, goal, outcome) must be non-empty. */
+export class EmptyCounsellingEntryError extends PlatformError {
+  constructor(field: string) {
+    super(`A counselling entry must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** The referenced counselling goal is not on this case. */
+export class CounsellingGoalNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Counselling goal "${id}" is not on this case`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

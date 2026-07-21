@@ -7,6 +7,7 @@ import type {
   BehaviourObservationType,
 } from "./behaviour";
 import type { BehaviourRecord } from "./behaviour-record";
+import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
 
 // --- Health record ---------------------------------------------------------------
@@ -109,4 +110,50 @@ export const behaviourIncidentReported = (
       severity: incident.severity,
     },
     { tenantId: record.tenantId },
+  );
+
+// --- Counselling case ------------------------------------------------------------
+export const COUNSELLING_CASE_OPENED = "wellbeing.counselling_case.opened";
+export const COUNSELLING_CASE_CLOSED = "wellbeing.counselling_case.closed";
+
+/**
+ * Counselling events carry only non-clinical routing metadata — never the confidential
+ * concern, notes or outcome. Downstream consumers coordinate; they do not learn content.
+ */
+export interface CounsellingCaseEventPayload {
+  readonly counsellingCaseId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly counsellorId: Uuid;
+}
+
+export type CounsellingCaseOpenedEvent = DomainEvent<
+  typeof COUNSELLING_CASE_OPENED,
+  CounsellingCaseEventPayload
+>;
+
+export interface CounsellingCaseClosedPayload extends CounsellingCaseEventPayload {
+  readonly sessionCount: number;
+}
+
+export type CounsellingCaseClosedEvent = DomainEvent<
+  typeof COUNSELLING_CASE_CLOSED,
+  CounsellingCaseClosedPayload
+>;
+
+const counsellingPayload = (kase: CounsellingCase): CounsellingCaseEventPayload => ({
+  counsellingCaseId: kase.id,
+  organizationId: kase.organizationId,
+  studentId: kase.studentId,
+  counsellorId: kase.counsellorId,
+});
+
+export const counsellingCaseOpened = (kase: CounsellingCase): CounsellingCaseOpenedEvent =>
+  createEvent(COUNSELLING_CASE_OPENED, counsellingPayload(kase), { tenantId: kase.tenantId });
+
+export const counsellingCaseClosed = (kase: CounsellingCase): CounsellingCaseClosedEvent =>
+  createEvent(
+    COUNSELLING_CASE_CLOSED,
+    { ...counsellingPayload(kase), sessionCount: kase.sessions.length },
+    { tenantId: kase.tenantId },
   );

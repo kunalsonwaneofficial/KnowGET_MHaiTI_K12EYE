@@ -1,5 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { BehaviourRecord } from "./behaviour-record";
+import type { CounsellingCase } from "./counselling-case";
 import type { HealthRecord } from "./health-record";
 import type { WellbeingProfile } from "./wellbeing-profile";
 
@@ -162,6 +163,63 @@ export class InMemoryBehaviourRecordRepository implements BehaviourRecordReposit
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const record = this.byId.get(id);
     if (record && record.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for counselling cases. Unlike the record aggregates a learner may
+ * have many cases over time, so lookups are by id or list-by-student. Tenant-scoped.
+ */
+export interface CounsellingCaseRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CounsellingCase | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<CounsellingCase[]>;
+  listByCounsellor(tenantId: TenantId, counsellorId: Uuid): Promise<CounsellingCase[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CounsellingCase[]>;
+  listByTenant(tenantId: TenantId): Promise<CounsellingCase[]>;
+  save(kase: CounsellingCase): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CounsellingCaseRepository} — the default for tests and bootstrap. */
+export class InMemoryCounsellingCaseRepository implements CounsellingCaseRepository {
+  private readonly byId = new Map<string, CounsellingCase>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CounsellingCase | null> {
+    const kase = this.byId.get(id);
+    return kase && kase.tenantId === tenantId ? kase : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<CounsellingCase[]> {
+    return [...this.byId.values()].filter(
+      (k) => k.tenantId === tenantId && k.studentId === studentId,
+    );
+  }
+
+  async listByCounsellor(tenantId: TenantId, counsellorId: Uuid): Promise<CounsellingCase[]> {
+    return [...this.byId.values()].filter(
+      (k) => k.tenantId === tenantId && k.counsellorId === counsellorId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CounsellingCase[]> {
+    return [...this.byId.values()].filter(
+      (k) => k.tenantId === tenantId && k.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CounsellingCase[]> {
+    return [...this.byId.values()].filter((k) => k.tenantId === tenantId);
+  }
+
+  async save(kase: CounsellingCase): Promise<void> {
+    this.byId.set(kase.id, kase);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const kase = this.byId.get(id);
+    if (kase && kase.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
