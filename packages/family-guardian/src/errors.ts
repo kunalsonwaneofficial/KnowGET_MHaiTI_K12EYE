@@ -136,3 +136,88 @@ export class InactiveFamilyError extends PlatformError {
     });
   }
 }
+
+// --- Guardian errors -------------------------------------------------------------
+
+/** The requested guardian does not exist in the current tenant. */
+export class GuardianNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Guardian "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A person is already registered as a guardian at this organization. */
+export class DuplicateGuardianError extends PlatformError {
+  constructor(personId: string) {
+    super(`Person "${personId}" is already a guardian at this organization`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
+
+/** The requested guardian lifecycle transition is not permitted. */
+export class InvalidGuardianTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition guardian from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The requested guardian verification transition is not permitted. */
+export class InvalidVerificationTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition guardian verification from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The guardian is archived and can no longer be modified. */
+export class GuardianArchivedError extends PlatformError {
+  constructor(id: string) {
+    super(`Guardian "${id}" is archived and cannot be modified`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A guardian contact must carry a non-empty value. */
+export class EmptyContactValueError extends PlatformError {
+  constructor() {
+    super("A guardian contact must have a non-empty value", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The referenced contact is not on this guardian. */
+export class GuardianContactNotFoundError extends PlatformError {
+  constructor(value: string) {
+    super(`Contact "${value}" is not on this guardian`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { value },
+    });
+  }
+}
