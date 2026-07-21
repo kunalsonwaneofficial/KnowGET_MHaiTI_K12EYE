@@ -35,6 +35,7 @@
     "@knowget/identity": "workspace:*",
     "@knowget/jobs": "workspace:*",
     "@knowget/kernel": "workspace:*",
+    "@knowget/learner-wellbeing": "workspace:*",
     "@knowget/logging": "workspace:*",
     "@knowget/media": "workspace:*",
     "@knowget/membership": "workspace:*",
