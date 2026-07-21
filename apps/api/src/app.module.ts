@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { GovernanceModule } from "./domains/governance/governance.module";
+import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
 import { IdentityModule } from "./domains/identity/identity.module";
 import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
@@ -58,6 +59,7 @@ const persistedServices =
     RelationshipModule,
     GovernanceModule,
     StudentLifecycleModule,
+    FamilyGuardianModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

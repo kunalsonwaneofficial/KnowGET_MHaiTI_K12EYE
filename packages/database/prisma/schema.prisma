@@ -653,3 +653,191 @@ model StudentTimelineEntry {
   @@index([tenantId, occurredOn])
   @@map("student_timeline_entry")
 }
+
+/// Family (P2-D04) — a household unit, a dynamic institutional stakeholder rather than
+/// an attribute of a student. Members are Persons; the family carries addresses, a
+/// primary contact, communication defaults and a merge/split/archive lifecycle.
+/// Independent of Student. Tenant-owned: FORCE RLS (see the add_family_guardian migration).
+model Family {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  familyNumber           String    @map("family_number")
+  name                   String
+  members                Json      @default("[]")
+  primaryContactPersonId String?   @map("primary_contact_person_id") @db.Uuid
+  addresses              Json      @default("[]")
+  preferredLanguage      String?   @map("preferred_language")
+  preferredChannel       String?   @map("preferred_channel")
+  status                 String    @default("active")
+  mergedIntoFamilyId     String?   @map("merged_into_family_id") @db.Uuid
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@unique([tenantId, familyNumber])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("family")
+}
+
+/// Guardian (P2-D04) — a legal or designated guardian, linked to a Person and never
+/// duplicating identity. Carries legal authority, an independent verification standing,
+/// contacts, availability and the pending/active/suspended/archived lifecycle. One per
+/// person per organization. Tenant-owned: FORCE RLS.
+model Guardian {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  personId         String    @map("person_id") @db.Uuid
+  legalAuthority   String    @default("none") @map("legal_authority")
+  verification     String    @default("unverified")
+  verifiedOn       DateTime? @map("verified_on") @db.Date
+  contacts         Json      @default("[]")
+  availabilityNote String?   @map("availability_note")
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, personId, organizationId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, personId])
+  @@map("guardian")
+}
+
+/// Student–Guardian relationship (P2-D04) — the many-to-many link between a P2-D03
+/// Student and a Guardian: relationship type, independently-managed legal / educational
+/// / financial responsibilities and pickup / medical authorizations, emergency priority
+/// and effective period. Tenant-owned: FORCE RLS.
+model StudentGuardianRelationship {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  guardianId        String    @map("guardian_id") @db.Uuid
+  relationshipType  String    @map("relationship_type")
+  responsibilities  Json      @default("{}")
+  emergencyPriority Int?      @map("emergency_priority")
+  effectiveFrom     DateTime  @map("effective_from") @db.Date
+  effectiveTo       DateTime? @map("effective_to") @db.Date
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, guardianId])
+  @@map("student_guardian_relationship")
+}
+
+/// Family consent (P2-D04) — an immutable, append-only institutional consent record.
+/// Every grant or withdrawal is a new versioned, timestamped row per (student,
+/// consentType); no row is ever edited or deleted. Optionally linked to a governance
+/// policy (P2-D02). Tenant-owned: FORCE RLS.
+model FamilyConsent {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  guardianId     String    @map("guardian_id") @db.Uuid
+  consentType    String    @map("consent_type")
+  decision       String
+  version        Int
+  policyId       String?   @map("policy_id") @db.Uuid
+  note           String?
+  effectiveOn    DateTime  @map("effective_on") @db.Date
+  expiresOn      DateTime? @map("expires_on") @db.Date
+  recordedAt     DateTime  @default(now()) @map("recorded_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+
+  @@unique([tenantId, studentId, consentType, version])
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, organizationId])
+  @@map("family_consent")
+}
+
+/// Emergency contact (P2-D04) — a learner's prioritized emergency contact (a Person),
+/// with a priority unique per student (the hierarchy), authorized actions and an
+/// append-only contact history. Tenant-owned: FORCE RLS.
+model EmergencyContact {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  personId          String    @map("person_id") @db.Uuid
+  priority          Int
+  relationshipLabel String    @map("relationship_label")
+  phone             String?
+  availabilityNote  String?   @map("availability_note")
+  authorizations    Json      @default("{}")
+  contactHistory    Json      @default("[]") @map("contact_history")
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, organizationId])
+  @@map("emergency_contact")
+}
+
+/// Communication profile (P2-D04) — a family's authoritative communication preferences:
+/// language, ordered channels, contact schedules, per-category notification levels and
+/// accessibility requirements. One per family. Tenant-owned: FORCE RLS.
+model CommunicationProfile {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  familyId                  String    @map("family_id") @db.Uuid
+  preferredLanguage         String?   @map("preferred_language")
+  preferredChannels         String[]  @map("preferred_channels")
+  schedules                 Json      @default("[]")
+  notificationPreferences   Json      @default("[]") @map("notification_preferences")
+  accessibilityRequirements String[]  @map("accessibility_requirements")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdBy                 String?   @map("created_by") @db.Uuid
+  updatedBy                 String?   @map("updated_by") @db.Uuid
+  deletedAt                 DateTime? @map("deleted_at")
+
+  @@unique([tenantId, familyId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("communication_profile")
+}
+
+/// Family intelligence profile (P2-D04) — a family's AI-ready engagement indicators and
+/// an append-only institutional interaction timeline. Model + integration points only
+/// (scoring lives in the Institutional Intelligence program). One per family.
+/// Tenant-owned: FORCE RLS.
+model FamilyIntelligenceProfile {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  familyId       String    @map("family_id") @db.Uuid
+  indicators     Json      @default("{}")
+  interactions   Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, familyId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("family_intelligence_profile")
+}
