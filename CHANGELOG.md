@@ -3,6 +3,60 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D05 · Program: Student Lifecycle · Learner Wellbeing, Safety & Success Platform
+
+The third contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline and
+the frozen Phase-1 core. The authoritative model for protecting, supporting and developing
+every learner's physical, emotional, behavioural, psychological and social wellbeing,
+delivered as one `@knowget/learner-wellbeing` package (ADR-0024).
+
+### Added
+
+- **Learner Wellbeing, Safety & Success Platform (ADR-0024):** seven aggregates in one
+  `@knowget/learner-wellbeing` package — **Wellbeing Profile** (the aggregating model of
+  the physical/emotional/social/behavioural dimensions, learning-support indicators,
+  success metrics and AI-ready indicators), **Health Record** (medical history, allergies,
+  chronic conditions, immunizations, medications, standing medical alerts, emergency plan),
+  **Behaviour Record** (positive recognition, observations, incidents with restorative
+  actions, developmental goals and an improvement plan — development over punishment),
+  **Counselling Case** (registration, append-only confidential session history, referrals,
+  goals, terminal closure — many per learner), **Safeguarding Case** (child-protection
+  concern, risk classification, an investigation-and-escalation workflow with a traceable
+  escalation trail, external-agency coordination, terminal resolution — many per learner),
+  **Learner Support Plan** (accommodations, inclusion strategies, personalized goals, review
+  schedule) and **Intervention Plan** (early-warning triggers, assigned interventions with
+  progress monitoring and outcome evaluation). Each is a pure aggregate behind a repository
+  port, a Prisma/RLS adapter at the composition root, an application service on the event
+  bus, and a permission-gated, tenant-scoped REST controller; Student (P2-D03) and Person
+  (P2-D01-M02) existence enter through injected directory ports — the Student directory both
+  validates the learner and supplies the organization.
+- **Fine-grained per-area authorization:** each sensitive area carries its own read/write
+  scope — `wellbeing:*`, `health:*`, `behaviour:*`, `counselling:*`, `safeguarding:*`,
+  `support:*`, `intervention:*` — so health, counselling and safeguarding are authorized
+  independently of one another and of general wellbeing. Counselling is isolated with
+  enhanced privacy; safeguarding is the most restricted.
+- **Persistence:** seven `FORCE ROW LEVEL SECURITY` tenant-isolated tables
+  (`wellbeing_profile`, `health_record`, `behaviour_record`, `counselling_case`,
+  `safeguarding_case`, `learner_support_plan`, `intervention_plan`) with the standard
+  `tenant_isolation` policy (fail-closed), soft-delete + audit columns, and a
+  `(tenant, student)` unique index on the five one-per-student aggregates — isolation,
+  fail-closed reads and WITH CHECK cross-tenant rejection verified on live PostgreSQL.
+- **Events:** eleven `wellbeing.*` domain events —
+  `wellbeing.health_record.created`, `wellbeing.medical_alert.updated`,
+  `wellbeing.behaviour_observation.recorded`, `wellbeing.behaviour_incident.reported`,
+  `wellbeing.counselling_case.opened`, `wellbeing.counselling_case.closed`,
+  `wellbeing.safeguarding_case.opened`, `wellbeing.safeguarding_case.escalated`,
+  `wellbeing.intervention.assigned`, `wellbeing.intervention.completed`,
+  `wellbeing.support_plan.updated` — carrying only routing/metadata, never confidential
+  content.
+- **Docs:** ADR-0024, the P2-D05 delivery report, and platform-state / register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent; one medium schema-drift finding
+  (array columns) was fixed in-milestone and re-verified on live PostgreSQL. All seven
+  service tokens are exported for downstream domains. No new technical debt.
+
 ## [Unreleased] — P2-D04 · Program: Student Lifecycle · Family & Guardian Intelligence Platform
 
 The second contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline

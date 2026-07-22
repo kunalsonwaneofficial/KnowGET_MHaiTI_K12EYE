@@ -841,3 +841,194 @@ model FamilyIntelligenceProfile {
   @@index([tenantId, organizationId])
   @@map("family_intelligence_profile")
 }
+
+/// Learner wellbeing profile (P2-D05) — the aggregating read model over a learner's
+/// holistic wellbeing: the physical/emotional/social/behavioural dimensions, learning
+/// support indicators, success metrics and AI-ready indicators. One per student.
+/// Tenant-owned: FORCE RLS.
+model WellbeingProfile {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  studentId                 String    @map("student_id") @db.Uuid
+  dimensions                Json      @default("{}")
+  learningSupportIndicators String[]  @map("learning_support_indicators")
+  successMetrics            Json      @default("[]") @map("success_metrics")
+  indicators                Json      @default("{}")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdBy                 String?   @map("created_by") @db.Uuid
+  updatedBy                 String?   @map("updated_by") @db.Uuid
+  deletedAt                 DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("wellbeing_profile")
+}
+
+/// Learner health record (P2-D05) — medical history, blood group, allergies, chronic
+/// conditions, immunizations, medications, standing medical alerts and an emergency
+/// plan. One per student; protected behind a dedicated health:* scope at the API.
+/// Tenant-owned: FORCE RLS.
+model HealthRecord {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  medicalHistory    String?   @map("medical_history")
+  bloodGroup        String?   @map("blood_group")
+  allergies         Json      @default("[]")
+  chronicConditions Json      @default("[]") @map("chronic_conditions")
+  immunizations     Json      @default("[]")
+  medications       Json      @default("[]")
+  medicalAlerts     Json      @default("[]") @map("medical_alerts")
+  emergencyPlan     String?   @map("emergency_plan")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("health_record")
+}
+
+/// Learner behaviour record (P2-D05) — the auditable history of positive recognitions,
+/// observations, incidents (with restorative actions), developmental goals and an
+/// improvement plan. Development over punishment. One per student. Tenant-owned: FORCE
+/// RLS.
+model BehaviourRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  studentId       String    @map("student_id") @db.Uuid
+  observations    Json      @default("[]")
+  incidents       Json      @default("[]")
+  goals           Json      @default("[]")
+  improvementPlan Json?     @map("improvement_plan")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("behaviour_record")
+}
+
+/// Counselling case (P2-D05) — case registration, append-only confidential session
+/// history, referrals, goals and closure. A learner may have many cases over time.
+/// Isolated behind the enhanced-privacy counselling:* scope. Tenant-owned: FORCE RLS.
+model CounsellingCase {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  counsellorId      String    @map("counsellor_id") @db.Uuid
+  presentingConcern String    @map("presenting_concern")
+  priority          String    @default("normal")
+  status            String    @default("open")
+  sessions          Json      @default("[]")
+  referrals         Json      @default("[]")
+  goals             Json      @default("[]")
+  outcome           String?
+  openedAt          DateTime  @map("opened_at")
+  closedAt          DateTime? @map("closed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, counsellorId])
+  @@index([tenantId, organizationId])
+  @@map("counselling_case")
+}
+
+/// Safeguarding case (P2-D05) — child-protection concern, incident reports, risk
+/// classification, an investigation-and-escalation workflow with a traceable escalation
+/// trail, external-agency coordination and resolution. A learner may have many cases.
+/// The most restricted surface (safeguarding:* scope). Tenant-owned: FORCE RLS.
+model SafeguardingCase {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  studentId        String    @map("student_id") @db.Uuid
+  concern          String
+  category         String
+  riskLevel        String    @default("medium") @map("risk_level")
+  status           String    @default("reported")
+  reportedBy       String    @map("reported_by") @db.Uuid
+  incidentReports  Json      @default("[]") @map("incident_reports")
+  escalations      Json      @default("[]")
+  externalAgencies Json      @default("[]") @map("external_agencies")
+  resolution       String?
+  openedAt         DateTime  @map("opened_at")
+  resolvedAt       DateTime? @map("resolved_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, organizationId])
+  @@map("safeguarding_case")
+}
+
+/// Learner support plan (P2-D05) — the individual education/inclusion plan: academic and
+/// medical accommodations, behaviour interventions, inclusion strategies, personalized
+/// goals and a review schedule. One per student. Tenant-owned: FORCE RLS.
+model LearnerSupportPlan {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  studentId              String    @map("student_id") @db.Uuid
+  status                 String    @default("active")
+  academicAccommodations String[]  @map("academic_accommodations")
+  medicalAccommodations  String[]  @map("medical_accommodations")
+  behaviourInterventions String[]  @map("behaviour_interventions")
+  inclusionStrategies    String[]  @map("inclusion_strategies")
+  goals                  Json      @default("[]")
+  reviewSchedule         Json      @default("{}") @map("review_schedule")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("learner_support_plan")
+}
+
+/// Intervention plan (P2-D05) — early-warning triggers and the set of assigned
+/// interventions, each with responsible staff, progress monitoring and an outcome
+/// evaluation. One per student. Tenant-owned: FORCE RLS.
+model InterventionPlan {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  studentId           String    @map("student_id") @db.Uuid
+  earlyWarningTriggers String[] @map("early_warning_triggers")
+  interventions       Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("intervention_plan")
+}

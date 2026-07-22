@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { GovernanceModule } from "./domains/governance/governance.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
 import { IdentityModule } from "./domains/identity/identity.module";
+import { LearnerWellbeingModule } from "./domains/learner-wellbeing/learner-wellbeing.module";
 import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
@@ -40,9 +41,12 @@ const persistedServices =
  * Phase-2 D02 adds the Institutional Governance Platform (governance bodies,
  * committees, policies, delegations, resolutions and the governance calendar);
  * D03 adds the Student Lifecycle Intelligence Platform (prospect → applicant →
- * student → alumni, with educational journey, intelligence profile and timeline).
- * Live security hardening wires the persisted identity/principal→role stores
- * behind `SECURITY_STORE=persisted`.
+ * student → alumni, with educational journey, intelligence profile and timeline);
+ * D04 adds the Family & Guardian Intelligence Platform; D05 adds the Learner
+ * Wellbeing, Safety & Success Platform (wellbeing profile, health, behaviour,
+ * counselling, safeguarding, support and intervention plans) under fine-grained
+ * per-area permission scopes. Live security hardening wires the persisted
+ * identity/principal→role stores behind `SECURITY_STORE=persisted`.
  */
 @Module({
   imports: [
@@ -60,6 +64,7 @@ const persistedServices =
     GovernanceModule,
     StudentLifecycleModule,
     FamilyGuardianModule,
+    LearnerWellbeingModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
