@@ -2,13 +2,13 @@
 
 **Learner Wellbeing, Safety & Success Platform (LWSSP)** · Phase 2 (Enterprise Domain Engineering) · Program: Student Lifecycle
 
-|                |                                                                                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D05 — Learner Wellbeing, Safety & Success Platform                                                                                                                                    |
-| **Status**     | ✅ Engineered — gates green in-sandbox (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Branch `feat/p2-d05-learner-wellbeing` pushed; PR open, awaiting CI. |
-| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), P2-D03 (Student Lifecycle), P2-D04 (Family & Guardian), Phase 1 baseline (`v0.1.0`)                                     |
-| **Date**       | 21 July 2026                                                                                                                                                                             |
-| **Next**       | P2-D06 — Academic Structure & Curriculum Platform (ASCP)                                                                                                                                 |
+|                |                                                                                                                                                      |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D05 — Learner Wellbeing, Safety & Success Platform                                                                                                |
+| **Status**     | ✅ Complete — gates green (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. CI green; merged to `main`.                   |
+| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02 (Governance), P2-D03 (Student Lifecycle), P2-D04 (Family & Guardian), Phase 1 baseline (`v0.1.0`) |
+| **Date**       | 21 July 2026                                                                                                                                         |
+| **Next**       | P2-D06 — Academic Structure & Curriculum Platform (ASCP)                                                                                             |
 
 ---
 
