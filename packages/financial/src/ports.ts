@@ -7,6 +7,7 @@ import type { PayComponentInput } from "./pay-component";
 import type { Payment } from "./payment";
 import type { PayrollRun } from "./payroll-run";
 import type { Payslip } from "./payslip";
+import type { StudentFinancialAccount } from "./student-financial-account";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the
@@ -385,6 +386,60 @@ export class InMemoryPayslipRepository implements PayslipRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const payslip = this.byId.get(id);
     if (payslip && payslip.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for student financial accounts (one per student). Tenant-scoped. */
+export interface StudentFinancialAccountRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<StudentFinancialAccount | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<StudentFinancialAccount | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<StudentFinancialAccount[]>;
+  listByTenant(tenantId: TenantId): Promise<StudentFinancialAccount[]>;
+  save(account: StudentFinancialAccount): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link StudentFinancialAccountRepository} — the default for tests and bootstrap. */
+export class InMemoryStudentFinancialAccountRepository implements StudentFinancialAccountRepository {
+  private readonly byId = new Map<string, StudentFinancialAccount>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<StudentFinancialAccount | null> {
+    const account = this.byId.get(id);
+    return account && account.tenantId === tenantId ? account : null;
+  }
+
+  async findByStudent(
+    tenantId: TenantId,
+    studentId: Uuid,
+  ): Promise<StudentFinancialAccount | null> {
+    return (
+      [...this.byId.values()].find((a) => a.tenantId === tenantId && a.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<StudentFinancialAccount[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<StudentFinancialAccount[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(account: StudentFinancialAccount): Promise<void> {
+    this.byId.set(account.id, account);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const account = this.byId.get(id);
+    if (account && account.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

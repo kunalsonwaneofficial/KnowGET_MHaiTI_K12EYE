@@ -7,6 +7,7 @@ import { type Invoice, invoiceTotalMinor } from "./invoice";
 import type { Payment } from "./payment";
 import type { PayrollRun } from "./payroll-run";
 import { type Payslip, payslipGrossMinor, payslipNetMinor } from "./payslip";
+import type { StudentFinancialAccount } from "./student-financial-account";
 
 // --- Financial period ------------------------------------------------------------
 export const PERIOD_OPENED = "finance.period.opened";
@@ -309,3 +310,40 @@ export const payslipApproved = (payslip: Payslip): PayslipApprovedEvent =>
 
 export const payslipPaid = (payslip: Payslip): PayslipPaidEvent =>
   createEvent(PAYSLIP_PAID, payslipPayload(payslip), { tenantId: payslip.tenantId });
+
+// --- Student financial account ---------------------------------------------------
+export const FINANCIAL_ACCOUNT_REFRESHED = "finance.account.refreshed";
+
+export interface FinancialAccountRefreshedPayload {
+  readonly accountId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly outstandingMinor: number;
+  readonly overdueMinor: number;
+  readonly standing: string;
+  readonly currency: string;
+  readonly version: number;
+}
+
+export type FinancialAccountRefreshedEvent = DomainEvent<
+  typeof FINANCIAL_ACCOUNT_REFRESHED,
+  FinancialAccountRefreshedPayload
+>;
+
+export const financialAccountRefreshed = (
+  account: StudentFinancialAccount,
+): FinancialAccountRefreshedEvent =>
+  createEvent(
+    FINANCIAL_ACCOUNT_REFRESHED,
+    {
+      accountId: account.id,
+      organizationId: account.organizationId,
+      studentId: account.studentId,
+      outstandingMinor: account.outstandingMinor,
+      overdueMinor: account.overdueMinor,
+      standing: account.standing,
+      currency: account.currency,
+      version: account.version,
+    },
+    { tenantId: account.tenantId },
+  );

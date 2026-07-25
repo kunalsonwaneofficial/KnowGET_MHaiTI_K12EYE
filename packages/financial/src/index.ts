@@ -13,6 +13,7 @@ export * from "./payment";
 export * from "./concession";
 export * from "./payroll-run";
 export * from "./payslip";
+export * from "./student-financial-account";
 // pure engines (account statement, receivables rollup)
 export * from "./account-statement";
 // domain events
@@ -25,6 +26,7 @@ export * from "./payment-service";
 export * from "./concession-service";
 export * from "./payroll-run-service";
 export * from "./payslip-service";
+export * from "./financial-account-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors

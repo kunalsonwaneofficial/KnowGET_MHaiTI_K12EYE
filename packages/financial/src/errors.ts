@@ -725,3 +725,32 @@ export class EmployeeCompensationNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Student financial account ---------------------------------------------------
+
+/** The requested student financial account does not exist in the current tenant. */
+export class StudentFinancialAccountNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Student financial account "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * The student has no invoices to build (or refresh the currency of) a financial account from, and no
+ * account currency is known yet — there is nothing to reconcile.
+ */
+export class NoFinancialActivityError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" has no financial activity to build an account from`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
