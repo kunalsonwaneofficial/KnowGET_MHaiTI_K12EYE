@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/learning-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Learning Intelligence & Educational Insights Platform (P2-D11) — the capstone academic domain that synthesizes the descriptive indicators of the learner and academic domains (student lifecycle, wellbeing, attendance/presence, teaching-learning, assessment) into a unified per-learner intelligence profile and explainable educational insights: evidence-bearing learning signals, rule-based early warnings, findings, human-in-the-loop recommendations, growth plans and cohort insights. Descriptive and explainable only — ML prediction/forecasting is deferred to the intelligence core (P2-D28).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
