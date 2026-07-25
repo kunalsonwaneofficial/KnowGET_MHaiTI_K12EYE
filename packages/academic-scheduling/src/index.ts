@@ -14,6 +14,8 @@ export * from "./timetable";
 export * from "./schedule-slot";
 export * from "./resource";
 export * from "./allocation";
+export * from "./scheduling-policy";
+export * from "./substitution";
 // events + ports
 export * from "./academic-scheduling-events";
 export * from "./ports";
@@ -22,3 +24,5 @@ export * from "./timetable-service";
 export * from "./schedule-slot-service";
 export * from "./resource-service";
 export * from "./allocation-service";
+export * from "./scheduling-policy-service";
+export * from "./substitution-service";

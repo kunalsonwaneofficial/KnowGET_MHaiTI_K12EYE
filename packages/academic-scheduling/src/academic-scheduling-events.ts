@@ -3,6 +3,7 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Allocation } from "./allocation";
 import type { ConflictKind } from "./conflict";
 import type { ScheduleSlot } from "./schedule-slot";
+import type { Substitution } from "./substitution";
 import type { Timetable } from "./timetable";
 
 // --- Timetable -------------------------------------------------------------------
@@ -124,4 +125,33 @@ export const conflictDetected = (
       kinds,
     },
     { tenantId: timetable.tenantId },
+  );
+
+// --- Substitution ----------------------------------------------------------------
+export const SUBSTITUTION_ASSIGNED = "scheduling.substitution.assigned";
+
+export interface SubstitutionEventPayload {
+  readonly substitutionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly scheduleSlotId: Uuid;
+  readonly substitutionType: string;
+  readonly replacementId: Uuid;
+}
+
+export type SubstitutionAssignedEvent = DomainEvent<
+  typeof SUBSTITUTION_ASSIGNED,
+  SubstitutionEventPayload
+>;
+
+export const substitutionAssigned = (substitution: Substitution): SubstitutionAssignedEvent =>
+  createEvent(
+    SUBSTITUTION_ASSIGNED,
+    {
+      substitutionId: substitution.id,
+      organizationId: substitution.organizationId,
+      scheduleSlotId: substitution.scheduleSlotId,
+      substitutionType: substitution.substitutionType,
+      replacementId: substitution.replacementId,
+    },
+    { tenantId: substitution.tenantId },
   );

@@ -3,6 +3,8 @@ import type { Allocation } from "./allocation";
 import type { ConflictAllocation, SchedulingConstraint } from "./conflict";
 import type { Resource } from "./resource";
 import type { ScheduleSlot } from "./schedule-slot";
+import type { SchedulingPolicy } from "./scheduling-policy";
+import type { Substitution } from "./substitution";
 import type { Timetable } from "./timetable";
 
 // --- Cross-domain directory ports ------------------------------------------------
@@ -323,6 +325,129 @@ export class InMemoryAllocationRepository implements AllocationRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const allocation = this.byId.get(id);
     if (allocation && allocation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Scheduling policy repository -------------------------------------------------
+
+/**
+ * Storage contract for scheduling policies (one per organization + code).
+ * `listActiveForConflict` returns only `active` policies, so a `SchedulingPolicyRepository`
+ * structurally satisfies {@link SchedulingConstraintSource}.
+ */
+export interface SchedulingPolicyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SchedulingPolicy | null>;
+  findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<SchedulingPolicy | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SchedulingPolicy[]>;
+  listByTenant(tenantId: TenantId): Promise<SchedulingPolicy[]>;
+  listActiveForConflict(tenantId: TenantId, organizationId: Uuid): Promise<SchedulingPolicy[]>;
+  save(policy: SchedulingPolicy): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SchedulingPolicyRepository} — the default for tests and bootstrap. */
+export class InMemorySchedulingPolicyRepository implements SchedulingPolicyRepository {
+  private readonly byId = new Map<string, SchedulingPolicy>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SchedulingPolicy | null> {
+    const policy = this.byId.get(id);
+    return policy && policy.tenantId === tenantId ? policy : null;
+  }
+
+  async findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<SchedulingPolicy | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) => p.tenantId === tenantId && p.organizationId === organizationId && p.code === code,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SchedulingPolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SchedulingPolicy[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async listActiveForConflict(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<SchedulingPolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) =>
+        p.tenantId === tenantId && p.organizationId === organizationId && p.status === "active",
+    );
+  }
+
+  async save(policy: SchedulingPolicy): Promise<void> {
+    this.byId.set(policy.id, policy);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const policy = this.byId.get(id);
+    if (policy && policy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Substitution repository -----------------------------------------------------
+
+/** Storage contract for substitutions (tracked against the slot they cover). */
+export interface SubstitutionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Substitution | null>;
+  listBySlot(tenantId: TenantId, scheduleSlotId: Uuid): Promise<Substitution[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Substitution[]>;
+  listByTenant(tenantId: TenantId): Promise<Substitution[]>;
+  save(substitution: Substitution): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SubstitutionRepository} — the default for tests and bootstrap. */
+export class InMemorySubstitutionRepository implements SubstitutionRepository {
+  private readonly byId = new Map<string, Substitution>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Substitution | null> {
+    const substitution = this.byId.get(id);
+    return substitution && substitution.tenantId === tenantId ? substitution : null;
+  }
+
+  async listBySlot(tenantId: TenantId, scheduleSlotId: Uuid): Promise<Substitution[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.scheduleSlotId === scheduleSlotId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Substitution[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Substitution[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(substitution: Substitution): Promise<void> {
+    this.byId.set(substitution.id, substitution);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const substitution = this.byId.get(id);
+    if (substitution && substitution.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
