@@ -2,13 +2,13 @@
 
 **Smart Mobility, Transport & Fleet Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Workforce & Operations
 
-|                |                                                                                                                                                                                                                                                                                        |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D16 — Smart Mobility, Transport & Fleet Platform                                                                                                                                                                                                                                    |
-| **Status**     | 🟡 Awaiting CI green + merge. In-sandbox: `@knowget/transport` typecheck/lint/format/build clean, **42 tests** (15 files); `apps/api` typecheck clean + transport DI-graph spec (2 tests); RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on build). |
-| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base), P2-D03 (Student Lifecycle — the subscriber base), P2-D01-M01 (Organization), P2-D15 (Assets, ADR-0034 — the vehicle-as-capital counterpart), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                   |
-| **Date**       | 17 December 2026                                                                                                                                                                                                                                                                       |
-| **Next**       | P2-D17 — Residential Life, Hostel & Boarding (next Program C contract)                                                                                                                                                                                                                 |
+|                |                                                                                                                                                                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D16 — Smart Mobility, Transport & Fleet Platform                                                                                                                                                                                                                                                            |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`a0a5047`). In-sandbox: `@knowget/transport` typecheck/lint/format/build clean, **42 tests** (15 files); `apps/api` typecheck clean + transport DI-graph spec (2 tests); RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on build). |
+| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base), P2-D03 (Student Lifecycle — the subscriber base), P2-D01-M01 (Organization), P2-D15 (Assets, ADR-0034 — the vehicle-as-capital counterpart), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                           |
+| **Date**       | 17 December 2026                                                                                                                                                                                                                                                                                               |
+| **Next**       | P2-D17 — Residential Life, Hostel & Boarding (next Program C contract)                                                                                                                                                                                                                                         |
 
 ---
 
@@ -113,11 +113,12 @@ live; two status-scoped uniqueness invariants service-enforced (**TD-36**).
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the transport events ride
   the same bus.
 
-## 7. Recommendation — merge on green, proceed to P2-D17
+## 7. Outcome — merged to `main`, proceed to P2-D17
 
 The Smart Mobility, Transport & Fleet Platform is complete behind its gates: schedule and occupancy are
 derived consistently by pure engines, a trip cannot be driven over its captured capacity, the fee/
 valuation boundary is held structurally (no money in the domain), and all eight tables are FORCE-RLS
 tenant-isolated (verified live, JSONB/INTEGER/BOOLEAN round-tripping exactly); both independent audits
-were clean. Recommend merging on CI green and proceeding to **P2-D17 — Residential Life, Hostel &
-Boarding**. **Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary.
+were clean. CI is green and the milestone is **merged to `main` (`a0a5047`)**; next is **P2-D17 —
+Residential Life, Hostel & Boarding**. **Reminder: rotate the GitHub PAT** used for pushes at this
+milestone boundary.
