@@ -1,4 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { CoachingEngagement } from "./coaching-engagement";
+import type { CoachingSession } from "./coaching-session";
 import type { CompetencyFramework } from "./competency-framework";
 import type { Observation } from "./observation";
 
@@ -116,6 +118,101 @@ export class InMemoryObservationRepository implements ObservationRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const observation = this.byId.get(id);
     if (observation && observation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for coaching engagements. Tenant-scoped (explicit argument + RLS). */
+export interface CoachingEngagementRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CoachingEngagement | null>;
+  listByCoachee(tenantId: TenantId, coacheeId: Uuid): Promise<CoachingEngagement[]>;
+  listByCoach(tenantId: TenantId, coachId: Uuid): Promise<CoachingEngagement[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CoachingEngagement[]>;
+  listByTenant(tenantId: TenantId): Promise<CoachingEngagement[]>;
+  save(engagement: CoachingEngagement): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CoachingEngagementRepository} — the default for tests and bootstrap. */
+export class InMemoryCoachingEngagementRepository implements CoachingEngagementRepository {
+  private readonly byId = new Map<string, CoachingEngagement>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CoachingEngagement | null> {
+    const engagement = this.byId.get(id);
+    return engagement && engagement.tenantId === tenantId ? engagement : null;
+  }
+
+  async listByCoachee(tenantId: TenantId, coacheeId: Uuid): Promise<CoachingEngagement[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.coacheeId === coacheeId,
+    );
+  }
+
+  async listByCoach(tenantId: TenantId, coachId: Uuid): Promise<CoachingEngagement[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId && e.coachId === coachId);
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CoachingEngagement[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CoachingEngagement[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(engagement: CoachingEngagement): Promise<void> {
+    this.byId.set(engagement.id, engagement);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const engagement = this.byId.get(id);
+    if (engagement && engagement.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for coaching sessions. Tenant-scoped (explicit argument + RLS). */
+export interface CoachingSessionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CoachingSession | null>;
+  listByEngagement(tenantId: TenantId, engagementId: Uuid): Promise<CoachingSession[]>;
+  listByTenant(tenantId: TenantId): Promise<CoachingSession[]>;
+  save(session: CoachingSession): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CoachingSessionRepository} — the default for tests and bootstrap. */
+export class InMemoryCoachingSessionRepository implements CoachingSessionRepository {
+  private readonly byId = new Map<string, CoachingSession>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CoachingSession | null> {
+    const session = this.byId.get(id);
+    return session && session.tenantId === tenantId ? session : null;
+  }
+
+  async listByEngagement(tenantId: TenantId, engagementId: Uuid): Promise<CoachingSession[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.engagementId === engagementId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CoachingSession[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(session: CoachingSession): Promise<void> {
+    this.byId.set(session.id, session);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const session = this.byId.get(id);
+    if (session && session.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

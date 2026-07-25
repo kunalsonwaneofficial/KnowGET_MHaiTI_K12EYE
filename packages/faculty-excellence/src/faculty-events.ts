@@ -1,5 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { CoachingEngagement } from "./coaching-engagement";
+import type { CoachingSession } from "./coaching-session";
 import type { CompetencyFramework } from "./competency-framework";
 import type { Observation } from "./observation";
 
@@ -92,3 +94,76 @@ export const observationAcknowledged = (observation: Observation): ObservationAc
   createEvent(OBSERVATION_ACKNOWLEDGED, observationPayload(observation), {
     tenantId: observation.tenantId,
   });
+
+// --- Coaching engagement ---------------------------------------------------------
+export const ENGAGEMENT_PROPOSED = "faculty.coaching.proposed";
+export const ENGAGEMENT_ACCEPTED = "faculty.coaching.accepted";
+export const ENGAGEMENT_COMPLETED = "faculty.coaching.completed";
+
+export interface EngagementEventPayload {
+  readonly engagementId: Uuid;
+  readonly organizationId: Uuid;
+  readonly coachId: Uuid;
+  readonly coacheeId: Uuid;
+  readonly status: string;
+}
+
+export type EngagementProposedEvent = DomainEvent<
+  typeof ENGAGEMENT_PROPOSED,
+  EngagementEventPayload
+>;
+export type EngagementAcceptedEvent = DomainEvent<
+  typeof ENGAGEMENT_ACCEPTED,
+  EngagementEventPayload
+>;
+export type EngagementCompletedEvent = DomainEvent<
+  typeof ENGAGEMENT_COMPLETED,
+  EngagementEventPayload
+>;
+
+const engagementPayload = (engagement: CoachingEngagement): EngagementEventPayload => ({
+  engagementId: engagement.id,
+  organizationId: engagement.organizationId,
+  coachId: engagement.coachId,
+  coacheeId: engagement.coacheeId,
+  status: engagement.status,
+});
+
+export const engagementProposed = (engagement: CoachingEngagement): EngagementProposedEvent =>
+  createEvent(ENGAGEMENT_PROPOSED, engagementPayload(engagement), {
+    tenantId: engagement.tenantId,
+  });
+
+export const engagementAccepted = (engagement: CoachingEngagement): EngagementAcceptedEvent =>
+  createEvent(ENGAGEMENT_ACCEPTED, engagementPayload(engagement), {
+    tenantId: engagement.tenantId,
+  });
+
+export const engagementCompleted = (engagement: CoachingEngagement): EngagementCompletedEvent =>
+  createEvent(ENGAGEMENT_COMPLETED, engagementPayload(engagement), {
+    tenantId: engagement.tenantId,
+  });
+
+// --- Coaching session ------------------------------------------------------------
+export const SESSION_LOGGED = "faculty.coaching.session_logged";
+
+export interface SessionLoggedPayload {
+  readonly sessionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly engagementId: Uuid;
+  readonly sessionDate: string;
+}
+
+export type SessionLoggedEvent = DomainEvent<typeof SESSION_LOGGED, SessionLoggedPayload>;
+
+export const sessionLogged = (session: CoachingSession): SessionLoggedEvent =>
+  createEvent(
+    SESSION_LOGGED,
+    {
+      sessionId: session.id,
+      organizationId: session.organizationId,
+      engagementId: session.engagementId,
+      sessionDate: session.sessionDate,
+    },
+    { tenantId: session.tenantId },
+  );

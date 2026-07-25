@@ -220,3 +220,90 @@ export class UnknownCompetencyError extends PlatformError {
     });
   }
 }
+
+// --- Coaching engagement ---------------------------------------------------------
+
+/** The requested coaching engagement does not exist in the current tenant. */
+export class CoachingEngagementNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Coaching engagement "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A coaching engagement must carry a non-empty focus. */
+export class EmptyFocusError extends PlatformError {
+  constructor() {
+    super("A coaching engagement must have a non-empty focus", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A staff member cannot coach themselves — coach and coachee must differ. */
+export class SelfCoachingError extends PlatformError {
+  constructor(employeeId: string) {
+    super(`Employee "${employeeId}" cannot be both coach and coachee`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { employeeId },
+    });
+  }
+}
+
+/** The requested coaching-engagement lifecycle transition is not permitted. */
+export class InvalidEngagementTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition coaching engagement from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A coachee may have at most one active coaching engagement at a time. */
+export class DuplicateActiveEngagementError extends PlatformError {
+  constructor(coacheeId: string) {
+    super(`Employee "${coacheeId}" already has an active coaching engagement`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { coacheeId },
+    });
+  }
+}
+
+// --- Coaching session ------------------------------------------------------------
+
+/** The requested coaching session does not exist in the current tenant. */
+export class CoachingSessionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Coaching session "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A coaching session can only be logged against an active engagement. */
+export class EngagementNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Coaching engagement "${id}" is not active; a session cannot be logged against it`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

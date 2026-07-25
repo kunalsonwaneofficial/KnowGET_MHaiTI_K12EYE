@@ -14,3 +14,7 @@ export * from "./competency-framework";
 export * from "./competency-framework-service";
 export * from "./observation";
 export * from "./observation-service";
+export * from "./coaching-engagement";
+export * from "./coaching-engagement-service";
+export * from "./coaching-session";
+export * from "./coaching-session-service";
