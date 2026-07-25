@@ -394,3 +394,54 @@ export class InvalidActivityTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Development goal ------------------------------------------------------------
+
+/** The requested development goal does not exist in the current tenant. */
+export class DevelopmentGoalNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Development goal "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A development goal must carry a non-empty description. */
+export class EmptyGoalDescriptionError extends PlatformError {
+  constructor() {
+    super("A development goal must have a non-empty description", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested development-goal lifecycle transition is not permitted. */
+export class InvalidGoalTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition development goal from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Faculty profile -------------------------------------------------------------
+
+/** The requested faculty profile does not exist in the current tenant. */
+export class FacultyProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Faculty profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

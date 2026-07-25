@@ -3,6 +3,8 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { CoachingEngagement } from "./coaching-engagement";
 import type { CoachingSession } from "./coaching-session";
 import type { CompetencyFramework } from "./competency-framework";
+import type { DevelopmentGoal } from "./development-goal";
+import type { FacultyProfile } from "./faculty-profile";
 import type { Observation } from "./observation";
 import type { ProfessionalLearningActivity } from "./professional-learning-activity";
 
@@ -199,3 +201,59 @@ export const activityPlanned = (activity: ProfessionalLearningActivity): Activit
 
 export const activityCompleted = (activity: ProfessionalLearningActivity): ActivityCompletedEvent =>
   createEvent(ACTIVITY_COMPLETED, activityPayload(activity), { tenantId: activity.tenantId });
+
+// --- Development goal ------------------------------------------------------------
+export const GOAL_ACTIVATED = "faculty.goal.activated";
+export const GOAL_ACHIEVED = "faculty.goal.achieved";
+
+export interface GoalEventPayload {
+  readonly goalId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly status: string;
+}
+
+export type GoalActivatedEvent = DomainEvent<typeof GOAL_ACTIVATED, GoalEventPayload>;
+export type GoalAchievedEvent = DomainEvent<typeof GOAL_ACHIEVED, GoalEventPayload>;
+
+const goalPayload = (goal: DevelopmentGoal): GoalEventPayload => ({
+  goalId: goal.id,
+  organizationId: goal.organizationId,
+  employeeId: goal.employeeId,
+  status: goal.status,
+});
+
+export const goalActivated = (goal: DevelopmentGoal): GoalActivatedEvent =>
+  createEvent(GOAL_ACTIVATED, goalPayload(goal), { tenantId: goal.tenantId });
+
+export const goalAchieved = (goal: DevelopmentGoal): GoalAchievedEvent =>
+  createEvent(GOAL_ACHIEVED, goalPayload(goal), { tenantId: goal.tenantId });
+
+// --- Faculty profile -------------------------------------------------------------
+export const FACULTY_PROFILE_REFRESHED = "faculty.profile.refreshed";
+
+export interface FacultyProfileRefreshedPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly growthBand: string;
+  readonly version: number;
+}
+
+export type FacultyProfileRefreshedEvent = DomainEvent<
+  typeof FACULTY_PROFILE_REFRESHED,
+  FacultyProfileRefreshedPayload
+>;
+
+export const facultyProfileRefreshed = (profile: FacultyProfile): FacultyProfileRefreshedEvent =>
+  createEvent(
+    FACULTY_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      employeeId: profile.employeeId,
+      growthBand: profile.growthBand,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );

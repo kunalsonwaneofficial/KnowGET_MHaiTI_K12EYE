@@ -21,3 +21,7 @@ export * from "./coaching-session-service";
 export * from "./development-requirement";
 export * from "./professional-learning-activity";
 export * from "./development-service";
+export * from "./development-goal";
+export * from "./development-goal-service";
+export * from "./faculty-profile";
+export * from "./faculty-profile-service";
