@@ -199,6 +199,30 @@ export class GrowthPlanStateError extends PlatformError {
   }
 }
 
+/** The referenced goal does not exist in the growth plan. */
+export class GrowthGoalNotFoundError extends PlatformError {
+  constructor(planId: string, goalId: string) {
+    super(`Goal "${goalId}" not found in growth plan "${planId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { planId, goalId },
+    });
+  }
+}
+
+/** A growth plan is invalid (e.g. activating with no goals). */
+export class InvalidGrowthPlanError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid growth plan: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
 // --- Cohort insight errors -------------------------------------------------------
 
 /** The requested cohort insight does not exist in the current tenant. */

@@ -1,8 +1,10 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { EarlyWarning } from "./early-warning";
 import type { EducationalInsight } from "./educational-insight";
+import type { GrowthPlan } from "./growth-plan";
 import type { LearnerInsightProfile } from "./learner-insight-profile";
 import type { LearningSignal } from "./learning-signal";
+import type { Recommendation } from "./recommendation";
 
 // --- Cross-domain directory ports ------------------------------------------------
 // Existence checks over other bounded contexts, so the pure package never imports them.
@@ -245,6 +247,104 @@ export class InMemoryEducationalInsightRepository implements EducationalInsightR
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const insight = this.byId.get(id);
     if (insight && insight.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Recommendation repository ---------------------------------------------------
+
+/** Storage contract for recommendations. */
+export interface RecommendationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Recommendation | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Recommendation[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Recommendation[]>;
+  listByTenant(tenantId: TenantId): Promise<Recommendation[]>;
+  save(recommendation: Recommendation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link RecommendationRepository} — the default for tests and bootstrap. */
+export class InMemoryRecommendationRepository implements RecommendationRepository {
+  private readonly byId = new Map<string, Recommendation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Recommendation | null> {
+    const recommendation = this.byId.get(id);
+    return recommendation && recommendation.tenantId === tenantId ? recommendation : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Recommendation[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Recommendation[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Recommendation[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(recommendation: Recommendation): Promise<void> {
+    this.byId.set(recommendation.id, recommendation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const recommendation = this.byId.get(id);
+    if (recommendation && recommendation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Growth plan repository ------------------------------------------------------
+
+/** Storage contract for growth plans. */
+export interface GrowthPlanRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<GrowthPlan | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<GrowthPlan[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<GrowthPlan[]>;
+  listByTenant(tenantId: TenantId): Promise<GrowthPlan[]>;
+  save(plan: GrowthPlan): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link GrowthPlanRepository} — the default for tests and bootstrap. */
+export class InMemoryGrowthPlanRepository implements GrowthPlanRepository {
+  private readonly byId = new Map<string, GrowthPlan>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<GrowthPlan | null> {
+    const plan = this.byId.get(id);
+    return plan && plan.tenantId === tenantId ? plan : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<GrowthPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<GrowthPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<GrowthPlan[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(plan: GrowthPlan): Promise<void> {
+    this.byId.set(plan.id, plan);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const plan = this.byId.get(id);
+    if (plan && plan.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

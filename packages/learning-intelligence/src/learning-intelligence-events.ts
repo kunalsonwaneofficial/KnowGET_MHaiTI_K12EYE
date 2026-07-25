@@ -2,8 +2,10 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { EarlyWarning } from "./early-warning";
 import type { EducationalInsight } from "./educational-insight";
+import type { GrowthPlan } from "./growth-plan";
 import type { LearnerInsightProfile } from "./learner-insight-profile";
 import type { LearningSignal } from "./learning-signal";
+import type { Recommendation } from "./recommendation";
 
 // --- Learning signal -------------------------------------------------------------
 export const SIGNAL_CAPTURED = "insight.signal.captured";
@@ -129,3 +131,83 @@ export const insightPublished = (insight: EducationalInsight): InsightPublishedE
     },
     { tenantId: insight.tenantId },
   );
+
+// --- Recommendation --------------------------------------------------------------
+export const RECOMMENDATION_PROPOSED = "insight.recommendation.proposed";
+export const RECOMMENDATION_ACCEPTED = "insight.recommendation.accepted";
+
+export interface RecommendationEventPayload {
+  readonly recommendationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly category: string;
+  readonly priority: string;
+  readonly status: string;
+}
+
+export type RecommendationProposedEvent = DomainEvent<
+  typeof RECOMMENDATION_PROPOSED,
+  RecommendationEventPayload
+>;
+export type RecommendationAcceptedEvent = DomainEvent<
+  typeof RECOMMENDATION_ACCEPTED,
+  RecommendationEventPayload
+>;
+
+const recommendationPayload = (recommendation: Recommendation): RecommendationEventPayload => ({
+  recommendationId: recommendation.id,
+  organizationId: recommendation.organizationId,
+  studentId: recommendation.studentId,
+  category: recommendation.category,
+  priority: recommendation.priority,
+  status: recommendation.status,
+});
+
+export const recommendationProposed = (
+  recommendation: Recommendation,
+): RecommendationProposedEvent =>
+  createEvent(RECOMMENDATION_PROPOSED, recommendationPayload(recommendation), {
+    tenantId: recommendation.tenantId,
+  });
+
+export const recommendationAccepted = (
+  recommendation: Recommendation,
+): RecommendationAcceptedEvent =>
+  createEvent(RECOMMENDATION_ACCEPTED, recommendationPayload(recommendation), {
+    tenantId: recommendation.tenantId,
+  });
+
+// --- Growth plan -----------------------------------------------------------------
+export const GROWTH_PLAN_ACTIVATED = "insight.growth_plan.activated";
+export const GROWTH_PLAN_ACHIEVED = "insight.growth_plan.achieved";
+
+export interface GrowthPlanEventPayload {
+  readonly growthPlanId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly status: string;
+  readonly progressPercent: number;
+}
+
+export type GrowthPlanActivatedEvent = DomainEvent<
+  typeof GROWTH_PLAN_ACTIVATED,
+  GrowthPlanEventPayload
+>;
+export type GrowthPlanAchievedEvent = DomainEvent<
+  typeof GROWTH_PLAN_ACHIEVED,
+  GrowthPlanEventPayload
+>;
+
+const growthPlanPayload = (plan: GrowthPlan): GrowthPlanEventPayload => ({
+  growthPlanId: plan.id,
+  organizationId: plan.organizationId,
+  studentId: plan.studentId,
+  status: plan.status,
+  progressPercent: plan.progressPercent,
+});
+
+export const growthPlanActivated = (plan: GrowthPlan): GrowthPlanActivatedEvent =>
+  createEvent(GROWTH_PLAN_ACTIVATED, growthPlanPayload(plan), { tenantId: plan.tenantId });
+
+export const growthPlanAchieved = (plan: GrowthPlan): GrowthPlanAchievedEvent =>
+  createEvent(GROWTH_PLAN_ACHIEVED, growthPlanPayload(plan), { tenantId: plan.tenantId });
