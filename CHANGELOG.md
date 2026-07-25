@@ -3,6 +3,85 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D10 · Program: Academic Excellence Platform · Assessment & Evaluation Platform
+
+The fifth contract of Program: Academic Excellence Platform, on the certified `v0.2.0` baseline,
+the frozen Phase-1 core, and the P2-D06…D09 academic structure, scheduling, attendance and
+teaching-learning. The authoritative domain for how learning is assessed, marked, mastered and
+recorded — delivered as one `@knowget/assessment-evaluation` package (ADR-0029), with grading
+consistent from a single computational core, competency mastery tracked independently of raw
+marks, and academic records immutable except through a reasoned amendment workflow. Assessment, not
+instruction: instruction delivery, attendance, timetabling, AI tutoring and predictive analytics
+are explicit non-goals that consume this platform rather than living in it.
+
+### Added
+
+- **Assessment & Evaluation Platform (ADR-0029):** seven aggregates in one
+  `@knowget/assessment-evaluation` package — **Assessment Framework** (an institution's assessment
+  philosophy: model, weightage rules, grade bands, competency model and promotion criteria;
+  version-controlled, one per organization + code, draft → active → archived), **Assessment Plan**
+  (an annual/term/unit/classroom assessment calendar; draft → published → archived), **Assessment**
+  (an individual assessment of a subject across twelve types with outcomes, competencies, maximum
+  marks, rubric, evaluation strategy and delivery mode; draft → published → in_progress →
+  completed | cancelled, content finalised at publication), **Question Bank** (a reusable,
+  **version-controlled** repository of questions mapped to Bloom's taxonomy, competencies and
+  outcomes; one per organization + code), **Evaluation** (the auditable marking of one student's
+  assessment — marks or rubric scores recorded while a draft, then draft → submitted → moderated →
+  approved with an immutable transition history, **reopenable** for re-evaluation; one per
+  assessment + student), **Competency Profile** (a learner's ordinal mastery per competency —
+  not_assessed → emerging → developing → proficient → advanced → mastered — with an append-only
+  growth trajectory, **tracked independently of raw marks**; one per student) and **Academic
+  Record** (a learner's per-term grade entries, GPA, credits and promotion decision; **immutable
+  after publication** — changed only through a reasoned, attributed, versioned, append-only
+  amendment workflow; one per student + year + term). Each is a pure aggregate behind a repository
+  port, a Prisma/RLS adapter at the composition root, an application service on the event bus, and a
+  permission-gated, tenant-scoped REST controller.
+- **Two pure engines, built and tested first:** a **grading engine** (`computePercentage`,
+  `gradeFor` — the highest-minimum band satisfied, `gradeMarks`, `computeGpa` — credit-weighted
+  else simple average) that every grade and GPA in the system flows through, so a report card's
+  GPA, a transcript's cumulative GPA and the analytics' average performance agree by construction;
+  and an **assessment-intelligence engine** (`computeAssessmentIndicators`) deriving assessment and
+  evaluation throughput, approval rate, average performance, variance-based consistency, competency
+  mastery (read from mastery levels, **never marks**), learning gaps and curriculum coverage over
+  narrow views the aggregates structurally satisfy — division-safe, two-decimal, clamped 0–100,
+  descriptive only. Reporting and analytics services orchestrate them; an end-to-end integration
+  test proves grading consistency across the report card, transcript and analytics while mastery
+  stays independent of marks.
+- **A single `assessment:*` scope:** the whole REST surface (nine controllers — frameworks, plans,
+  assessments, question banks, evaluations, competency profiles, academic records, reporting,
+  analytics) is gated by one `assessment:read` / `assessment:write` pair. Organization
+  (P2-D01-M01), subject (Academic-Structure) and student (Student-Lifecycle) existence enter
+  through injected directory ports.
+- **Persistence:** seven `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`assessment_framework`,
+  `assessment_plan`, `assessment`, `question_bank`, `evaluation`, `competency_profile`,
+  `academic_record`) with the standard `tenant_isolation` policy (fail-closed), soft-delete + audit
+  columns, tenant-scoped DB unique indexes (framework/bank per org + code, evaluation per assessment
+  + student, competency profile per student, academic record per student + year + term), non-null
+  JSONB for all structured data (grade bands, rules, planned assessments, rubric, questions, rubric
+  scores, evaluation history, masteries, trajectory, grade entries, amendments) and DOUBLE
+  PRECISION for marks, percentage and GPA — isolation, fail-closed reads and WITH CHECK cross-tenant
+  rejection verified on live PostgreSQL for all seven tables.
+- **Events:** nine `assessment.*` domain events — `assessment.published`, `assessment.started`,
+  `assessment.completed`, `assessment.evaluation.submitted`, `assessment.evaluation.approved`,
+  `assessment.competency.updated`, `assessment.academic_record.updated`,
+  `assessment.promotion.recommended` (non-pending only), `assessment.report_card.generated` —
+  published from the owning service transitions.
+- **Docs:** ADR-0029, the P2-D10 delivery report, and platform-state / technical-debt (TD-30) /
+  register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent against the P2-D09 reference across
+  correctness (both engines, all state machines), multi-tenancy/RLS, adapter fidelity, service
+  invariants, DTO/controller correctness and consistency, with no Critical/Major or security/tenancy
+  issues; one minor finding (`revise` on the framework and question bank lacked a state guard, so a
+  draft could be silently forced `active`) was fixed in-milestone by guarding both to require an
+  active aggregate, with regression tests, and a dead never-thrown error class was removed. All nine
+  service tokens are exported for downstream domains. New technical debt: TD-30 (array
+  cross-references stored without per-item validation; single references validated). Gates green
+  (full monorepo typecheck 99/99 and build 53/53, 38 package + 188 API tests); the Prisma
+  build/migration/tests run in CI (TD-12).
+
 ## [Unreleased] — P2-D09 · Program: Academic Excellence Platform · Teaching, Learning & Instruction Intelligence Platform
 
 The fourth contract of Program: Academic Excellence Platform, on the certified `v0.2.0`

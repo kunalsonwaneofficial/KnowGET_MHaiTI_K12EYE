@@ -1804,3 +1804,202 @@ model LearningEvidence {
   @@index([tenantId, activityKind, activityId])
   @@map("learning_evidence")
 }
+
+/// AssessmentFramework (P2-D10) — an institution's assessment philosophy: model, weightage rules,
+/// grade bands (consumed by the grading engine), competency model and promotion criteria.
+/// Version-controlled, one per (organization, code). Tenant-owned: FORCE RLS.
+model AssessmentFramework {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  code              String
+  name              String
+  assessmentModel   String    @map("assessment_model")
+  weightageRules    Json      @default("{}") @map("weightage_rules")
+  gradeBands        Json      @default("[]") @map("grade_bands")
+  competencyModel   Json      @default("[]") @map("competency_model")
+  promotionCriteria Json      @default("{}") @map("promotion_criteria")
+  version           Int       @default(1)
+  status            String    @default("draft")
+  revisions         Json      @default("[]")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("assessment_framework")
+}
+
+/// AssessmentPlan (P2-D10) — an annual/term/unit/classroom assessment calendar carrying planned
+/// assessments and the examination timetable for a scope. draft → published → archived.
+/// Tenant-owned: FORCE RLS.
+model AssessmentPlan {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  planType           String    @map("plan_type")
+  title              String
+  academicYear       String?   @map("academic_year")
+  term               String?
+  subjectId          String?   @map("subject_id") @db.Uuid
+  gradeId            String?   @map("grade_id") @db.Uuid
+  plannedAssessments Json      @default("[]") @map("planned_assessments")
+  status             String    @default("draft")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("assessment_plan")
+}
+
+/// Assessment (P2-D10) — an individual assessment of a subject carrying the outcomes and
+/// competencies it measures, maximum marks, rubric, evaluation strategy and delivery mode.
+/// draft → published → in_progress → completed | cancelled. Tenant-owned: FORCE RLS.
+model Assessment {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  subjectId          String    @map("subject_id") @db.Uuid
+  frameworkId        String?   @map("framework_id") @db.Uuid
+  planId             String?   @map("plan_id") @db.Uuid
+  assessmentType     String    @map("assessment_type")
+  title              String
+  learningOutcomeIds Json      @default("[]") @map("learning_outcome_ids")
+  competencies       Json      @default("[]")
+  maximumMarks       Float     @default(0) @map("maximum_marks")
+  rubric             Json      @default("[]")
+  evaluationStrategy String    @default("manual") @map("evaluation_strategy")
+  deliveryMode       String    @default("offline") @map("delivery_mode")
+  status             String    @default("draft")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("assessment")
+}
+
+/// QuestionBank (P2-D10) — a reusable repository of questions for a subject, each mapped to
+/// Bloom's taxonomy, competencies and outcomes. Version-controlled, one per (organization, code),
+/// draft → active → archived. Tenant-owned: FORCE RLS.
+model QuestionBank {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  title          String
+  subjectId      String?   @map("subject_id") @db.Uuid
+  questions      Json      @default("[]")
+  version        Int       @default(1)
+  status         String    @default("draft")
+  revisions      Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("question_bank")
+}
+
+/// Evaluation (P2-D10) — the auditable marking of one student's assessment. Marks/rubric scores
+/// are recorded then draft → submitted → moderated → approved (reopenable), every transition
+/// appended to an immutable history. One per (assessment, student). Tenant-owned: FORCE RLS.
+model Evaluation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  assessmentId   String    @map("assessment_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  evaluationType String    @default("manual") @map("evaluation_type")
+  maximumMarks   Float     @default(0) @map("maximum_marks")
+  marksAwarded   Float?    @map("marks_awarded")
+  percentage     Float?
+  rubricScores   Json      @default("[]") @map("rubric_scores")
+  remarks        String?
+  status         String    @default("draft")
+  version        Int       @default(1)
+  history        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, assessmentId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, assessmentId])
+  @@index([tenantId, studentId])
+  @@map("evaluation")
+}
+
+/// CompetencyProfile (P2-D10) — a learner's mastery of each competency (tracked independently of
+/// raw marks) with an append-only growth trajectory. One per student. Tenant-owned: FORCE RLS.
+model CompetencyProfile {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  competencies   Json      @default("[]")
+  trajectory     Json      @default("[]")
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("competency_profile")
+}
+
+/// AcademicRecord (P2-D10) — a learner's per-term record: grade entries, overall GPA, credits and
+/// the promotion decision. Immutable after publication (draft → published) — a published record
+/// changes only through a reasoned, append-only amendment log. Tenant-owned: FORCE RLS.
+model AcademicRecord {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  academicYear      String    @map("academic_year")
+  term              String
+  gradeEntries      Json      @default("[]") @map("grade_entries")
+  gpa               Float?
+  totalCredits      Float     @default(0) @map("total_credits")
+  promotionDecision String    @default("pending") @map("promotion_decision")
+  status            String    @default("draft")
+  version           Int       @default(1)
+  amendments        Json      @default("[]")
+  publishedAt       String?   @map("published_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId, academicYear, term])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("academic_record")
+}
