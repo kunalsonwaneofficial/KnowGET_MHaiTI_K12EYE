@@ -84,6 +84,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@knowget/academic-structure':
+        specifier: workspace:*
+        version: link:../../packages/academic-structure
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting
