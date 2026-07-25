@@ -216,6 +216,9 @@ importers:
       '@knowget/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@knowget/workforce':
+        specifier: workspace:*
+        version: link:../../packages/workforce
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)

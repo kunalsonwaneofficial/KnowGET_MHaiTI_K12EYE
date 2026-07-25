@@ -58,6 +58,7 @@
     "@knowget/tokens": "workspace:*",
     "@knowget/tracing": "workspace:*",
     "@knowget/types": "workspace:*",
+    "@knowget/workforce": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
