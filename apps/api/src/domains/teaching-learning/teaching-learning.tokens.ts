@@ -1,0 +1,28 @@
+/** Dependency-injection tokens for the Teaching, Learning & Instruction Intelligence Platform (P2-D09). */
+
+// Repositories (Prisma/RLS adapters over the teaching-learning ports).
+export const TL_ACADEMIC_PLAN_REPOSITORY = Symbol("TL_ACADEMIC_PLAN_REPOSITORY");
+export const TL_UNIT_PLAN_REPOSITORY = Symbol("TL_UNIT_PLAN_REPOSITORY");
+export const TL_LESSON_PLAN_REPOSITORY = Symbol("TL_LESSON_PLAN_REPOSITORY");
+export const TL_LEARNING_RESOURCE_REPOSITORY = Symbol("TL_LEARNING_RESOURCE_REPOSITORY");
+export const TL_CLASSROOM_SESSION_REPOSITORY = Symbol("TL_CLASSROOM_SESSION_REPOSITORY");
+export const TL_ASSIGNMENT_REPOSITORY = Symbol("TL_ASSIGNMENT_REPOSITORY");
+export const TL_LEARNING_EVIDENCE_REPOSITORY = Symbol("TL_LEARNING_EVIDENCE_REPOSITORY");
+
+// Cross-domain read ports (directories over Organization, Academic-Structure, Scheduling, Student).
+export const TL_ORGANIZATION_DIRECTORY = Symbol("TL_ORGANIZATION_DIRECTORY");
+export const TL_SUBJECT_DIRECTORY = Symbol("TL_SUBJECT_DIRECTORY");
+export const TL_SECTION_DIRECTORY = Symbol("TL_SECTION_DIRECTORY");
+export const TL_CURRICULUM_DIRECTORY = Symbol("TL_CURRICULUM_DIRECTORY");
+export const TL_SCHEDULE_SLOT_DIRECTORY = Symbol("TL_SCHEDULE_SLOT_DIRECTORY");
+export const TL_STUDENT_DIRECTORY = Symbol("TL_STUDENT_DIRECTORY");
+
+// Application services.
+export const TL_ACADEMIC_PLAN_SERVICE = Symbol("TL_ACADEMIC_PLAN_SERVICE");
+export const TL_UNIT_PLAN_SERVICE = Symbol("TL_UNIT_PLAN_SERVICE");
+export const TL_LESSON_PLAN_SERVICE = Symbol("TL_LESSON_PLAN_SERVICE");
+export const TL_LEARNING_RESOURCE_SERVICE = Symbol("TL_LEARNING_RESOURCE_SERVICE");
+export const TL_CLASSROOM_SESSION_SERVICE = Symbol("TL_CLASSROOM_SESSION_SERVICE");
+export const TL_ASSIGNMENT_SERVICE = Symbol("TL_ASSIGNMENT_SERVICE");
+export const TL_LEARNING_EVIDENCE_SERVICE = Symbol("TL_LEARNING_EVIDENCE_SERVICE");
+export const TL_ANALYTICS_SERVICE = Symbol("TL_ANALYTICS_SERVICE");

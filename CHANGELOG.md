@@ -3,6 +3,77 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D09 · Program: Academic Excellence Platform · Teaching, Learning & Instruction Intelligence Platform
+
+The fourth contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
+baseline, the frozen Phase-1 core, and the P2-D06/D07/D08 academic structure, scheduling and
+attendance. The operational heart of classroom excellence — how instruction is planned,
+delivered, monitored and improved — delivered as one `@knowget/teaching-learning` package
+(ADR-0028), with every instructional activity traceable to curriculum outcomes. Instruction, not
+assessment or attendance: student grading, examination scheduling, mark calculation, report
+cards, attendance recording, AI tutoring and predictive analytics are explicit non-goals that
+consume this platform rather than living in it.
+
+### Added
+
+- **Teaching, Learning & Instruction Intelligence Platform (ADR-0028):** seven aggregates in one
+  `@knowget/teaching-learning` package — **Academic Plan** (institutional planning at a level:
+  annual/term/department/subject, one per organization + code, draft → published → archived),
+  **Unit Plan** (a subject-scoped sequence of learning experiences with curriculum alignment,
+  outcomes, competencies, estimated hours and assessment strategy; draft → active → archived),
+  **Lesson Plan** (objectives, targeted outcomes, teaching strategies, activities, assessment
+  checkpoints, required resources, differentiation and reflection; **version-controlled** with a
+  draft → in_review → approved review workflow, an approved plan revised to a new version, content
+  editable only while a draft or in review), **Learning Resource** (a typed, tagged,
+  curriculum-mapped, **version-controlled** library item — document/presentation/video/interactive/
+  external reference/AI-generated — reusable across lessons), **Classroom Session** (the delivery
+  of a scheduled session capturing planned vs actual topics/activities/resources, a descriptive
+  participation summary and reflections; scheduled → delivered → completed | cancelled — **not
+  attendance**), **Assignment** (homework/project/practice/reading/collaborative work with a
+  submission window and per-learner completion tracking, upserted per student; draft → published →
+  closed — **completion only, never a grade**) and **Learning Evidence** (a captured record that
+  learning happened — submission/observation/activity completion/portfolio/practical — about a
+  Student and **linked to the instructional activity** that produced it). Each is a pure aggregate
+  behind a repository port, a Prisma/RLS adapter at the composition root, an application service on
+  the event bus, and a permission-gated, tenant-scoped REST controller.
+- **A pure instructional-intelligence engine:** `computeInstructionalIndicators` derives
+  curriculum coverage (unit-targeted outcomes covered by approved lessons), lesson completion,
+  teaching consistency (planned vs actual), student engagement, learning pace, resource
+  utilisation, submission rate and instructional workload over narrow view interfaces the
+  aggregates structurally satisfy — division-safe, two-decimal, clamped to 0–100, descriptive
+  only. An analytics service orchestrates it by subject, section or organization.
+- **A single `teaching:*` scope:** the whole REST surface is gated by one `teaching:read` /
+  `teaching:write` pair — instruction is operational structure, not sensitive personal data.
+  Organization, subject, section and curriculum-framework (Academic-Structure), schedule-slot
+  (Academic-Scheduling) and student (Student-Lifecycle) existence enter through injected directory
+  ports.
+- **Persistence:** seven `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`academic_plan`,
+  `unit_plan`, `lesson_plan`, `learning_resource`, `classroom_session`, `assignment`,
+  `learning_evidence`) with the standard `tenant_isolation` policy (fail-closed), soft-delete +
+  audit columns, a DB unique index for the academic-plan (org, code) rule, non-null JSONB for all
+  structured data (objectives, id lists, strategies, activities, revisions, submissions;
+  participation nullable) and DOUBLE PRECISION for estimated hours — isolation, fail-closed reads
+  and WITH CHECK cross-tenant rejection verified on live PostgreSQL for all seven tables.
+- **Events:** nine `teaching.*` domain events — `teaching.academic_plan.published`,
+  `teaching.unit_plan.created`, `teaching.lesson.planned`, `teaching.learning_resource.added`,
+  `teaching.lesson.delivered`, `teaching.classroom_session.completed`,
+  `teaching.assignment.published`, `teaching.assignment.submitted`,
+  `teaching.learning_evidence.captured` — published from the owning service transitions.
+- **Docs:** ADR-0028, the P2-D09 delivery report, and platform-state / technical-debt (TD-29) /
+  register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent against the P2-D08 reference across
+  eight areas (controller↔service signatures, DTO↔domain enums, adapter/schema/migration
+  alignment, module DI wiring, permission gating, route shape, domain-logic correctness, and
+  non-goal/grading leakage) with no High/Medium issues; one minor finding (two instructional
+  indicators could exceed the documented 0–100 range) was fixed in-milestone by clamping, with a
+  regression test. All eight service tokens are exported for downstream academic domains. New
+  technical debt: TD-29 (array cross-references stored without per-item validation; single
+  references validated). Gates green (full monorepo typecheck 97/97 and build 52/52, 32 package +
+  186 API tests); the Prisma build/migration/tests run in CI (TD-12).
+
 ## [Unreleased] — P2-D08 · Program: Academic Excellence Platform · Attendance & Presence Intelligence Platform
 
 The third contract of Program: Academic Excellence Platform, on the certified `v0.2.0`

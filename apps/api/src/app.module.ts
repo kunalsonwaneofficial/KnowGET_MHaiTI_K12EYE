@@ -12,6 +12,7 @@ import { PersonModule } from "./domains/person/person.module";
 import { RelationshipModule } from "./domains/relationship/relationship.module";
 import { RolesModule } from "./domains/roles/roles.module";
 import { StudentLifecycleModule } from "./domains/student-lifecycle/student-lifecycle.module";
+import { TeachingLearningModule } from "./domains/teaching-learning/teaching-learning.module";
 import { KeyValueModule } from "./platform/keyvalue/keyvalue.module";
 import { ObservabilityModule } from "./platform/observability/observability.module";
 import { PlatformModule } from "./platform/platform.module";
@@ -55,8 +56,11 @@ const persistedServices =
  * slots, resources, allocations, scheduling policies and substitutions with the
  * conflict/workload engines); D08 adds the Attendance & Presence Intelligence
  * Platform (immutable attendance sessions and records, leave, attendance policies,
- * co-curricular participation and the AI-ready presence profile). Live security
- * hardening wires the persisted identity/principal→role stores behind
+ * co-curricular participation and the AI-ready presence profile); D09 adds the
+ * Teaching, Learning & Instruction Intelligence Platform (academic/unit/lesson
+ * planning, learning resources, classroom sessions with planned-vs-actual
+ * delivery, assignments, learning evidence and instructional analytics). Live
+ * security hardening wires the persisted identity/principal→role stores behind
  * `SECURITY_STORE=persisted`.
  */
 @Module({
@@ -79,6 +83,7 @@ const persistedServices =
     AcademicStructureModule,
     AcademicSchedulingModule,
     AttendancePresenceModule,
+    TeachingLearningModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
