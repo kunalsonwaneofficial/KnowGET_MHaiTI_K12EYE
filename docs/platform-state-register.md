@@ -760,3 +760,50 @@ Employee-compensation (P2-D12) existence enter through injected directory ports;
 composition-root configuration (cross-repository payment atomicity — **TD-34**). All eight service
 tokens are exported for **in-process cross-domain use**. The money base the operational and
 intelligence-core domains build on.
+
+## Procurement, Inventory & Assets Platform (P2-D15, Program: Workforce & Operations · ADR-0034)
+
+The **resource system of record for the institution** — the operational counterpart to the money
+system of record (P2-D14) — built on the organization (P2-D01-M01) and workforce (P2-D12) bases,
+delivered as one `@knowget/resource` package on the certified `v0.2.0` baseline. The fourth contract of
+**Program C**. Two quantities are **derived, not stored**, so the design begins with **two pure engines**
+built and tested first: `computeStockPosition` / `summarizeStock` reconciles an item's append-only
+movement ledger into on-hand + a **below-reorder** flag (`onHand <= reorderLevel`) and rolls positions
+up, and `computeDepreciation` computes **straight-line net book value** — monotonic, never below
+salvage, never above cost, landing **exactly on salvage at end of life**, and **clock-free** (the caller
+passes the as-of date). Money is **integer minor units + ISO-4217 currency, never a float**, in a
+**self-contained module that does not import `@knowget/financial`** — the domain architecture (ADR-0010)
+forbids one domain package depending on another, so the small stable money core is duplicated rather
+than coupling two bounded contexts (a shared `@knowget/money` package is **TD-35**). It models eight
+aggregates: **Supplier** (the vendor master; active ↔ suspended → blacklisted, code unique per tenant,
+active required to issue an order), **InventoryItem** (a stockable good with a unit of measure, reorder
+level and **optional standard cost** valuing stock; active ↔ discontinued, sku unique per tenant),
+**StockMovement** (an **append-only** ledger entry — receipt / issue / signed adjustment, never edited,
+corrected only by further adjustment), **PurchaseRequisition** (an internal request; draft → submitted →
+approved | rejected, lines frozen at submit), **PurchaseOrder** (an order to a supplier; draft → issued →
+partially_received | received → closed | cancelled, lines frozen at issue, issuing requires an active
+supplier, **over-receipt rejected**, and **receiving an item-linked line posts a stock receipt _before_
+the order is persisted** so the ledger and order never disagree; a partially-received order must be
+closed, not cancelled), **Asset** (a fixed asset with acquisition/salvage/life validated (salvage ≤
+cost, life > 0); in_service ↔ under_maintenance → retired → disposed, tag unique per tenant, net book
+value via the pure engine), **AssetMaintenance** (a log against an asset; scheduled → completed |
+cancelled, completion recording the performed date and actual cost, **every terminal transition emits an
+event**) and **InventoryPosition** (the descriptive stock read model per item, **refreshed** from the
+stock-balance engine and valued at standard cost, never posted to directly). It is **descriptive, not
+predictive**: on-hand and net book value are derived, with demand forecasting / reorder optimisation /
+replacement planning deferred to the intelligence core (P2-D28). A vendor's organization is an
+**Organization (P2-D01-M01)** and a requester/custodian is an **Employee (P2-D12)**, referenced via
+directory ports and never duplicated. Resource domain events (supplier registered/suspended/reinstated/
+blacklisted; item created/discontinued/reactivated; stock movement recorded; requisition submitted/
+approved/rejected; purchase order issued/received/closed/cancelled; asset registered/retired/disposed;
+maintenance scheduled/completed/cancelled; position refreshed) publish onto the shared bus. Eight tables
+carry **FORCE RLS** tenant isolation, verified on live PostgreSQL (BIGINT money round-tripping exactly
+for values beyond int4 range), with tenant-scoped DB unique indexes (supplier code, item sku, order
+number, asset tag, one position per item); scalar money is **BIGINT** minor units (adapter
+`Number()`/`BigInt()` bridge, null-guarded for the nullable item cost / maintenance cost / stock value)
+and requisition & order lines are non-null JSONB. **Two permission scope pairs** split the platform
+along its operational boundary — `procurement:*` for the buy-and-hold flow (suppliers, items, stock
+ledger, requisitions, orders, positions) and `asset:*` for the fixed-asset register and its maintenance.
+Organization (P2-D01-M01) and Employee (P2-D12) existence enter through injected directory ports. All
+eight service tokens are exported for **in-process cross-domain use**. The resource base the operational
+and intelligence-core domains build on.

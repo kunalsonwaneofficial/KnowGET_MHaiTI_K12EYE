@@ -3,7 +3,68 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D14 · Program: Workforce & Operations · Fees, Finance & Payroll Platform
+## [Unreleased] — P2-D15 · Program: Workforce & Operations · Procurement, Inventory & Assets Platform
+
+The fourth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
+the P2-D01-M01 organization and P2-D12 workforce bases. The institution's **resource system of record**,
+delivered as one `@knowget/resource` package (ADR-0034): suppliers, stockable goods and an append-only
+stock ledger, requisitions and purchase orders, fixed assets with straight-line depreciation, and asset
+maintenance. Two quantities are **derived, not stored** — an item's on-hand stock and an asset's net
+book value — so the design begins with **two pure engines**. Money is **integer minor units + ISO-4217
+currency, never a float**, in a **self-contained module that does not import `@knowget/financial`**
+(ADR-0010 forbids domain→domain coupling; a shared `@knowget/money` package is TD-35). Descriptive, not
+predictive — demand forecasting and reorder optimisation are deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Procurement, Inventory & Assets Platform (ADR-0034):** two pure engines plus eight aggregates in one
+  `@knowget/resource` package. **Two engines:** `computeStockPosition` / `summarizeStock` (reconciles an
+  item's movement ledger into on-hand + a below-reorder flag and rolls positions up) and
+  `computeDepreciation` (straight-line net book value — monotonic, never below salvage, never above cost,
+  exact on salvage at end of life, clock-free). The aggregates: **Supplier** (the vendor master; active ↔
+  suspended → blacklisted, code unique per tenant, active required to issue), **InventoryItem** (a
+  stockable good with reorder level and optional standard cost; active ↔ discontinued, sku unique per
+  tenant), **StockMovement** (an append-only ledger entry — receipt / issue / signed adjustment, never
+  edited, corrected only by further adjustment), **PurchaseRequisition** (an internal request; draft →
+  submitted → approved | rejected, lines frozen at submit), **PurchaseOrder** (an order to a supplier;
+  draft → issued → partially_received | received → closed | cancelled, issuing requires an active
+  supplier, over-receipt rejected, and receiving an item-linked line posts a stock receipt before the
+  order is persisted; a partially-received order must be closed, not cancelled), **Asset** (a fixed asset
+  with acquisition/salvage/life validated; in_service ↔ under_maintenance → retired → disposed, tag
+  unique per tenant, net book value via the pure engine), **AssetMaintenance** (a log against an asset;
+  scheduled → completed | cancelled, every terminal transition emitting an event) and
+  **InventoryPosition** (the descriptive stock read model per item, refreshed from the stock-balance
+  engine and valued at standard cost, never posted to directly).
+- **Money core (self-contained):** `money.ts` — integer minor units + currency with validated
+  construction, exact arithmetic, an integer-guarded multiply, and half-away-from-zero `prorataMinor`
+  (the depreciation primitive); deliberately duplicated rather than importing Finance (TD-35).
+- **Persistence (ADR-0010):** eight tables + migration `20261216000000_add_resource`, each **FORCE RLS**
+  + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; scalar money as
+  **BIGINT** minor units (adapter `Number()`/`BigInt()` bridge, null-guarded for the nullable item cost /
+  maintenance cost / stock value); requisition & order lines as non-null JSONB; tenant-scoped DB unique
+  indexes (supplier code, item sku, order number, asset tag, one position per item).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `procurement/*` (suppliers, items,
+  stock-movements, requisitions, orders, inventory-positions) under `procurement:read`/`:write` and
+  `assets` + `asset-maintenance` under `asset:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + two
+  directory adapters (Organization, Employee); `ResourceModule` importing the Organization and Workforce
+  modules, registered in `app.module`.
+- **Events:** supplier registered/suspended/reinstated/blacklisted; item created/discontinued/
+  reactivated; stock movement recorded; requisition submitted/approved/rejected; purchase order issued/
+  received/closed/cancelled; asset registered/retired/disposed; maintenance scheduled/completed/cancelled;
+  inventory position refreshed.
+
+### Notes
+
+- **Descriptive, not predictive.** On-hand stock and net book value are derived by pure engines; demand
+  forecasting, reorder-point optimisation and replacement planning are deferred to the intelligence core
+  (P2-D28). Identity is referenced not duplicated — a vendor's org is an Organization (P2-D01-M01), a
+  requester/custodian is an Employee (P2-D12), through directory ports.
+- **Independent audits.** Two adversarial audits (domain; persistence/API) ran; persistence/API was
+  clean and the domain audit's two low findings (a `multiplyMoney` integer-quantity guard and the missing
+  `maintenance.cancelled` event) were fixed with regression tests. `@knowget/resource` — 52 tests;
+  `apps/api` resource DI-graph spec — 2 tests. New debt: **TD-35** (extract a shared `@knowget/money`).
+
+## P2-D14 · Program: Workforce & Operations · Fees, Finance & Payroll Platform
 
 The third contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
 the P2-D03 student and P2-D12 workforce bases. The institution's **money system of record**, delivered
