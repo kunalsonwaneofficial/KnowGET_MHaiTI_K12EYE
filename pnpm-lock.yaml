@@ -222,6 +222,9 @@ importers:
       '@knowget/tracing':
         specifier: workspace:*
         version: link:../../packages/tracing
+      '@knowget/transport':
+        specifier: workspace:*
+        version: link:../../packages/transport
       '@knowget/types':
         specifier: workspace:*
         version: link:../../packages/types

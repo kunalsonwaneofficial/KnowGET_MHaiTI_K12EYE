@@ -3046,3 +3046,210 @@ model InventoryPosition {
   @@index([tenantId, organizationId])
   @@map("inventory_position")
 }
+
+/// Vehicle (P2-D16) — a fleet vehicle (bus/van/car; seating capacity bounds trip occupancy);
+/// active <-> under_maintenance -> retired, registration unique per tenant. Tenant-owned: FORCE RLS.
+model Vehicle {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  registrationNumber String    @map("registration_number")
+  type               String
+  make               String?
+  model              String?
+  seatingCapacity    Int       @map("seating_capacity")
+  ownership          String
+  status             String    @default("active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, registrationNumber])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("vehicle")
+}
+
+/// Driver (P2-D16) — a staff member (Employee, P2-D12) licensed to drive; licence + employee unique per
+/// tenant; active <-> suspended -> deactivated. Tenant-owned: FORCE RLS.
+model Driver {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  licenseNumber  String    @map("license_number")
+  licenseClass   String?   @map("license_class")
+  licenseExpiry  String    @map("license_expiry")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, licenseNumber])
+  @@unique([tenantId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("driver")
+}
+
+/// Route (P2-D16) — an ordered set of stops (JSONB) served from a scheduled departure in one direction;
+/// draft -> active -> suspended -> retired, code unique per tenant. Tenant-owned: FORCE RLS.
+model Route {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  code             String
+  name             String
+  direction        String
+  departureMinutes Int       @map("departure_minutes")
+  stops            Json      @default("[]")
+  status           String    @default("draft")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("route")
+}
+
+/// VehicleAssignment (P2-D16) — binds a vehicle and driver to a route for a period; active -> ended,
+/// one active per route (service-enforced). Tenant-owned: FORCE RLS.
+model VehicleAssignment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  routeId        String    @map("route_id") @db.Uuid
+  vehicleId      String    @map("vehicle_id") @db.Uuid
+  driverId       String    @map("driver_id") @db.Uuid
+  effectiveFrom  String    @map("effective_from")
+  effectiveTo    String?   @map("effective_to")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, routeId])
+  @@index([tenantId, vehicleId])
+  @@index([tenantId, organizationId])
+  @@map("vehicle_assignment")
+}
+
+/// TransportSubscription (P2-D16) — a student's enrollment on a route (pickup/drop stop keys);
+/// requested -> active -> suspended -> ended, one open per student+route (service-enforced). FORCE RLS.
+model TransportSubscription {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  routeId        String    @map("route_id") @db.Uuid
+  pickupStopKey  String    @map("pickup_stop_key")
+  dropStopKey    String    @map("drop_stop_key")
+  direction      String
+  effectiveFrom  String    @map("effective_from")
+  effectiveTo    String?   @map("effective_to")
+  status         String    @default("requested")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, routeId])
+  @@index([tenantId, organizationId])
+  @@map("transport_subscription")
+}
+
+/// Trip (P2-D16) — a run of a route on a service date with an ordered boarding-event ledger (JSONB) and
+/// a captured seating capacity; scheduled -> in_progress -> completed | cancelled. Tenant-owned: RLS.
+model Trip {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  routeId        String    @map("route_id") @db.Uuid
+  vehicleId      String    @map("vehicle_id") @db.Uuid
+  driverId       String    @map("driver_id") @db.Uuid
+  serviceDate    String    @map("service_date")
+  direction      String
+  capacity       Int
+  events         Json      @default("[]")
+  status         String    @default("scheduled")
+  departedAt     String?   @map("departed_at")
+  completedAt    String?   @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, routeId])
+  @@index([tenantId, vehicleId])
+  @@index([tenantId, organizationId])
+  @@map("trip")
+}
+
+/// VehicleDocument (P2-D16) — a statutory compliance record (insurance/fitness/permit/pollution/road_tax)
+/// with issue/expiry dates; one per type per vehicle. Compliance derived, never stored. FORCE RLS.
+model VehicleDocument {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  vehicleId      String    @map("vehicle_id") @db.Uuid
+  type           String
+  documentNumber String    @map("document_number")
+  issuedOn       String    @map("issued_on")
+  expiresOn      String    @map("expires_on")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, vehicleId, type])
+  @@index([tenantId])
+  @@index([tenantId, vehicleId])
+  @@index([tenantId, organizationId])
+  @@map("vehicle_document")
+}
+
+/// RouteUtilizationProfile (P2-D16) — the descriptive seat-usage read model per route, refreshed from the
+/// pure seat-utilization engine (subscribers vs assigned capacity); one per route. Tenant-owned: RLS.
+model RouteUtilizationProfile {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  routeId             String    @map("route_id") @db.Uuid
+  routeCode           String    @map("route_code")
+  capacity            Int       @default(0)
+  subscriberCount     Int       @default(0) @map("subscriber_count")
+  seatsAvailable      Int       @default(0) @map("seats_available")
+  utilizationPercent  Int       @default(0) @map("utilization_percent")
+  overCapacity        Boolean   @default(false) @map("over_capacity")
+  hasActiveAssignment Boolean   @default(false) @map("has_active_assignment")
+  version             Int       @default(1)
+  refreshedAt         String?   @map("refreshed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, routeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("route_utilization_profile")
+}

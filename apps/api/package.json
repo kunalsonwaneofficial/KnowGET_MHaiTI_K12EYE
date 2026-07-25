@@ -60,6 +60,7 @@
     "@knowget/teaching-learning": "workspace:*",
     "@knowget/tokens": "workspace:*",
     "@knowget/tracing": "workspace:*",
+    "@knowget/transport": "workspace:*",
     "@knowget/types": "workspace:*",
     "@knowget/workforce": "workspace:*",
     "@nestjs/common": "^11.0.1",
