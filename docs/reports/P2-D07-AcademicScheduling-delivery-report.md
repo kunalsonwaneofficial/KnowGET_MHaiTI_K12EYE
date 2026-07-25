@@ -2,13 +2,13 @@
 
 **Enterprise Academic Scheduling & Resource Orchestration Platform (EASROP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D07 — Enterprise Academic Scheduling & Resource Orchestration Platform                                                                                                                  |
-| **Status**     | ✅ Engineered — gates green in-sandbox (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Branch `feat/p2-d07-academic-scheduling` pushed; PR open, awaiting CI. |
-| **Depends on** | P2-D06 (Academic Structure, ADR-0025), P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                                                                 |
-| **Date**       | 1 August 2026                                                                                                                                                                              |
-| **Next**       | P2-D08 — Attendance & Presence Intelligence Platform (APIP)                                                                                                                                |
+|                |                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D07 — Enterprise Academic Scheduling & Resource Orchestration Platform                                                                               |
+| **Status**     | ✅ Complete — CI green; merged to main (`29d0a3b`). Gates green in-sandbox (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D06 (Academic Structure, ADR-0025), P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                              |
+| **Date**       | 1 August 2026                                                                                                                                           |
+| **Next**       | P2-D08 — Attendance & Presence Intelligence Platform (APIP)                                                                                             |
 
 ---
 
