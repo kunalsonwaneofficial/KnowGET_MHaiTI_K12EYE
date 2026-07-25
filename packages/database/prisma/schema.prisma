@@ -5,7 +5,7 @@
 // tenant-owned table enables FORCE Row-Level Security (see the RLS migrations).
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // "native" for local/CI; the musl target lets the client run on Alpine-based
   // container images (P1-M06 / resolves TD-15).
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
@@ -1015,17 +1015,17 @@ model LearnerSupportPlan {
 /// interventions, each with responsible staff, progress monitoring and an outcome
 /// evaluation. One per student. Tenant-owned: FORCE RLS.
 model InterventionPlan {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  organizationId      String    @map("organization_id") @db.Uuid
-  studentId           String    @map("student_id") @db.Uuid
-  earlyWarningTriggers String[] @map("early_warning_triggers")
-  interventions       Json      @default("[]")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  createdBy           String?   @map("created_by") @db.Uuid
-  updatedBy           String?   @map("updated_by") @db.Uuid
-  deletedAt           DateTime? @map("deleted_at")
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  studentId            String    @map("student_id") @db.Uuid
+  earlyWarningTriggers String[]  @map("early_warning_triggers")
+  interventions        Json      @default("[]")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
 
   @@unique([tenantId, studentId])
   @@index([tenantId])
@@ -1748,26 +1748,26 @@ model ClassroomSession {
 /// Assignment (P2-D09) — scheduled work with a submission window and per-learner completion
 /// tracking (draft → published → closed); evaluation is the Assessment platform's. Tenant-owned: FORCE RLS.
 model Assignment {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  organizationId      String    @map("organization_id") @db.Uuid
-  subjectId           String    @map("subject_id") @db.Uuid
-  sectionId           String?   @map("section_id") @db.Uuid
-  lessonPlanId        String?   @map("lesson_plan_id") @db.Uuid
-  title               String
-  assignmentType      String    @map("assignment_type")
-  instructions        String?
-  assignedDate        String?   @map("assigned_date")
-  dueDate             String?   @map("due_date")
-  submissionOpensAt   String?   @map("submission_opens_at")
-  submissionClosesAt  String?   @map("submission_closes_at")
-  status              String    @default("draft")
-  submissions         Json      @default("[]")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  createdBy           String?   @map("created_by") @db.Uuid
-  updatedBy           String?   @map("updated_by") @db.Uuid
-  deletedAt           DateTime? @map("deleted_at")
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  subjectId          String    @map("subject_id") @db.Uuid
+  sectionId          String?   @map("section_id") @db.Uuid
+  lessonPlanId       String?   @map("lesson_plan_id") @db.Uuid
+  title              String
+  assignmentType     String    @map("assignment_type")
+  instructions       String?
+  assignedDate       String?   @map("assigned_date")
+  dueDate            String?   @map("due_date")
+  submissionOpensAt  String?   @map("submission_opens_at")
+  submissionClosesAt String?   @map("submission_closes_at")
+  status             String    @default("draft")
+  submissions        Json      @default("[]")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
 
   @@index([tenantId])
   @@index([tenantId, organizationId])
@@ -2143,22 +2143,22 @@ model Recommendation {
 /// GrowthPlan (P2-D11) — a learner's improvement plan turning accepted recommendations into
 /// measurable goals with tracked outcomes (draft → active → achieved | abandoned). Tenant-owned: FORCE RLS.
 model GrowthPlan {
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId               String    @map("tenant_id") @db.Uuid
-  organizationId         String    @map("organization_id") @db.Uuid
-  studentId              String    @map("student_id") @db.Uuid
-  title                  String
-  focusDimension         String?   @map("focus_dimension")
-  goals                  Json      @default("[]")
-  sourceRecommendationIds Json     @default("[]") @map("source_recommendation_ids")
-  progressPercent        Float     @default(0) @map("progress_percent")
-  status                 String    @default("draft")
-  history                Json      @default("[]")
-  createdAt              DateTime  @default(now()) @map("created_at")
-  updatedAt              DateTime  @updatedAt @map("updated_at")
-  createdBy              String?   @map("created_by") @db.Uuid
-  updatedBy              String?   @map("updated_by") @db.Uuid
-  deletedAt              DateTime? @map("deleted_at")
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  organizationId          String    @map("organization_id") @db.Uuid
+  studentId               String    @map("student_id") @db.Uuid
+  title                   String
+  focusDimension          String?   @map("focus_dimension")
+  goals                   Json      @default("[]")
+  sourceRecommendationIds Json      @default("[]") @map("source_recommendation_ids")
+  progressPercent         Float     @default(0) @map("progress_percent")
+  status                  String    @default("draft")
+  history                 Json      @default("[]")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdBy               String?   @map("created_by") @db.Uuid
+  updatedBy               String?   @map("updated_by") @db.Uuid
+  deletedAt               DateTime? @map("deleted_at")
 
   @@index([tenantId])
   @@index([tenantId, organizationId])
@@ -2169,29 +2169,240 @@ model GrowthPlan {
 /// CohortInsight (P2-D11) — a leadership-facing descriptive rollup of learner intelligence over an
 /// organization, grade or section (draft → published). One per (scope type, scope id). Tenant-owned: FORCE RLS.
 model CohortInsight {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId                String    @map("tenant_id") @db.Uuid
-  organizationId          String    @map("organization_id") @db.Uuid
-  scopeType               String    @map("scope_type")
-  scopeId                 String    @map("scope_id") @db.Uuid
-  label                   String
-  memberStudentIds        Json      @default("[]") @map("member_student_ids")
-  learnersConsidered      Int       @default(0) @map("learners_considered")
-  averageLearningHealth   Float     @default(0) @map("average_learning_health")
-  averageBand             String    @map("average_band")
-  bandDistribution        Json      @default("{}") @map("band_distribution")
-  learnersNeedingAttention Int      @default(0) @map("learners_needing_attention")
-  status                  String    @default("draft")
-  version                 Int       @default(1)
-  generatedAt             String?   @map("generated_at")
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @updatedAt @map("updated_at")
-  createdBy               String?   @map("created_by") @db.Uuid
-  updatedBy               String?   @map("updated_by") @db.Uuid
-  deletedAt               DateTime? @map("deleted_at")
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                 String    @map("tenant_id") @db.Uuid
+  organizationId           String    @map("organization_id") @db.Uuid
+  scopeType                String    @map("scope_type")
+  scopeId                  String    @map("scope_id") @db.Uuid
+  label                    String
+  memberStudentIds         Json      @default("[]") @map("member_student_ids")
+  learnersConsidered       Int       @default(0) @map("learners_considered")
+  averageLearningHealth    Float     @default(0) @map("average_learning_health")
+  averageBand              String    @map("average_band")
+  bandDistribution         Json      @default("{}") @map("band_distribution")
+  learnersNeedingAttention Int       @default(0) @map("learners_needing_attention")
+  status                   String    @default("draft")
+  version                  Int       @default(1)
+  generatedAt              String?   @map("generated_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+  createdBy                String?   @map("created_by") @db.Uuid
+  updatedBy                String?   @map("updated_by") @db.Uuid
+  deletedAt                DateTime? @map("deleted_at")
 
   @@unique([tenantId, scopeType, scopeId])
   @@index([tenantId])
   @@index([tenantId, organizationId])
   @@map("cohort_insight")
+}
+
+/// Department (P2-D12) — the HR organizational unit within an institution (hierarchical, with a head
+/// and cost centre); active → archived. Tenant-owned: FORCE RLS.
+model Department {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  code               String
+  name               String
+  parentDepartmentId String?   @map("parent_department_id") @db.Uuid
+  headEmployeeId     String?   @map("head_employee_id") @db.Uuid
+  costCenter         String?   @map("cost_center")
+  description        String?
+  status             String    @default("active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, parentDepartmentId])
+  @@map("department")
+}
+
+/// Position (P2-D12) — a defined, budgeted post within a department; carries the pay grade/band label
+/// only (never a compensation amount). draft → open → on_hold → closed. Tenant-owned: FORCE RLS.
+model Position {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  departmentId   String    @map("department_id") @db.Uuid
+  code           String
+  title          String
+  employmentType String    @map("employment_type")
+  headcount      Int       @default(1)
+  grade          String?
+  description    String?
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, departmentId])
+  @@map("position")
+}
+
+/// Employee (P2-D12) — the Person-linked workforce system of record; onboarding → active → … →
+/// alumni, at most one active employment per institution. Tenant-owned: FORCE RLS.
+model Employee {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  personId       String    @map("person_id") @db.Uuid
+  employeeNumber String    @map("employee_number")
+  departmentId   String?   @map("department_id") @db.Uuid
+  positionId     String?   @map("position_id") @db.Uuid
+  employmentType String    @map("employment_type")
+  status         String    @default("onboarding")
+  hireDate       String    @map("hire_date")
+  exitDate       String?   @map("exit_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeNumber])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, personId])
+  @@index([tenantId, departmentId])
+  @@map("employee")
+}
+
+/// EmploymentContract (P2-D12) — a version-controlled contract for an employee; carries the pay
+/// grade/band label only. draft → active → expired | terminated. Tenant-owned: FORCE RLS.
+model EmploymentContract {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  employeeId           String    @map("employee_id") @db.Uuid
+  version              Int
+  employmentType       String    @map("employment_type")
+  grade                String?
+  startDate            String    @map("start_date")
+  endDate              String?   @map("end_date")
+  terms                String?
+  status               String    @default("draft")
+  supersedesContractId String?   @map("supersedes_contract_id") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId, version])
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("employment_contract")
+}
+
+/// LeaveEntitlement (P2-D12) — the policy grant of leave days per type per period for an employee;
+/// the "entitled" side of the pure leave-ledger. Tenant-owned: FORCE RLS.
+model LeaveEntitlement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  leaveType      String    @map("leave_type")
+  period         String
+  entitledDays   Float     @map("entitled_days")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId, leaveType, period])
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("leave_entitlement")
+}
+
+/// LeaveRequest (P2-D12) — an employee's leave application; requested → approved | rejected |
+/// cancelled (only approved draws down the balance). Tenant-owned: FORCE RLS.
+model LeaveRequest {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  leaveType      String    @map("leave_type")
+  period         String
+  days           Float
+  startDate      String    @map("start_date")
+  endDate        String?   @map("end_date")
+  reason         String?
+  status         String    @default("requested")
+  decidedBy      String?   @map("decided_by") @db.Uuid
+  decidedAt      String?   @map("decided_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("leave_request")
+}
+
+/// PerformanceReview (P2-D12) — an appraisal of an employee; draft → submitted → acknowledged →
+/// finalized (only finalized counts toward review standing). Tenant-owned: FORCE RLS.
+model PerformanceReview {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  reviewerId     String?   @map("reviewer_id") @db.Uuid
+  period         String
+  overallRating  Float?    @map("overall_rating")
+  summary        String?
+  strengths      String?
+  improvements   String?
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("performance_review")
+}
+
+/// WorkforceProfile (P2-D12) — the descriptive, AI-ready indicator snapshot per employee (tenure,
+/// leave utilization, review standing, attrition-risk band), refreshed by the pure engine. Never a
+/// prediction (P2-D28). One per employee. Tenant-owned: FORCE RLS.
+model WorkforceProfile {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  employeeId           String    @map("employee_id") @db.Uuid
+  tenureMonths         Int       @default(0) @map("tenure_months")
+  employmentStatus     String    @map("employment_status")
+  leaveUtilizationRate Float     @default(0) @map("leave_utilization_rate")
+  reviewsFinalized     Int       @default(0) @map("reviews_finalized")
+  averageReviewRating  Float?    @map("average_review_rating")
+  attritionRiskBand    String    @default("low") @map("attrition_risk_band")
+  status               String    @default("insufficient_data")
+  version              Int       @default(1)
+  lastRefreshedAt      String?   @map("last_refreshed_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("workforce_profile")
 }

@@ -634,3 +634,46 @@ service tokens are exported for **in-process cross-domain use**. This is the six
 **Academic Excellence Platform** program and **completes Program B — the learner & academic core
 (P2-D02…D11)**; the descriptive, explainable intelligence base the Phase-2 intelligence core
 (D25…D30) builds on.
+
+## Workforce & Human Capital Platform (P2-D12, Program: Workforce & Operations · ADR-0031)
+
+The **staff system of record** — the HR analog of Student Lifecycle (P2-D03) — delivered as one
+`@knowget/workforce` package on the certified `v0.2.0` baseline and the P2-D02…D11 identity, learner
+and academic domains. It opens **Program C**, the operational institution beyond the learner core. It
+models eight aggregates: **Department** (the HR org unit — hierarchical with a head and cost centre;
+active → archived, with cycle-safe reparenting), **Position** (a defined, budgeted post under a
+department — title, employment type, headcount and the pay **grade/band label only**; draft → open →
+on_hold → closed), **Employee** (the Person-linked staff record — identity is never duplicated —
+carrying an employee number and department/position, with the lifecycle onboarding → active,
+reversible on_leave / suspended / notice_period, then a terminal separation resigned / terminated /
+retired → alumni; at most one active employment per institution, unique employee number),
+**EmploymentContract** (a version-controlled contract — one immutable version per relationship, a new
+version expiring and superseding the prior active one so at most one is active; carries the pay
+grade/band label only; draft → active → expired | terminated), **LeaveEntitlement** (the policy grant
+of days per leave type per period), **LeaveRequest** (a leave application — requested → approved |
+rejected | cancelled, only approved drawing down the balance), **PerformanceReview** (an appraisal
+with a validated 1–5 rating; draft → submitted → acknowledged → finalized, only finalized counting
+toward standing) and **WorkforceProfile** (the descriptive, AI-ready indicator snapshot per employee,
+one per employee, **refreshed** by the intelligence engine). Its defining pieces are **two pure
+engines**: `computeLeaveLedger` (reconciles entitlements against requests into a per-type ledger —
+entitled/taken/pending/remaining, totals and a division-safe utilization rate; only approved leave
+draws down) and `computeWorkforceIndicators` / `summarizeWorkforce` (tenure, leave utilization and
+finalized-review standing → a transparent, worst-of-named-factors attrition-risk band, and the
+leadership rollup). Two boundaries define it: **compensation is out of scope** — a contract/position
+carries only a grade/band label, never an amount (money lives in the Financial platform, **P2-D14**),
+enforced structurally and in tests; and it is **descriptive, not predictive** — the attrition-risk
+band names its factors and **prediction is an explicit non-goal deferred to the intelligence core
+(P2-D28)**. Coaching and professional development are the next contract (**Faculty Excellence,
+P2-D13**) and excluded here. Workforce domain events (department created/archived; position
+created/opened/closed; employee onboarded/activated/separated/became_alumni; contract
+issued/activated/ended; leave requested/approved/rejected/cancelled; review submitted/finalized;
+profile refreshed) publish onto the shared bus. Eight tables carry **FORCE RLS** tenant isolation,
+verified on live PostgreSQL, with tenant-scoped DB unique indexes (department/position code, employee
+number, one contract per (employee, version), one entitlement per (employee, leave type, period), one
+profile per employee), DOUBLE PRECISION for day counts/rates/ratings and INTEGER for
+tenure/headcount/version. Organization (P2-D01-M01) and Person (P2-D01-M02) existence enter through
+injected directory ports — an employee is a Person, never a duplicate identity — with soft
+head/reviewer references stored against the validated anchor (**TD-32**); all seven service tokens
+are exported for **in-process cross-domain use**. This is the first contract of **Program C** — the
+operational staff system of record the workforce-intelligence, faculty-excellence and financial
+domains build on.

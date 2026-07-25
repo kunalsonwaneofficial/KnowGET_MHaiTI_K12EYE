@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/workforce",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Human Capital & Workforce Intelligence Platform (P2-D12) — the workforce system of record for staff: departments, positions, employees (Person-linked employment lifecycle), version-controlled employment contracts, HR leave with balances, performance reviews and an AI-ready workforce-intelligence profile. Compensation amounts belong to Finance (P2-D14); coaching to Faculty Excellence (P2-D13); prediction to the intelligence core (P2-D28).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

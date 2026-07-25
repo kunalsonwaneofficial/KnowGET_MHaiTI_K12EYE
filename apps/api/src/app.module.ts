@@ -15,6 +15,7 @@ import { RelationshipModule } from "./domains/relationship/relationship.module";
 import { RolesModule } from "./domains/roles/roles.module";
 import { StudentLifecycleModule } from "./domains/student-lifecycle/student-lifecycle.module";
 import { TeachingLearningModule } from "./domains/teaching-learning/teaching-learning.module";
+import { WorkforceModule } from "./domains/workforce/workforce.module";
 import { KeyValueModule } from "./platform/keyvalue/keyvalue.module";
 import { ObservabilityModule } from "./platform/observability/observability.module";
 import { PlatformModule } from "./platform/platform.module";
@@ -88,6 +89,7 @@ const persistedServices =
     TeachingLearningModule,
     AssessmentEvaluationModule,
     LearningIntelligenceModule,
+    WorkforceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
