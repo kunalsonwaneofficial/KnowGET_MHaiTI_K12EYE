@@ -3,6 +3,78 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D08 · Program: Academic Excellence Platform · Attendance & Presence Intelligence Platform
+
+The third contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
+baseline, the frozen Phase-1 core, and the P2-D06/D07 academic structure and scheduling. The
+authoritative record of who was present, when, and how engaged — attendance sessions, records,
+leave, policies, presence profiles and participation, delivered as one
+`@knowget/attendance-presence` package (ADR-0027). Presence system of record, not activity or
+judgement: grading, behaviour evaluation, timetable generation, financial penalties, predictive
+AI and parent communication are explicit non-goals that consume this platform rather than
+living in it.
+
+### Added
+
+- **Attendance & Presence Intelligence Platform (ADR-0027):** six aggregates in one
+  `@knowget/attendance-presence` package — **Attendance Session** (a marking context —
+  academic period, examination, event, activity, meeting, club — for an organization on a date,
+  optionally linked to a P2-D07 schedule slot and P2-D06 section/subject; scheduled → open →
+  closed | cancelled, recording only while open), **Attendance Record** (a participant's status
+  — present, absent, late, excused, medical leave, official duty, remote, partial — and capture
+  method; **never mutated**, corrected only by a versioned, reasoned, append-only
+  `AttendanceCorrection`), **Leave** (a dated request with supporting documents, requested →
+  approved | rejected | cancelled; approved leave **excuses** absences), **Attendance Policy**
+  (a configurable, version-controlled institutional constraint with open JSON parameters;
+  draft → active → archived), **Presence Profile** (the AI-ready read model) and
+  **Participation** (co-curricular involvement — club, sport, cultural, competition,
+  institutional event, community service — with an engagement level). Each is a pure aggregate
+  behind a repository port, a Prisma/RLS adapter at the composition root, an application service
+  on the event bus, and a permission-gated, tenant-scoped REST controller.
+- **Two pure engines over shared view interfaces:** a **policy-evaluation engine**
+  (`summarizeAttendance` excuses approved-leave absences and computes a weighted attendance
+  percentage — present/late/remote = 1, partial = 0.5, 2-dp, division-safe; `evaluatePolicies`
+  checks the three percentage rules — `minimum_attendance_percentage`, `examination_eligibility`,
+  `promotion_eligibility` — against each policy's `minimumPercentage`) and a
+  **presence-intelligence engine** (`computePresenceIndicators` derives attendance %,
+  punctuality, a **leave-aware** longest-absence streak, chronic-absenteeism, participation
+  count/diversity, an engagement score and a low/medium/high risk band with anomalies). Both
+  engines excuse the same days through one internal `leave-ranges` helper, so the eligibility
+  percentage and the chronic-absence streak can never diverge.
+- **A single `attendance:*` scope:** the whole REST surface is gated by one `attendance:read` /
+  `attendance:write` pair — attendance is operational record, not sensitive personal data.
+  Organization, participant (Person), schedule-slot, section and subject existence enter through
+  injected directory ports (backed by the Organization, Person, Academic-Scheduling and
+  Academic-Structure modules).
+- **Persistence:** six `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`attendance_session`,
+  `attendance_record`, `leave`, `attendance_policy`, `presence_profile`, `participation`) with
+  the standard `tenant_isolation` policy (fail-closed), soft-delete + audit columns, a DB unique
+  index for every uniqueness rule, non-null JSONB for structured data (corrections, documents,
+  parameters, revisions, anomalies) and DOUBLE PRECISION for presence rates (no scalar-list
+  columns) — isolation, fail-closed reads and WITH CHECK cross-tenant rejection verified on live
+  PostgreSQL for all six tables.
+- **Events:** nine `attendance.*` domain events — `attendance.session.created`,
+  `attendance.recorded`, `attendance.corrected`, `attendance.leave.requested`,
+  `attendance.leave.approved`, `attendance.leave.rejected`, `attendance.policy.evaluated`,
+  `attendance.threshold.reached`, `attendance.participation.recorded` — published from the
+  owning service transitions (the presence profile, a read model, emits none).
+- **Docs:** ADR-0027, the P2-D08 delivery report, and platform-state / technical-debt (TD-28) /
+  register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent against the P2-D07 reference across
+  seven areas (controller↔service signatures, DTO↔domain enums, module DI wiring, permission
+  gating & tenancy, exactOptionalPropertyTypes, route shape, and domain-logic correctness) with
+  no High/security issues; one minor consistency finding — the presence chronic-absence streak
+  counting raw `absent` records while the attendance percentage already excused approved leave —
+  was fixed in-milestone by sharing one leave-excusal helper between both engines, with a
+  regression test. All seven service tokens are exported for downstream academic domains. New
+  technical debt: TD-28 (three attendance-policy rule types — `late_arrival`, `early_departure`,
+  `grace_period` — stored and version-controlled but not yet evaluated, behind a stable
+  dispatch). Gates green (full monorepo typecheck 95/95 and build 51/51, 39 package + 184 API
+  tests); the Prisma build/migration/tests run in CI (TD-12).
+
 ## [Unreleased] — P2-D07 · Program: Academic Excellence Platform · Enterprise Academic Scheduling & Resource Orchestration Platform
 
 The second contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
