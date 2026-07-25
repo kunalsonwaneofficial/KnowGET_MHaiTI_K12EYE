@@ -3,6 +3,68 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D12 · Program: Workforce & Operations · Workforce & Human Capital Platform
+
+The first contract of **Program C** — the operational institution beyond the learner and academic
+core — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and the P2-D02…D11 identity,
+learner and academic domains. The **staff system of record**, the HR analog of Student Lifecycle
+(P2-D03), delivered as one `@knowget/workforce` package (ADR-0031). Two boundaries define it:
+**compensation is out of scope** — a contract/position carries only the pay grade/band label, never
+an amount (money lives in the Financial platform, P2-D14) — and it is **descriptive, not predictive**
+— the workforce profile's attrition-risk band names its factors, with prediction deferred to the
+intelligence core (P2-D28). Coaching and professional development are the next contract (Faculty
+Excellence, P2-D13).
+
+### Added
+
+- **Workforce & Human Capital Platform (ADR-0031):** eight aggregates in one `@knowget/workforce`
+  package — **Department** (the HR org unit — hierarchical with a head and cost centre; active →
+  archived, with cycle-safe reparenting), **Position** (a defined, budgeted post under a department —
+  title, employment type, headcount and the pay **grade/band label only**; draft → open → on_hold →
+  closed), **Employee** (the **Person-linked** staff record — identity is never duplicated — with the
+  lifecycle onboarding → active, reversible on_leave / suspended / notice_period, then a terminal
+  separation resigned / terminated / retired → alumni; at most one active employment per institution,
+  unique employee number), **EmploymentContract** (a **version-controlled** contract — one immutable
+  version per relationship, a new version expiring and superseding the prior active one so at most one
+  is active; carries the pay grade/band label only; draft → active → expired | terminated),
+  **LeaveEntitlement** (the policy grant of days per leave type per period), **LeaveRequest** (a leave
+  application — requested → approved | rejected | cancelled, only approved drawing down the balance),
+  **PerformanceReview** (an appraisal with a validated 1–5 rating; draft → submitted → acknowledged →
+  finalized, only finalized counting toward standing) and **WorkforceProfile** (the descriptive,
+  AI-ready indicator snapshot per employee, one per employee, **refreshed** by the intelligence
+  engine). Each is a pure aggregate behind a repository port, a Prisma/RLS adapter at the composition
+  root, an application service on the event bus, and a permission-gated, tenant-scoped REST controller.
+- **Two pure engines, built and tested first:** `computeLeaveLedger` (reconciles entitlements against
+  requests into a per-type ledger — entitled/taken/pending/remaining, totals and a division-safe
+  utilization rate clamped 0–100; only **approved** leave draws down, `requested` is pending,
+  rejected/cancelled ignored) and `computeWorkforceIndicators` / `summarizeWorkforce` (tenure months,
+  leave utilization and finalized-review standing → a transparent, **worst-of-named-factors**
+  attrition-risk band, and the leadership rollup — headcount, status and risk distribution).
+- **Persistence:** eight tables (`department`, `position`, `employee`, `employment_contract`,
+  `leave_entitlement`, `leave_request`, `performance_review`, `workforce_profile`) under **FORCE ROW
+  LEVEL SECURITY** with the standard `tenant_isolation` policy (USING + WITH CHECK, fail-closed),
+  verified on live PostgreSQL; tenant-scoped DB unique indexes (department/position code, employee
+  number, one contract per (employee, version), one entitlement per (employee, leave type, period),
+  one profile per employee); DOUBLE PRECISION for day counts/rates/ratings, INTEGER for
+  tenure/headcount/version, date-only values as TEXT. **No compensation/salary column exists.**
+- **API surface:** seven permission-gated (`workforce:read` / `workforce:write`), tenant-scoped REST
+  controllers over the full lifecycle of each aggregate, the reconciled leave ledger and the
+  organization rollup; zod request DTOs; Organization (P2-D01-M01) and Person (P2-D01-M02) directory
+  ports; `WorkforceModule` wiring the eight repositories, two directories and seven services,
+  registered in `app.module`, exporting every service token for in-process cross-domain use.
+- **Workforce domain events** on the platform bus — department created/archived; position
+  created/opened/closed; employee onboarded/activated/separated/became_alumni; contract
+  issued/activated/ended; leave requested/approved/rejected/cancelled; review submitted/finalized;
+  workforce profile refreshed.
+
+### Notes
+
+- **Boundaries held:** no compensation amount is stored anywhere (grade/band label only — Finance,
+  P2-D14), and the workforce profile is descriptive/explainable, never a prediction (P2-D28).
+  Cross-domain references enter through directory ports; soft head/reviewer references are stored
+  against the validated Person/Organization anchor (**TD-32**). Domain Prisma adapters remain at the
+  composition root (**TD-21**).
+
 ## [Unreleased] — P2-D11 · Program: Academic Excellence Platform · Learning Intelligence & Educational Insights Platform
 
 The sixth and final contract of Program: Academic Excellence Platform — and the capstone of
