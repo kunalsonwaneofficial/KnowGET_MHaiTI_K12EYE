@@ -49,7 +49,7 @@ export function openFinancialPeriod(params: OpenPeriodParams): FinancialPeriod {
   }
   const startDate = params.startDate.trim();
   const endDate = params.endDate.trim();
-  if (endDate < startDate) {
+  if (startDate.length === 0 || endDate.length === 0 || endDate < startDate) {
     throw new InvalidPeriodRangeError(startDate, endDate);
   }
   const now = nowIso();

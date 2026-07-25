@@ -6,6 +6,7 @@ import {
   EmptyInvoiceNumberError,
   InvalidCurrencyError,
   InvalidInvoiceTransitionError,
+  InvalidPaymentAmountError,
   InvoiceHasPaymentsError,
   InvoiceLineNotFoundError,
   InvoiceNotEditableError,
@@ -206,6 +207,9 @@ export function cancelInvoice(invoice: Invoice): Invoice {
  * outstanding balance (overpayment is rejected). Pure and exact.
  */
 export function applyPaymentToInvoice(invoice: Invoice, amountMinor: number): Invoice {
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+    throw new InvalidPaymentAmountError(amountMinor);
+  }
   if (!PAYABLE_STATUSES.includes(invoice.status)) {
     throw new InvoiceNotPayableError(invoice.id, invoice.status);
   }
@@ -227,6 +231,9 @@ export function applyPaymentToInvoice(invoice: Invoice, amountMinor: number): In
  * recomputes the status. The reversal must not take the paid amount below zero. Pure and exact.
  */
 export function reversePaymentFromInvoice(invoice: Invoice, amountMinor: number): Invoice {
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+    throw new InvalidPaymentAmountError(amountMinor);
+  }
   if (!PAYABLE_STATUSES.includes(invoice.status) && invoice.status !== "paid") {
     throw new InvoiceNotPayableError(invoice.id, invoice.status);
   }

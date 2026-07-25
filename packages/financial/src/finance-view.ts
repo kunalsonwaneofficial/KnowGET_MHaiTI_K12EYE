@@ -6,11 +6,16 @@ import type { AccountStanding, InvoiceStatus, PaymentStatus } from "./finance-va
  * All amounts are integer minor units in a single currency per account.
  */
 
-/** The minimal view of an invoice the account-statement engine needs (its total is the charge). */
+/**
+ * The minimal view of an invoice the account-statement engine needs: its total is the charge, and
+ * `amountPaidMinor` (defaulting to 0) is how much of it has already settled — the engine nets this
+ * off an overdue charge so the overdue figure is the *outstanding* portion, never the gross total.
+ */
 export interface ChargeView {
   readonly amountMinor: number;
   readonly currency: string;
   readonly status: InvoiceStatus;
+  readonly amountPaidMinor?: number;
 }
 
 /** The minimal view of a payment the account-statement engine needs. */

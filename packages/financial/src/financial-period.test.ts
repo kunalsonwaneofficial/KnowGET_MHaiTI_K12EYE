@@ -51,6 +51,9 @@ describe("financial period", () => {
     expect(() =>
       openFinancialPeriod({ ...params, startDate: "2025-06-30", endDate: "2025-04-01" }),
     ).toThrow(InvalidPeriodRangeError);
+    expect(() => openFinancialPeriod({ ...params, startDate: "  " })).toThrow(
+      InvalidPeriodRangeError,
+    );
   });
 
   it("rejects invalid lifecycle transitions", () => {

@@ -68,6 +68,7 @@ export class FinancialAccountService {
       amountMinor: invoiceTotalMinor(invoice),
       currency: invoice.currency,
       status: invoice.status,
+      amountPaidMinor: invoice.amountPaidMinor,
     }));
     const credits: CreditView[] = payments.map((payment) => ({
       amountMinor: payment.amountMinor,

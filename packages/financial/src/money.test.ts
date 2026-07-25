@@ -49,6 +49,14 @@ describe("money arithmetic", () => {
     expect(percentageOf(money(999, "INR"), 10).amountMinor).toBe(100); // 99.9 → 100
   });
 
+  it("rejects a non-finite multiply/percentage factor rather than yielding NaN/Infinity", () => {
+    expect(() => multiplyMoney(money(100, "INR"), Number.NaN)).toThrow(InvalidMoneyError);
+    expect(() => multiplyMoney(money(100, "INR"), Number.POSITIVE_INFINITY)).toThrow(
+      InvalidMoneyError,
+    );
+    expect(() => percentageOf(money(100, "INR"), Number.NaN)).toThrow(InvalidMoneyError);
+  });
+
   it("compares amounts", () => {
     expect(compareMoney(money(100, "INR"), money(200, "INR"))).toBe(-1);
     expect(compareMoney(money(200, "INR"), money(200, "INR"))).toBe(0);

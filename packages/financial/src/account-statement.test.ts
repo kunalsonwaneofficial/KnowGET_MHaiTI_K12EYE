@@ -48,6 +48,18 @@ describe("computeAccountStatement", () => {
       computeAccountStatement("INR", [{ amountMinor: 100, currency: "USD", status: "issued" }], []),
     ).toThrow(CurrencyMismatchError);
   });
+
+  it("nets payments off an overdue invoice so overdue never exceeds outstanding", () => {
+    const statement = computeAccountStatement(
+      "INR",
+      [{ amountMinor: 100000, currency: "INR", status: "overdue", amountPaidMinor: 40000 }],
+      [{ amountMinor: 40000, currency: "INR", status: "cleared" }],
+    );
+    expect(statement.outstandingMinor).toBe(60000);
+    // The outstanding portion of the overdue invoice (100000 - 40000), not the gross 100000.
+    expect(statement.overdueMinor).toBe(60000);
+    expect(statement.overdueMinor).toBeLessThanOrEqual(statement.outstandingMinor);
+  });
 });
 
 describe("summarizeReceivables", () => {

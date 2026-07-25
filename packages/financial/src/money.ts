@@ -62,14 +62,21 @@ export const negateMoney = (a: Money): Money => ({
   currency: a.currency,
 });
 
-/** Multiply an amount by a scalar factor, rounding half-away-from-zero to whole minor units. */
+/**
+ * Multiply an amount by a scalar factor, rounding half-away-from-zero to whole minor units. Routed
+ * through {@link money} so a non-finite or non-integer-producing factor is rejected, never silently
+ * yielding a `NaN`/`Infinity` amount.
+ */
 export function multiplyMoney(a: Money, factor: number): Money {
-  return { amountMinor: roundHalf(a.amountMinor * factor), currency: a.currency };
+  return money(roundHalf(a.amountMinor * factor), a.currency);
 }
 
-/** A percentage of an amount (e.g. 15 → 15%), rounded to whole minor units. */
+/**
+ * A percentage of an amount (e.g. 15 → 15%), rounded to whole minor units. Routed through
+ * {@link money} so a non-finite percentage is rejected rather than yielding an invalid amount.
+ */
 export function percentageOf(a: Money, percent: number): Money {
-  return { amountMinor: roundHalf((a.amountMinor * percent) / 100), currency: a.currency };
+  return money(roundHalf((a.amountMinor * percent) / 100), a.currency);
 }
 
 /** Sum a list of same-currency amounts; `currency` seeds the zero for an empty list. */

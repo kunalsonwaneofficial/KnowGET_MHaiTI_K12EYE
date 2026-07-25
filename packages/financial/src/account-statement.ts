@@ -46,9 +46,11 @@ export function computeAccountStatement(
     .filter((c) => c.status === "cleared")
     .reduce((sum, c) => sum + c.amountMinor, 0);
   const outstandingMinor = Math.max(0, totalBilledMinor - totalPaidMinor);
+  // Overdue is the *outstanding* portion of overdue-status invoices (total less what has been paid on
+  // them), so a partially-paid overdue invoice never inflates overdue past the account's outstanding.
   const overdueMinor = charges
     .filter((c) => c.status === "overdue")
-    .reduce((sum, c) => sum + c.amountMinor, 0);
+    .reduce((sum, c) => sum + Math.max(0, c.amountMinor - (c.amountPaidMinor ?? 0)), 0);
 
   return {
     currency,

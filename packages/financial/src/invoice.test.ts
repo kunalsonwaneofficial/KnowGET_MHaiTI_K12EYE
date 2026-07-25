@@ -4,6 +4,7 @@ import {
   DuplicateInvoiceLineKeyError,
   EmptyInvoiceError,
   InvalidInvoiceTransitionError,
+  InvalidPaymentAmountError,
   InvoiceHasPaymentsError,
   InvoiceLineNotFoundError,
   InvoiceNotEditableError,
@@ -89,6 +90,9 @@ describe("invoice", () => {
 
     expect(() => applyPaymentToInvoice(paid, 1)).toThrow(InvoiceNotPayableError);
     expect(() => applyPaymentToInvoice(issued(), 600001)).toThrow(PaymentExceedsOutstandingError);
+    expect(() => applyPaymentToInvoice(issued(), 0)).toThrow(InvalidPaymentAmountError);
+    expect(() => applyPaymentToInvoice(issued(), -100)).toThrow(InvalidPaymentAmountError);
+    expect(() => applyPaymentToInvoice(issued(), 12.5)).toThrow(InvalidPaymentAmountError);
   });
 
   it("reverses payments, floor-guarding the paid amount", () => {
