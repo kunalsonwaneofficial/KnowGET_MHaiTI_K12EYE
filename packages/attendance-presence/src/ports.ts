@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { AttendancePolicy } from "./attendance-policy";
 import type { AttendanceRecord } from "./attendance-record";
 import type { AttendanceSession } from "./attendance-session";
+import type { Leave } from "./leave";
 
 // --- Cross-domain directory ports ------------------------------------------------
 // Existence checks over other bounded contexts, so the pure package never imports them.
@@ -154,6 +156,129 @@ export class InMemoryAttendanceRecordRepository implements AttendanceRecordRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const record = this.byId.get(id);
     if (record && record.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Leave repository ------------------------------------------------------------
+
+/** Storage contract for leave. `listByPerson` feeds the attendance summary (approved leave). */
+export interface LeaveRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Leave | null>;
+  listByPerson(tenantId: TenantId, personId: Uuid): Promise<Leave[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Leave[]>;
+  listByTenant(tenantId: TenantId): Promise<Leave[]>;
+  save(leave: Leave): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LeaveRepository} — the default for tests and bootstrap. */
+export class InMemoryLeaveRepository implements LeaveRepository {
+  private readonly byId = new Map<string, Leave>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Leave | null> {
+    const leave = this.byId.get(id);
+    return leave && leave.tenantId === tenantId ? leave : null;
+  }
+
+  async listByPerson(tenantId: TenantId, personId: Uuid): Promise<Leave[]> {
+    return [...this.byId.values()].filter(
+      (l) => l.tenantId === tenantId && l.personId === personId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Leave[]> {
+    return [...this.byId.values()].filter(
+      (l) => l.tenantId === tenantId && l.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Leave[]> {
+    return [...this.byId.values()].filter((l) => l.tenantId === tenantId);
+  }
+
+  async save(leave: Leave): Promise<void> {
+    this.byId.set(leave.id, leave);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const leave = this.byId.get(id);
+    if (leave && leave.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Attendance policy repository -------------------------------------------------
+
+/**
+ * Storage contract for attendance policies. `listActiveForEvaluation` returns only `active`
+ * policies for an organization, so an `AttendancePolicyRepository` can feed the policy
+ * engine directly.
+ */
+export interface AttendancePolicyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AttendancePolicy | null>;
+  findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<AttendancePolicy | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AttendancePolicy[]>;
+  listByTenant(tenantId: TenantId): Promise<AttendancePolicy[]>;
+  listActiveForEvaluation(tenantId: TenantId, organizationId: Uuid): Promise<AttendancePolicy[]>;
+  save(policy: AttendancePolicy): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AttendancePolicyRepository} — the default for tests and bootstrap. */
+export class InMemoryAttendancePolicyRepository implements AttendancePolicyRepository {
+  private readonly byId = new Map<string, AttendancePolicy>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AttendancePolicy | null> {
+    const policy = this.byId.get(id);
+    return policy && policy.tenantId === tenantId ? policy : null;
+  }
+
+  async findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<AttendancePolicy | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) => p.tenantId === tenantId && p.organizationId === organizationId && p.code === code,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AttendancePolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AttendancePolicy[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async listActiveForEvaluation(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<AttendancePolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) =>
+        p.tenantId === tenantId && p.organizationId === organizationId && p.status === "active",
+    );
+  }
+
+  async save(policy: AttendancePolicy): Promise<void> {
+    this.byId.set(policy.id, policy);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const policy = this.byId.get(id);
+    if (policy && policy.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
