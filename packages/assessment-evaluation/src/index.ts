@@ -16,6 +16,8 @@ export * from "./assessment-framework";
 export * from "./assessment-plan";
 export * from "./assessment";
 export * from "./question-bank";
+export * from "./evaluation";
+export * from "./competency-profile";
 // events + ports
 export * from "./assessment-evaluation-events";
 export * from "./ports";
@@ -24,3 +26,5 @@ export * from "./assessment-framework-service";
 export * from "./assessment-plan-service";
 export * from "./assessment-service";
 export * from "./question-bank-service";
+export * from "./evaluation-service";
+export * from "./competency-profile-service";

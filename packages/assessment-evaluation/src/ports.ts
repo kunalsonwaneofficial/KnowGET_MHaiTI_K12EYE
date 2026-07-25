@@ -2,6 +2,8 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { Assessment } from "./assessment";
 import type { AssessmentFramework } from "./assessment-framework";
 import type { AssessmentPlan } from "./assessment-plan";
+import type { CompetencyProfile } from "./competency-profile";
+import type { Evaluation } from "./evaluation";
 import type { QuestionBank } from "./question-bank";
 
 // --- Cross-domain directory ports ------------------------------------------------
@@ -242,6 +244,133 @@ export class InMemoryQuestionBankRepository implements QuestionBankRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const bank = this.byId.get(id);
     if (bank && bank.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Evaluation repository --------------------------------------------------------
+
+/**
+ * Storage contract for evaluations. `findByAssessmentAndStudent` enforces one evaluation per
+ * (assessment, student); `listByStudent` feeds academic records and the intelligence scope.
+ */
+export interface EvaluationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Evaluation | null>;
+  findByAssessmentAndStudent(
+    tenantId: TenantId,
+    assessmentId: Uuid,
+    studentId: Uuid,
+  ): Promise<Evaluation | null>;
+  listByAssessment(tenantId: TenantId, assessmentId: Uuid): Promise<Evaluation[]>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Evaluation[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Evaluation[]>;
+  listByTenant(tenantId: TenantId): Promise<Evaluation[]>;
+  save(evaluation: Evaluation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EvaluationRepository} — the default for tests and bootstrap. */
+export class InMemoryEvaluationRepository implements EvaluationRepository {
+  private readonly byId = new Map<string, Evaluation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Evaluation | null> {
+    const evaluation = this.byId.get(id);
+    return evaluation && evaluation.tenantId === tenantId ? evaluation : null;
+  }
+
+  async findByAssessmentAndStudent(
+    tenantId: TenantId,
+    assessmentId: Uuid,
+    studentId: Uuid,
+  ): Promise<Evaluation | null> {
+    return (
+      [...this.byId.values()].find(
+        (e) =>
+          e.tenantId === tenantId && e.assessmentId === assessmentId && e.studentId === studentId,
+      ) ?? null
+    );
+  }
+
+  async listByAssessment(tenantId: TenantId, assessmentId: Uuid): Promise<Evaluation[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.assessmentId === assessmentId,
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Evaluation[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Evaluation[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Evaluation[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(evaluation: Evaluation): Promise<void> {
+    this.byId.set(evaluation.id, evaluation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const evaluation = this.byId.get(id);
+    if (evaluation && evaluation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Competency profile repository ------------------------------------------------
+
+/** Storage contract for competency profiles (one per student). */
+export interface CompetencyProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CompetencyProfile | null>;
+  findByStudent(tenantId: TenantId, studentId: Uuid): Promise<CompetencyProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CompetencyProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<CompetencyProfile[]>;
+  save(profile: CompetencyProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CompetencyProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryCompetencyProfileRepository implements CompetencyProfileRepository {
+  private readonly byId = new Map<string, CompetencyProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CompetencyProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByStudent(tenantId: TenantId, studentId: Uuid): Promise<CompetencyProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.studentId === studentId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CompetencyProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CompetencyProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: CompetencyProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
