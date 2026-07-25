@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
+import type { Route } from "./route";
 import type { Vehicle } from "./vehicle";
+import type { VehicleAssignment } from "./vehicle-assignment";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the
@@ -126,6 +128,112 @@ export class InMemoryDriverRepository implements DriverRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const driver = this.byId.get(id);
     if (driver && driver.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for routes. Tenant-scoped (explicit argument + RLS). */
+export interface RouteRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Route | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<Route | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Route[]>;
+  listByTenant(tenantId: TenantId): Promise<Route[]>;
+  save(route: Route): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link RouteRepository} — the default for tests and bootstrap. */
+export class InMemoryRouteRepository implements RouteRepository {
+  private readonly byId = new Map<string, Route>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Route | null> {
+    const route = this.byId.get(id);
+    return route && route.tenantId === tenantId ? route : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<Route | null> {
+    return [...this.byId.values()].find((r) => r.tenantId === tenantId && r.code === code) ?? null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Route[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Route[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(route: Route): Promise<void> {
+    this.byId.set(route.id, route);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const route = this.byId.get(id);
+    if (route && route.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for vehicle assignments. Tenant-scoped (explicit argument + RLS). */
+export interface VehicleAssignmentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<VehicleAssignment | null>;
+  findActiveByRoute(tenantId: TenantId, routeId: Uuid): Promise<VehicleAssignment | null>;
+  listByRoute(tenantId: TenantId, routeId: Uuid): Promise<VehicleAssignment[]>;
+  listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<VehicleAssignment[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<VehicleAssignment[]>;
+  listByTenant(tenantId: TenantId): Promise<VehicleAssignment[]>;
+  save(assignment: VehicleAssignment): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link VehicleAssignmentRepository} — the default for tests and bootstrap. */
+export class InMemoryVehicleAssignmentRepository implements VehicleAssignmentRepository {
+  private readonly byId = new Map<string, VehicleAssignment>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<VehicleAssignment | null> {
+    const assignment = this.byId.get(id);
+    return assignment && assignment.tenantId === tenantId ? assignment : null;
+  }
+
+  async findActiveByRoute(tenantId: TenantId, routeId: Uuid): Promise<VehicleAssignment | null> {
+    return (
+      [...this.byId.values()].find(
+        (a) => a.tenantId === tenantId && a.routeId === routeId && a.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listByRoute(tenantId: TenantId, routeId: Uuid): Promise<VehicleAssignment[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId && a.routeId === routeId);
+  }
+
+  async listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<VehicleAssignment[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.vehicleId === vehicleId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<VehicleAssignment[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<VehicleAssignment[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(assignment: VehicleAssignment): Promise<void> {
+    this.byId.set(assignment.id, assignment);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const assignment = this.byId.get(id);
+    if (assignment && assignment.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

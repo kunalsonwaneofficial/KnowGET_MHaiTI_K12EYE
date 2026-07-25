@@ -173,3 +173,233 @@ export class InvalidDriverTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Route -----------------------------------------------------------------------
+
+/** The requested route does not exist in the current tenant. */
+export class RouteNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Route "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A route must carry a non-empty code. */
+export class EmptyRouteCodeError extends PlatformError {
+  constructor() {
+    super("A route must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A route must carry a non-empty name. */
+export class EmptyRouteNameError extends PlatformError {
+  constructor() {
+    super("A route must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The route code is already in use within the tenant. */
+export class DuplicateRouteCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Route code "${code}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** The requested route lifecycle transition is not permitted. */
+export class InvalidRouteTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition route from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A route's stops can only be edited while it is a draft. */
+export class RouteNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Route "${id}" is "${status}"; its stops can only be edited while draft`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** A route must have at least one stop before it can be activated. */
+export class EmptyRouteError extends PlatformError {
+  constructor() {
+    super("A route must have at least one stop before it can be activated", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The route is not active, so it cannot take assignments or subscriptions. */
+export class RouteNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Route "${id}" is not active`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A stop must carry a non-empty key (its stable identifier within the route). */
+export class EmptyStopKeyError extends PlatformError {
+  constructor() {
+    super("A route stop must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A stop must carry a non-empty name. */
+export class EmptyStopNameError extends PlatformError {
+  constructor() {
+    super("A route stop must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A stop offset must be a non-negative whole number of minutes from departure. */
+export class InvalidStopOffsetError extends PlatformError {
+  constructor(offsetMinutes: number) {
+    super(
+      `A stop offset must be a non-negative integer number of minutes, received ${offsetMinutes}`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { offsetMinutes },
+      },
+    );
+  }
+}
+
+/** A stop key must be unique within its route. */
+export class DuplicateStopKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Route stop key "${key}" is already in use on this route`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The requested route stop was not found on the route. */
+export class RouteStopNotFoundError extends PlatformError {
+  constructor(key: string) {
+    super(`Route stop "${key}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+// --- Vehicle assignment ----------------------------------------------------------
+
+/** The requested vehicle assignment does not exist in the current tenant. */
+export class AssignmentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Vehicle assignment "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The route already has an active vehicle assignment; end it before creating another. */
+export class RouteHasActiveAssignmentError extends PlatformError {
+  constructor(routeId: string) {
+    super(`Route "${routeId}" already has an active vehicle assignment`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { routeId },
+    });
+  }
+}
+
+/** The requested assignment lifecycle transition is not permitted. */
+export class InvalidAssignmentTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition assignment from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The vehicle is not active, so it cannot be assigned to a route. */
+export class VehicleNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Vehicle "${id}" is not active`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The driver is not active, so it cannot be assigned to a route. */
+export class DriverNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Driver "${id}" is not active`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The driver's licence has expired as of the assignment's effective date. */
+export class DriverLicenseExpiredError extends PlatformError {
+  constructor(id: string, asOfDate: string) {
+    super(`Driver "${id}" licence has expired as of ${asOfDate}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, asOfDate },
+    });
+  }
+}

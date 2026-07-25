@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
+import type { Route } from "./route";
 import type { Vehicle } from "./vehicle";
+import type { VehicleAssignment } from "./vehicle-assignment";
 
 // --- Vehicle ---------------------------------------------------------------------
 export const VEHICLE_REGISTERED = "transport.vehicle.registered";
@@ -86,3 +88,73 @@ export const driverReinstated = (driver: Driver): DriverReinstatedEvent =>
 
 export const driverDeactivated = (driver: Driver): DriverDeactivatedEvent =>
   createEvent(DRIVER_DEACTIVATED, driverPayload(driver), { tenantId: driver.tenantId });
+
+// --- Route -----------------------------------------------------------------------
+export const ROUTE_ACTIVATED = "transport.route.activated";
+export const ROUTE_SUSPENDED = "transport.route.suspended";
+export const ROUTE_RESUMED = "transport.route.resumed";
+export const ROUTE_RETIRED = "transport.route.retired";
+
+export interface RouteEventPayload {
+  readonly routeId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly status: string;
+}
+
+export type RouteActivatedEvent = DomainEvent<typeof ROUTE_ACTIVATED, RouteEventPayload>;
+export type RouteSuspendedEvent = DomainEvent<typeof ROUTE_SUSPENDED, RouteEventPayload>;
+export type RouteResumedEvent = DomainEvent<typeof ROUTE_RESUMED, RouteEventPayload>;
+export type RouteRetiredEvent = DomainEvent<typeof ROUTE_RETIRED, RouteEventPayload>;
+
+const routePayload = (route: Route): RouteEventPayload => ({
+  routeId: route.id,
+  organizationId: route.organizationId,
+  code: route.code,
+  status: route.status,
+});
+
+export const routeActivated = (route: Route): RouteActivatedEvent =>
+  createEvent(ROUTE_ACTIVATED, routePayload(route), { tenantId: route.tenantId });
+
+export const routeSuspended = (route: Route): RouteSuspendedEvent =>
+  createEvent(ROUTE_SUSPENDED, routePayload(route), { tenantId: route.tenantId });
+
+export const routeResumed = (route: Route): RouteResumedEvent =>
+  createEvent(ROUTE_RESUMED, routePayload(route), { tenantId: route.tenantId });
+
+export const routeRetired = (route: Route): RouteRetiredEvent =>
+  createEvent(ROUTE_RETIRED, routePayload(route), { tenantId: route.tenantId });
+
+// --- Vehicle assignment ----------------------------------------------------------
+export const ASSIGNMENT_CREATED = "transport.assignment.created";
+export const ASSIGNMENT_ENDED = "transport.assignment.ended";
+
+export interface AssignmentEventPayload {
+  readonly assignmentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly routeId: Uuid;
+  readonly vehicleId: Uuid;
+  readonly driverId: Uuid;
+  readonly status: string;
+}
+
+export type AssignmentCreatedEvent = DomainEvent<typeof ASSIGNMENT_CREATED, AssignmentEventPayload>;
+export type AssignmentEndedEvent = DomainEvent<typeof ASSIGNMENT_ENDED, AssignmentEventPayload>;
+
+const assignmentPayload = (assignment: VehicleAssignment): AssignmentEventPayload => ({
+  assignmentId: assignment.id,
+  organizationId: assignment.organizationId,
+  routeId: assignment.routeId,
+  vehicleId: assignment.vehicleId,
+  driverId: assignment.driverId,
+  status: assignment.status,
+});
+
+export const assignmentCreated = (assignment: VehicleAssignment): AssignmentCreatedEvent =>
+  createEvent(ASSIGNMENT_CREATED, assignmentPayload(assignment), {
+    tenantId: assignment.tenantId,
+  });
+
+export const assignmentEnded = (assignment: VehicleAssignment): AssignmentEndedEvent =>
+  createEvent(ASSIGNMENT_ENDED, assignmentPayload(assignment), { tenantId: assignment.tenantId });
