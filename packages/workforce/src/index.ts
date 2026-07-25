@@ -22,3 +22,5 @@ export * from "./leave-request";
 export * from "./leave-service";
 export * from "./performance-review";
 export * from "./performance-review-service";
+export * from "./workforce-profile";
+export * from "./workforce-profile-service";

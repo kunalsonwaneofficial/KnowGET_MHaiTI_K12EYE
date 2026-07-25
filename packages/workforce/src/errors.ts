@@ -453,3 +453,29 @@ export class ReviewNotEditableError extends PlatformError {
     });
   }
 }
+
+// --- Workforce profile -----------------------------------------------------------
+
+/** The requested workforce profile does not exist in the current tenant. */
+export class WorkforceProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Workforce profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An employee has at most one workforce profile. */
+export class DuplicateWorkforceProfileError extends PlatformError {
+  constructor(employeeId: string) {
+    super(`Employee "${employeeId}" already has a workforce profile`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { employeeId },
+    });
+  }
+}

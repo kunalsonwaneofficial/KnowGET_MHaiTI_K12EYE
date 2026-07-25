@@ -6,6 +6,7 @@ import type { LeaveEntitlement } from "./leave-entitlement";
 import type { LeaveRequest } from "./leave-request";
 import type { PerformanceReview } from "./performance-review";
 import type { Position } from "./position";
+import type { WorkforceProfile } from "./workforce-profile";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node
@@ -380,6 +381,54 @@ export class InMemoryPerformanceReviewRepository implements PerformanceReviewRep
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const review = this.byId.get(id);
     if (review && review.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for workforce profiles (one per employee). Tenant-scoped. */
+export interface WorkforceProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<WorkforceProfile | null>;
+  findByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<WorkforceProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<WorkforceProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<WorkforceProfile[]>;
+  save(profile: WorkforceProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link WorkforceProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryWorkforceProfileRepository implements WorkforceProfileRepository {
+  private readonly byId = new Map<string, WorkforceProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<WorkforceProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<WorkforceProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.employeeId === employeeId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<WorkforceProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<WorkforceProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: WorkforceProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

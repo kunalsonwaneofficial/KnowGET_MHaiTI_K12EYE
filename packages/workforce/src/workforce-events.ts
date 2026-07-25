@@ -6,6 +6,7 @@ import type { EmploymentContract } from "./employment-contract";
 import type { LeaveRequest } from "./leave-request";
 import type { PerformanceReview } from "./performance-review";
 import type { Position } from "./position";
+import type { WorkforceProfile } from "./workforce-profile";
 
 // --- Department ------------------------------------------------------------------
 export const DEPARTMENT_CREATED = "workforce.department.created";
@@ -226,3 +227,34 @@ export const reviewSubmitted = (review: PerformanceReview): ReviewSubmittedEvent
 
 export const reviewFinalized = (review: PerformanceReview): ReviewFinalizedEvent =>
   createEvent(REVIEW_FINALIZED, reviewPayload(review), { tenantId: review.tenantId });
+
+// --- Workforce profile -----------------------------------------------------------
+export const WORKFORCE_PROFILE_REFRESHED = "workforce.profile.refreshed";
+
+export interface WorkforceProfileRefreshedPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly attritionRiskBand: string;
+  readonly version: number;
+}
+
+export type WorkforceProfileRefreshedEvent = DomainEvent<
+  typeof WORKFORCE_PROFILE_REFRESHED,
+  WorkforceProfileRefreshedPayload
+>;
+
+export const workforceProfileRefreshed = (
+  profile: WorkforceProfile,
+): WorkforceProfileRefreshedEvent =>
+  createEvent(
+    WORKFORCE_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      employeeId: profile.employeeId,
+      attritionRiskBand: profile.attritionRiskBand,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );
