@@ -3,6 +3,8 @@ import type { AttendancePolicy } from "./attendance-policy";
 import type { AttendanceRecord } from "./attendance-record";
 import type { AttendanceSession } from "./attendance-session";
 import type { Leave } from "./leave";
+import type { Participation } from "./participation";
+import type { PresenceProfile } from "./presence-profile";
 
 // --- Cross-domain directory ports ------------------------------------------------
 // Existence checks over other bounded contexts, so the pure package never imports them.
@@ -279,6 +281,109 @@ export class InMemoryAttendancePolicyRepository implements AttendancePolicyRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const policy = this.byId.get(id);
     if (policy && policy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Presence profile repository -------------------------------------------------
+
+/** Storage contract for presence profiles (one per participant). */
+export interface PresenceProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<PresenceProfile | null>;
+  findByParticipant(tenantId: TenantId, participantId: Uuid): Promise<PresenceProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PresenceProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<PresenceProfile[]>;
+  save(profile: PresenceProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PresenceProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryPresenceProfileRepository implements PresenceProfileRepository {
+  private readonly byId = new Map<string, PresenceProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<PresenceProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByParticipant(
+    tenantId: TenantId,
+    participantId: Uuid,
+  ): Promise<PresenceProfile | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) => p.tenantId === tenantId && p.participantId === participantId,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PresenceProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<PresenceProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: PresenceProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Participation repository ----------------------------------------------------
+
+/** Storage contract for participation. `listByParticipant` feeds the presence profile. */
+export interface ParticipationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Participation | null>;
+  listByParticipant(tenantId: TenantId, participantId: Uuid): Promise<Participation[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Participation[]>;
+  listByTenant(tenantId: TenantId): Promise<Participation[]>;
+  save(participation: Participation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ParticipationRepository} — the default for tests and bootstrap. */
+export class InMemoryParticipationRepository implements ParticipationRepository {
+  private readonly byId = new Map<string, Participation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Participation | null> {
+    const participation = this.byId.get(id);
+    return participation && participation.tenantId === tenantId ? participation : null;
+  }
+
+  async listByParticipant(tenantId: TenantId, participantId: Uuid): Promise<Participation[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.participantId === participantId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Participation[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Participation[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(participation: Participation): Promise<void> {
+    this.byId.set(participation.id, participation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const participation = this.byId.get(id);
+    if (participation && participation.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

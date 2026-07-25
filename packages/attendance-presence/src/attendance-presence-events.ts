@@ -3,6 +3,7 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AttendanceRecord } from "./attendance-record";
 import type { AttendanceSession } from "./attendance-session";
 import type { Leave } from "./leave";
+import type { Participation } from "./participation";
 
 // --- Attendance session ----------------------------------------------------------
 export const ATTENDANCE_SESSION_CREATED = "attendance.session.created";
@@ -105,3 +106,32 @@ export const leaveApproved = (leave: Leave): LeaveApprovedEvent =>
 
 export const leaveRejected = (leave: Leave): LeaveRejectedEvent =>
   createEvent(LEAVE_REJECTED, leavePayload(leave), { tenantId: leave.tenantId });
+
+// --- Participation ---------------------------------------------------------------
+export const PARTICIPATION_RECORDED = "attendance.participation.recorded";
+
+export interface ParticipationEventPayload {
+  readonly participationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly participantId: Uuid;
+  readonly activityType: string;
+  readonly date: string;
+}
+
+export type ParticipationRecordedEvent = DomainEvent<
+  typeof PARTICIPATION_RECORDED,
+  ParticipationEventPayload
+>;
+
+export const participationRecorded = (participation: Participation): ParticipationRecordedEvent =>
+  createEvent(
+    PARTICIPATION_RECORDED,
+    {
+      participationId: participation.id,
+      organizationId: participation.organizationId,
+      participantId: participation.participantId,
+      activityType: participation.activityType,
+      date: participation.date,
+    },
+    { tenantId: participation.tenantId },
+  );
