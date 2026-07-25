@@ -1,4 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { EarlyWarning } from "./early-warning";
+import type { EducationalInsight } from "./educational-insight";
 import type { LearnerInsightProfile } from "./learner-insight-profile";
 import type { LearningSignal } from "./learning-signal";
 
@@ -115,6 +117,134 @@ export class InMemoryLearnerInsightProfileRepository implements LearnerInsightPr
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const profile = this.byId.get(id);
     if (profile && profile.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Early warning repository ----------------------------------------------------
+
+/**
+ * Storage contract for early warnings. `findOpenByStudentAndRule` lets the service avoid raising a
+ * duplicate open warning for a rule that has already fired and is still being handled.
+ */
+export interface EarlyWarningRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EarlyWarning | null>;
+  findOpenByStudentAndRule(
+    tenantId: TenantId,
+    studentId: Uuid,
+    ruleId: string,
+  ): Promise<EarlyWarning | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EarlyWarning[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EarlyWarning[]>;
+  listByTenant(tenantId: TenantId): Promise<EarlyWarning[]>;
+  save(warning: EarlyWarning): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+const isOpenWarning = (warning: EarlyWarning): boolean =>
+  warning.status === "raised" || warning.status === "acknowledged";
+
+/** In-memory {@link EarlyWarningRepository} — the default for tests and bootstrap. */
+export class InMemoryEarlyWarningRepository implements EarlyWarningRepository {
+  private readonly byId = new Map<string, EarlyWarning>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EarlyWarning | null> {
+    const warning = this.byId.get(id);
+    return warning && warning.tenantId === tenantId ? warning : null;
+  }
+
+  async findOpenByStudentAndRule(
+    tenantId: TenantId,
+    studentId: Uuid,
+    ruleId: string,
+  ): Promise<EarlyWarning | null> {
+    return (
+      [...this.byId.values()].find(
+        (w) =>
+          w.tenantId === tenantId &&
+          w.studentId === studentId &&
+          w.ruleId === ruleId &&
+          isOpenWarning(w),
+      ) ?? null
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EarlyWarning[]> {
+    return [...this.byId.values()].filter(
+      (w) => w.tenantId === tenantId && w.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EarlyWarning[]> {
+    return [...this.byId.values()].filter(
+      (w) => w.tenantId === tenantId && w.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EarlyWarning[]> {
+    return [...this.byId.values()].filter((w) => w.tenantId === tenantId);
+  }
+
+  async save(warning: EarlyWarning): Promise<void> {
+    this.byId.set(warning.id, warning);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const warning = this.byId.get(id);
+    if (warning && warning.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Educational insight repository ----------------------------------------------
+
+/** Storage contract for educational insights. */
+export interface EducationalInsightRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EducationalInsight | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EducationalInsight[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EducationalInsight[]>;
+  listByTenant(tenantId: TenantId): Promise<EducationalInsight[]>;
+  save(insight: EducationalInsight): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EducationalInsightRepository} — the default for tests and bootstrap. */
+export class InMemoryEducationalInsightRepository implements EducationalInsightRepository {
+  private readonly byId = new Map<string, EducationalInsight>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EducationalInsight | null> {
+    const insight = this.byId.get(id);
+    return insight && insight.tenantId === tenantId ? insight : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<EducationalInsight[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<EducationalInsight[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EducationalInsight[]> {
+    return [...this.byId.values()].filter((i) => i.tenantId === tenantId);
+  }
+
+  async save(insight: EducationalInsight): Promise<void> {
+    this.byId.set(insight.id, insight);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const insight = this.byId.get(id);
+    if (insight && insight.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

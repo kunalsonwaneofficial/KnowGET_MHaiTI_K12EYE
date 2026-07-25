@@ -8,9 +8,13 @@ export * from "./early-warning-rules";
 // aggregates
 export * from "./learning-signal";
 export * from "./learner-insight-profile";
+export * from "./early-warning";
+export * from "./educational-insight";
 // events + ports
 export * from "./learning-intelligence-events";
 export * from "./ports";
 // services
 export * from "./learning-signal-service";
 export * from "./learner-insight-profile-service";
+export * from "./early-warning-service";
+export * from "./educational-insight-service";
