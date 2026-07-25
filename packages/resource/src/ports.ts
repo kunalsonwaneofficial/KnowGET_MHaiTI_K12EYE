@@ -2,6 +2,7 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { Asset } from "./asset";
 import type { AssetMaintenance } from "./asset-maintenance";
 import type { InventoryItem } from "./inventory-item";
+import type { InventoryPosition } from "./inventory-position";
 import type { PurchaseOrder } from "./purchase-order";
 import type { PurchaseRequisition } from "./purchase-requisition";
 import type { StockMovement } from "./stock-movement";
@@ -354,6 +355,53 @@ export class InMemoryAssetMaintenanceRepository implements AssetMaintenanceRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const maintenance = this.byId.get(id);
     if (maintenance && maintenance.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for inventory positions (one per item). Tenant-scoped (argument + RLS). */
+export interface InventoryPositionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<InventoryPosition | null>;
+  findByItem(tenantId: TenantId, itemId: Uuid): Promise<InventoryPosition | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<InventoryPosition[]>;
+  listByTenant(tenantId: TenantId): Promise<InventoryPosition[]>;
+  save(position: InventoryPosition): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link InventoryPositionRepository} — the default for tests and bootstrap. */
+export class InMemoryInventoryPositionRepository implements InventoryPositionRepository {
+  private readonly byId = new Map<string, InventoryPosition>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<InventoryPosition | null> {
+    const position = this.byId.get(id);
+    return position && position.tenantId === tenantId ? position : null;
+  }
+
+  async findByItem(tenantId: TenantId, itemId: Uuid): Promise<InventoryPosition | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.itemId === itemId) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<InventoryPosition[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<InventoryPosition[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(position: InventoryPosition): Promise<void> {
+    this.byId.set(position.id, position);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const position = this.byId.get(id);
+    if (position && position.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

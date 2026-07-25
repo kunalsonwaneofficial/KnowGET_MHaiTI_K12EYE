@@ -645,3 +645,17 @@ export class InvalidMaintenanceTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Inventory position ----------------------------------------------------------
+
+/** The requested inventory position does not exist in the current tenant. */
+export class InventoryPositionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Inventory position "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

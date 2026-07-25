@@ -3,6 +3,7 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Asset } from "./asset";
 import type { AssetMaintenance } from "./asset-maintenance";
 import type { InventoryItem } from "./inventory-item";
+import type { InventoryPosition } from "./inventory-position";
 import { type PurchaseOrder, purchaseOrderTotalMinor } from "./purchase-order";
 import { type PurchaseRequisition, requisitionTotalMinor } from "./purchase-requisition";
 import type { StockMovement } from "./stock-movement";
@@ -283,3 +284,34 @@ export const maintenanceCompleted = (maintenance: AssetMaintenance): Maintenance
   createEvent(MAINTENANCE_COMPLETED, maintenancePayload(maintenance), {
     tenantId: maintenance.tenantId,
   });
+
+// --- Inventory position ----------------------------------------------------------
+export const POSITION_REFRESHED = "resource.position.refreshed";
+
+export interface PositionRefreshedPayload {
+  readonly positionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly itemId: Uuid;
+  readonly onHandQuantity: number;
+  readonly belowReorder: boolean;
+  readonly version: number;
+}
+
+export type PositionRefreshedEvent = DomainEvent<
+  typeof POSITION_REFRESHED,
+  PositionRefreshedPayload
+>;
+
+export const positionRefreshed = (position: InventoryPosition): PositionRefreshedEvent =>
+  createEvent(
+    POSITION_REFRESHED,
+    {
+      positionId: position.id,
+      organizationId: position.organizationId,
+      itemId: position.itemId,
+      onHandQuantity: position.onHandQuantity,
+      belowReorder: position.belowReorder,
+      version: position.version,
+    },
+    { tenantId: position.tenantId },
+  );

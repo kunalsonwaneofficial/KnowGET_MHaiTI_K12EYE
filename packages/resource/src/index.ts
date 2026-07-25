@@ -12,6 +12,7 @@ export * from "./purchase-requisition";
 export * from "./purchase-order";
 export * from "./asset";
 export * from "./asset-maintenance";
+export * from "./inventory-position";
 // pure engines (stock balance, depreciation)
 export * from "./stock-position";
 export * from "./depreciation";
@@ -25,6 +26,7 @@ export * from "./purchase-requisition-service";
 export * from "./purchase-order-service";
 export * from "./asset-service";
 export * from "./asset-maintenance-service";
+export * from "./inventory-position-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors
