@@ -2,13 +2,13 @@
 
 **Workforce & Human Capital Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Workforce & Operations
 
-|                |                                                                                                                                                                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D12 — Workforce & Human Capital Platform                                                                                                                                                                                                        |
-| **Status**     | 🟡 Awaiting CI — feature branch `feat/p2-d12-workforce` pushed. Gates green in-sandbox (full monorepo typecheck 103/103, build 55/55, `@knowget/workforce` 59 tests, `apps/api` 192 tests); RLS verified on live PostgreSQL. PR open, awaiting CI. |
-| **Depends on** | P2-D03 (Student Lifecycle, ADR-0021 — the lifecycle analog), P2-D01-M02 (Person), P2-D01-M01 (Organization), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                                                 |
-| **Date**       | 15 November 2026                                                                                                                                                                                                                                   |
-| **Next**       | P2-D13 — Faculty Excellence, Coaching & Professional Growth Platform (Program: Workforce & Operations)                                                                                                                                             |
+|                |                                                                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D12 — Workforce & Human Capital Platform                                                                                                                                                                      |
+| **Status**     | ✅ Complete — CI green; merged to main (`064538d`). Gates green in-sandbox (full monorepo typecheck 103/103, build 55/55, `@knowget/workforce` 59 tests, `apps/api` 192 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D03 (Student Lifecycle, ADR-0021 — the lifecycle analog), P2-D01-M02 (Person), P2-D01-M01 (Organization), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                               |
+| **Date**       | 15 November 2026                                                                                                                                                                                                 |
+| **Next**       | P2-D13 — Faculty Excellence, Coaching & Professional Growth Platform (Program: Workforce & Operations)                                                                                                           |
 
 ---
 
