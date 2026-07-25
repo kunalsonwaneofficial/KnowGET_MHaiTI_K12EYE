@@ -1,5 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { InventoryItem } from "./inventory-item";
+import type { PurchaseOrder } from "./purchase-order";
 import type { PurchaseRequisition } from "./purchase-requisition";
 import type { StockMovement } from "./stock-movement";
 import type { Supplier } from "./supplier";
@@ -204,6 +205,60 @@ export class InMemoryPurchaseRequisitionRepository implements PurchaseRequisitio
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const requisition = this.byId.get(id);
     if (requisition && requisition.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for purchase orders. Tenant-scoped (explicit argument + RLS). */
+export interface PurchaseOrderRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<PurchaseOrder | null>;
+  findByNumber(tenantId: TenantId, number: string): Promise<PurchaseOrder | null>;
+  listBySupplier(tenantId: TenantId, supplierId: Uuid): Promise<PurchaseOrder[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PurchaseOrder[]>;
+  listByTenant(tenantId: TenantId): Promise<PurchaseOrder[]>;
+  save(order: PurchaseOrder): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PurchaseOrderRepository} — the default for tests and bootstrap. */
+export class InMemoryPurchaseOrderRepository implements PurchaseOrderRepository {
+  private readonly byId = new Map<string, PurchaseOrder>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<PurchaseOrder | null> {
+    const order = this.byId.get(id);
+    return order && order.tenantId === tenantId ? order : null;
+  }
+
+  async findByNumber(tenantId: TenantId, number: string): Promise<PurchaseOrder | null> {
+    return (
+      [...this.byId.values()].find((o) => o.tenantId === tenantId && o.number === number) ?? null
+    );
+  }
+
+  async listBySupplier(tenantId: TenantId, supplierId: Uuid): Promise<PurchaseOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && o.supplierId === supplierId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PurchaseOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && o.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<PurchaseOrder[]> {
+    return [...this.byId.values()].filter((o) => o.tenantId === tenantId);
+  }
+
+  async save(order: PurchaseOrder): Promise<void> {
+    this.byId.set(order.id, order);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const order = this.byId.get(id);
+    if (order && order.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

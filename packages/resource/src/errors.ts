@@ -379,3 +379,160 @@ export class RequisitionLineNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Purchase order --------------------------------------------------------------
+
+/** The requested purchase order does not exist in the current tenant. */
+export class PurchaseOrderNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Purchase order "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A purchase order must carry a non-empty number. */
+export class EmptyOrderNumberError extends PlatformError {
+  constructor() {
+    super("A purchase order must have a non-empty number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The purchase-order number is already in use within the tenant. */
+export class DuplicateOrderNumberError extends PlatformError {
+  constructor(number: string) {
+    super(`Purchase order number "${number}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { number },
+    });
+  }
+}
+
+/** A purchase order must have at least one line to be issued. */
+export class EmptyOrderError extends PlatformError {
+  constructor() {
+    super("A purchase order must have at least one line to be issued", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** Only a draft purchase order may have its lines edited; once issued they are frozen. */
+export class OrderNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Purchase order "${id}" is "${status}"; its lines can no longer be edited`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** The requested purchase-order lifecycle transition is not permitted. */
+export class InvalidOrderTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition purchase order from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A purchase order with goods already received cannot be cancelled; close it instead. */
+export class OrderHasReceiptsError extends PlatformError {
+  constructor(id: string) {
+    super(`Purchase order "${id}" has goods received and cannot be cancelled; close it instead`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A receipt would take a line's received quantity past the quantity ordered. */
+export class OverReceiptError extends PlatformError {
+  constructor(key: string, ordered: number, received: number, requested: number) {
+    super(
+      `Receiving ${requested} on line "${key}" exceeds the outstanding ${ordered - received} (ordered ${ordered}, received ${received})`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { key, ordered, received, requested },
+      },
+    );
+  }
+}
+
+/** An order line must carry a non-empty key. */
+export class EmptyOrderLineKeyError extends PlatformError {
+  constructor() {
+    super("An order line must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** An order line must carry a non-empty description. */
+export class EmptyOrderLineDescriptionError extends PlatformError {
+  constructor() {
+    super("An order line must have a non-empty description", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The order-line key is already used within the purchase order. */
+export class DuplicateOrderLineKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Order line key "${key}" is already used in this purchase order`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The referenced order line is not part of the purchase order. */
+export class OrderLineNotFoundError extends PlatformError {
+  constructor(key: string) {
+    super(`Order line "${key}" is not part of this purchase order`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** A purchase order can only be issued to an active supplier. */
+export class SupplierNotActiveError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Supplier "${id}" is "${status}"; a purchase order cannot be issued to it`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}

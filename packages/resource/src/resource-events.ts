@@ -1,6 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { InventoryItem } from "./inventory-item";
+import { type PurchaseOrder, purchaseOrderTotalMinor } from "./purchase-order";
 import { type PurchaseRequisition, requisitionTotalMinor } from "./purchase-requisition";
 import type { StockMovement } from "./stock-movement";
 import type { Supplier } from "./supplier";
@@ -156,3 +157,58 @@ export const requisitionRejected = (requisition: PurchaseRequisition): Requisiti
   createEvent(REQUISITION_REJECTED, requisitionPayload(requisition), {
     tenantId: requisition.tenantId,
   });
+
+// --- Purchase order --------------------------------------------------------------
+export const PURCHASE_ORDER_ISSUED = "resource.purchase_order.issued";
+export const PURCHASE_ORDER_RECEIVED = "resource.purchase_order.received";
+export const PURCHASE_ORDER_CLOSED = "resource.purchase_order.closed";
+export const PURCHASE_ORDER_CANCELLED = "resource.purchase_order.cancelled";
+
+export interface PurchaseOrderEventPayload {
+  readonly orderId: Uuid;
+  readonly organizationId: Uuid;
+  readonly supplierId: Uuid;
+  readonly number: string;
+  readonly totalMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PurchaseOrderIssuedEvent = DomainEvent<
+  typeof PURCHASE_ORDER_ISSUED,
+  PurchaseOrderEventPayload
+>;
+export type PurchaseOrderReceivedEvent = DomainEvent<
+  typeof PURCHASE_ORDER_RECEIVED,
+  PurchaseOrderEventPayload
+>;
+export type PurchaseOrderClosedEvent = DomainEvent<
+  typeof PURCHASE_ORDER_CLOSED,
+  PurchaseOrderEventPayload
+>;
+export type PurchaseOrderCancelledEvent = DomainEvent<
+  typeof PURCHASE_ORDER_CANCELLED,
+  PurchaseOrderEventPayload
+>;
+
+const purchaseOrderPayload = (order: PurchaseOrder): PurchaseOrderEventPayload => ({
+  orderId: order.id,
+  organizationId: order.organizationId,
+  supplierId: order.supplierId,
+  number: order.number,
+  totalMinor: purchaseOrderTotalMinor(order),
+  currency: order.currency,
+  status: order.status,
+});
+
+export const purchaseOrderIssued = (order: PurchaseOrder): PurchaseOrderIssuedEvent =>
+  createEvent(PURCHASE_ORDER_ISSUED, purchaseOrderPayload(order), { tenantId: order.tenantId });
+
+export const purchaseOrderReceived = (order: PurchaseOrder): PurchaseOrderReceivedEvent =>
+  createEvent(PURCHASE_ORDER_RECEIVED, purchaseOrderPayload(order), { tenantId: order.tenantId });
+
+export const purchaseOrderClosed = (order: PurchaseOrder): PurchaseOrderClosedEvent =>
+  createEvent(PURCHASE_ORDER_CLOSED, purchaseOrderPayload(order), { tenantId: order.tenantId });
+
+export const purchaseOrderCancelled = (order: PurchaseOrder): PurchaseOrderCancelledEvent =>
+  createEvent(PURCHASE_ORDER_CANCELLED, purchaseOrderPayload(order), { tenantId: order.tenantId });
