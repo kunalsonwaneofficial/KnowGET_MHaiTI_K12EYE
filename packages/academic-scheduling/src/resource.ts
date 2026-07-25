@@ -6,6 +6,26 @@ import {
   ResourceRetiredError,
 } from "./errors";
 import { type AvailabilityWindow, type ResourceKind, type ResourceStatus } from "./resource-kind";
+import { intervalOf, toTimeOfDay } from "./time";
+import type { Weekday } from "./weekday";
+
+/**
+ * Unvalidated availability-window input (times as plain `HH:MM` strings). The aggregate
+ * validates and brands the times into a stored {@link AvailabilityWindow}.
+ */
+export interface AvailabilityWindowInput {
+  readonly day: Weekday;
+  readonly startsAt: string;
+  readonly endsAt: string;
+}
+
+const normalizeWindows = (windows: readonly AvailabilityWindowInput[]): AvailabilityWindow[] =>
+  windows.map((window) => {
+    const startsAt = toTimeOfDay(window.startsAt);
+    const endsAt = toTimeOfDay(window.endsAt);
+    intervalOf(startsAt, endsAt); // validates the format and that end is after start
+    return { day: window.day, startsAt, endsAt };
+  });
 
 /**
  * A schedulable institutional resource — a classroom, laboratory, library, sports ground,
@@ -37,7 +57,7 @@ export interface CreateResourceParams {
   readonly kind: ResourceKind;
   readonly capacity?: number | null;
   readonly location?: string | null;
-  readonly availabilityWindows?: readonly AvailabilityWindow[];
+  readonly availabilityWindows?: readonly AvailabilityWindowInput[];
 }
 
 const requireText = (value: string, field: string): string => {
@@ -82,7 +102,9 @@ export function createResource(params: CreateResourceParams): Resource {
     kind: params.kind,
     capacity: requireCapacity(params.capacity),
     location: params.location?.trim() || null,
-    availabilityWindows: params.availabilityWindows ? [...params.availabilityWindows] : [],
+    availabilityWindows: params.availabilityWindows
+      ? normalizeWindows(params.availabilityWindows)
+      : [],
     status: "available",
     createdAt: now,
     updatedAt: now,
@@ -107,13 +129,13 @@ export function setResourceLocation(resource: Resource, location: string | null)
   return touch(resource, { location: location?.trim() || null });
 }
 
-/** Replace the resource's availability windows. Not permitted once retired. */
+/** Replace the resource's availability windows (validated). Not permitted once retired. */
 export function setAvailabilityWindows(
   resource: Resource,
-  windows: readonly AvailabilityWindow[],
+  windows: readonly AvailabilityWindowInput[],
 ): Resource {
   assertNotRetired(resource);
-  return touch(resource, { availabilityWindows: [...windows] });
+  return touch(resource, { availabilityWindows: normalizeWindows(windows) });
 }
 
 /** Take the resource out of service temporarily (available → maintenance). */

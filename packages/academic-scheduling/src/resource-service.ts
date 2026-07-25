@@ -5,8 +5,9 @@ import {
   ResourceNotFoundError,
 } from "./errors";
 import type { OrganizationDirectory, ResourceRepository } from "./ports";
-import type { AvailabilityWindow, ResourceKind } from "./resource-kind";
+import type { ResourceKind } from "./resource-kind";
 import {
+  type AvailabilityWindowInput,
   createResource,
   markResourceAvailable,
   markResourceMaintenance,
@@ -31,7 +32,7 @@ export interface CreateResourceInput {
   readonly kind: ResourceKind;
   readonly capacity?: number | null;
   readonly location?: string | null;
-  readonly availabilityWindows?: readonly AvailabilityWindow[];
+  readonly availabilityWindows?: readonly AvailabilityWindowInput[];
 }
 
 /**
@@ -76,7 +77,7 @@ export class ResourceService {
   async setAvailability(
     tenantId: TenantId,
     id: Uuid,
-    windows: readonly AvailabilityWindow[],
+    windows: readonly AvailabilityWindowInput[],
   ): Promise<Resource> {
     return this.mutate(tenantId, id, (r) => setAvailabilityWindows(r, windows));
   }
