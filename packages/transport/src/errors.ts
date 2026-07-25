@@ -403,3 +403,139 @@ export class DriverLicenseExpiredError extends PlatformError {
     });
   }
 }
+
+// --- Transport subscription ------------------------------------------------------
+
+/** The student (P2-D03) a subscription is for does not exist in the tenant. */
+export class StudentNotFoundForTransportError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" not found; cannot create the transport subscription`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** The requested transport subscription does not exist in the current tenant. */
+export class SubscriptionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Transport subscription "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The chosen pickup/drop stop is not a stop on the subscription's route. */
+export class StopNotOnRouteError extends PlatformError {
+  constructor(routeId: string, stopKey: string) {
+    super(`Stop "${stopKey}" is not on route "${routeId}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { routeId, stopKey },
+    });
+  }
+}
+
+/** The student already has an open subscription on this route. */
+export class DuplicateSubscriptionError extends PlatformError {
+  constructor(studentId: string, routeId: string) {
+    super(`Student "${studentId}" already has an open subscription on route "${routeId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId, routeId },
+    });
+  }
+}
+
+/** The requested subscription lifecycle transition is not permitted. */
+export class InvalidSubscriptionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition subscription from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Trip ------------------------------------------------------------------------
+
+/** The requested trip does not exist in the current tenant. */
+export class TripNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Trip "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested trip lifecycle transition is not permitted. */
+export class InvalidTripTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition trip from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Boarding/alighting can only be recorded while a trip is in progress. */
+export class TripNotInProgressError extends PlatformError {
+  constructor(id: string) {
+    super(`Trip "${id}" is not in progress; cannot record boarding`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A boarding would put the trip over the vehicle's seating capacity. */
+export class VehicleCapacityExceededError extends PlatformError {
+  constructor(tripId: string, capacity: number) {
+    super(`Boarding would exceed trip "${tripId}" capacity of ${capacity}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { tripId, capacity },
+    });
+  }
+}
+
+/** A student cannot alight from a trip they are not currently onboard. */
+export class StudentNotOnboardError extends PlatformError {
+  constructor(tripId: string, studentId: string) {
+    super(`Student "${studentId}" is not onboard trip "${tripId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { tripId, studentId },
+    });
+  }
+}
+
+/** A trip boarding event must carry a student, a stop and a time. */
+export class InvalidTripEventError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid trip event: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}

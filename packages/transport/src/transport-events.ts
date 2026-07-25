@@ -2,6 +2,8 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
 import type { Route } from "./route";
+import type { TransportSubscription } from "./transport-subscription";
+import type { Trip } from "./trip";
 import type { Vehicle } from "./vehicle";
 import type { VehicleAssignment } from "./vehicle-assignment";
 
@@ -158,3 +160,119 @@ export const assignmentCreated = (assignment: VehicleAssignment): AssignmentCrea
 
 export const assignmentEnded = (assignment: VehicleAssignment): AssignmentEndedEvent =>
   createEvent(ASSIGNMENT_ENDED, assignmentPayload(assignment), { tenantId: assignment.tenantId });
+
+// --- Transport subscription ------------------------------------------------------
+export const SUBSCRIPTION_REQUESTED = "transport.subscription.requested";
+export const SUBSCRIPTION_ACTIVATED = "transport.subscription.activated";
+export const SUBSCRIPTION_SUSPENDED = "transport.subscription.suspended";
+export const SUBSCRIPTION_RESUMED = "transport.subscription.resumed";
+export const SUBSCRIPTION_ENDED = "transport.subscription.ended";
+
+export interface SubscriptionEventPayload {
+  readonly subscriptionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly routeId: Uuid;
+  readonly status: string;
+}
+
+export type SubscriptionRequestedEvent = DomainEvent<
+  typeof SUBSCRIPTION_REQUESTED,
+  SubscriptionEventPayload
+>;
+export type SubscriptionActivatedEvent = DomainEvent<
+  typeof SUBSCRIPTION_ACTIVATED,
+  SubscriptionEventPayload
+>;
+export type SubscriptionSuspendedEvent = DomainEvent<
+  typeof SUBSCRIPTION_SUSPENDED,
+  SubscriptionEventPayload
+>;
+export type SubscriptionResumedEvent = DomainEvent<
+  typeof SUBSCRIPTION_RESUMED,
+  SubscriptionEventPayload
+>;
+export type SubscriptionEndedEvent = DomainEvent<
+  typeof SUBSCRIPTION_ENDED,
+  SubscriptionEventPayload
+>;
+
+const subscriptionPayload = (subscription: TransportSubscription): SubscriptionEventPayload => ({
+  subscriptionId: subscription.id,
+  organizationId: subscription.organizationId,
+  studentId: subscription.studentId,
+  routeId: subscription.routeId,
+  status: subscription.status,
+});
+
+export const subscriptionRequested = (
+  subscription: TransportSubscription,
+): SubscriptionRequestedEvent =>
+  createEvent(SUBSCRIPTION_REQUESTED, subscriptionPayload(subscription), {
+    tenantId: subscription.tenantId,
+  });
+
+export const subscriptionActivated = (
+  subscription: TransportSubscription,
+): SubscriptionActivatedEvent =>
+  createEvent(SUBSCRIPTION_ACTIVATED, subscriptionPayload(subscription), {
+    tenantId: subscription.tenantId,
+  });
+
+export const subscriptionSuspended = (
+  subscription: TransportSubscription,
+): SubscriptionSuspendedEvent =>
+  createEvent(SUBSCRIPTION_SUSPENDED, subscriptionPayload(subscription), {
+    tenantId: subscription.tenantId,
+  });
+
+export const subscriptionResumed = (
+  subscription: TransportSubscription,
+): SubscriptionResumedEvent =>
+  createEvent(SUBSCRIPTION_RESUMED, subscriptionPayload(subscription), {
+    tenantId: subscription.tenantId,
+  });
+
+export const subscriptionEnded = (subscription: TransportSubscription): SubscriptionEndedEvent =>
+  createEvent(SUBSCRIPTION_ENDED, subscriptionPayload(subscription), {
+    tenantId: subscription.tenantId,
+  });
+
+// --- Trip ------------------------------------------------------------------------
+export const TRIP_SCHEDULED = "transport.trip.scheduled";
+export const TRIP_STARTED = "transport.trip.started";
+export const TRIP_COMPLETED = "transport.trip.completed";
+export const TRIP_CANCELLED = "transport.trip.cancelled";
+
+export interface TripEventPayload {
+  readonly tripId: Uuid;
+  readonly organizationId: Uuid;
+  readonly routeId: Uuid;
+  readonly serviceDate: string;
+  readonly status: string;
+}
+
+export type TripScheduledEvent = DomainEvent<typeof TRIP_SCHEDULED, TripEventPayload>;
+export type TripStartedEvent = DomainEvent<typeof TRIP_STARTED, TripEventPayload>;
+export type TripCompletedEvent = DomainEvent<typeof TRIP_COMPLETED, TripEventPayload>;
+export type TripCancelledEvent = DomainEvent<typeof TRIP_CANCELLED, TripEventPayload>;
+
+const tripPayload = (trip: Trip): TripEventPayload => ({
+  tripId: trip.id,
+  organizationId: trip.organizationId,
+  routeId: trip.routeId,
+  serviceDate: trip.serviceDate,
+  status: trip.status,
+});
+
+export const tripScheduled = (trip: Trip): TripScheduledEvent =>
+  createEvent(TRIP_SCHEDULED, tripPayload(trip), { tenantId: trip.tenantId });
+
+export const tripStarted = (trip: Trip): TripStartedEvent =>
+  createEvent(TRIP_STARTED, tripPayload(trip), { tenantId: trip.tenantId });
+
+export const tripCompleted = (trip: Trip): TripCompletedEvent =>
+  createEvent(TRIP_COMPLETED, tripPayload(trip), { tenantId: trip.tenantId });
+
+export const tripCancelled = (trip: Trip): TripCancelledEvent =>
+  createEvent(TRIP_CANCELLED, tripPayload(trip), { tenantId: trip.tenantId });

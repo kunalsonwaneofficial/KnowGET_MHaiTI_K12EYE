@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
 import type { Route } from "./route";
+import type { TransportSubscription } from "./transport-subscription";
+import type { Trip } from "./trip";
 import type { Vehicle } from "./vehicle";
 import type { VehicleAssignment } from "./vehicle-assignment";
 
@@ -22,6 +24,17 @@ export interface OrganizationDirectory {
 export interface EmployeeDirectory {
   exists(tenantId: TenantId, employeeId: Uuid): Promise<boolean>;
   organizationOf(tenantId: TenantId, employeeId: Uuid): Promise<Uuid | null>;
+}
+
+/**
+ * Read model over the student-lifecycle domain (P2-D03): a transport subscription is for a Student.
+ * `exists` answers presence; `organizationOf` resolves the student's organization so a subscription
+ * derives its org from the student it serves. The transport domain links to student-lifecycle and never
+ * depends on `@knowget/student-lifecycle` directly.
+ */
+export interface StudentDirectory {
+  exists(tenantId: TenantId, studentId: Uuid): Promise<boolean>;
+  organizationOf(tenantId: TenantId, studentId: Uuid): Promise<Uuid | null>;
 }
 
 /** Storage contract for fleet vehicles. Tenant-scoped (explicit argument + RLS). */
@@ -234,6 +247,141 @@ export class InMemoryVehicleAssignmentRepository implements VehicleAssignmentRep
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const assignment = this.byId.get(id);
     if (assignment && assignment.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for transport subscriptions. Tenant-scoped (explicit argument + RLS). */
+export interface TransportSubscriptionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<TransportSubscription | null>;
+  findOpenByStudentAndRoute(
+    tenantId: TenantId,
+    studentId: Uuid,
+    routeId: Uuid,
+  ): Promise<TransportSubscription | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<TransportSubscription[]>;
+  listByRoute(tenantId: TenantId, routeId: Uuid): Promise<TransportSubscription[]>;
+  listActiveByRoute(tenantId: TenantId, routeId: Uuid): Promise<TransportSubscription[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<TransportSubscription[]>;
+  listByTenant(tenantId: TenantId): Promise<TransportSubscription[]>;
+  save(subscription: TransportSubscription): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link TransportSubscriptionRepository} — the default for tests and bootstrap. */
+export class InMemoryTransportSubscriptionRepository implements TransportSubscriptionRepository {
+  private readonly byId = new Map<string, TransportSubscription>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<TransportSubscription | null> {
+    const subscription = this.byId.get(id);
+    return subscription && subscription.tenantId === tenantId ? subscription : null;
+  }
+
+  async findOpenByStudentAndRoute(
+    tenantId: TenantId,
+    studentId: Uuid,
+    routeId: Uuid,
+  ): Promise<TransportSubscription | null> {
+    return (
+      [...this.byId.values()].find(
+        (s) =>
+          s.tenantId === tenantId &&
+          s.studentId === studentId &&
+          s.routeId === routeId &&
+          s.status !== "ended",
+      ) ?? null
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<TransportSubscription[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.studentId === studentId,
+    );
+  }
+
+  async listByRoute(tenantId: TenantId, routeId: Uuid): Promise<TransportSubscription[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId && s.routeId === routeId);
+  }
+
+  async listActiveByRoute(tenantId: TenantId, routeId: Uuid): Promise<TransportSubscription[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.routeId === routeId && s.status === "active",
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<TransportSubscription[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<TransportSubscription[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(subscription: TransportSubscription): Promise<void> {
+    this.byId.set(subscription.id, subscription);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const subscription = this.byId.get(id);
+    if (subscription && subscription.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for trips. Tenant-scoped (explicit argument + RLS). */
+export interface TripRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Trip | null>;
+  listByRoute(tenantId: TenantId, routeId: Uuid): Promise<Trip[]>;
+  listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<Trip[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Trip[]>;
+  listByTenant(tenantId: TenantId): Promise<Trip[]>;
+  save(trip: Trip): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link TripRepository} — the default for tests and bootstrap. */
+export class InMemoryTripRepository implements TripRepository {
+  private readonly byId = new Map<string, Trip>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Trip | null> {
+    const trip = this.byId.get(id);
+    return trip && trip.tenantId === tenantId ? trip : null;
+  }
+
+  async listByRoute(tenantId: TenantId, routeId: Uuid): Promise<Trip[]> {
+    return [...this.byId.values()].filter((t) => t.tenantId === tenantId && t.routeId === routeId);
+  }
+
+  async listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<Trip[]> {
+    return [...this.byId.values()].filter(
+      (t) => t.tenantId === tenantId && t.vehicleId === vehicleId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Trip[]> {
+    return [...this.byId.values()].filter(
+      (t) => t.tenantId === tenantId && t.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Trip[]> {
+    return [...this.byId.values()].filter((t) => t.tenantId === tenantId);
+  }
+
+  async save(trip: Trip): Promise<void> {
+    this.byId.set(trip.id, trip);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const trip = this.byId.get(id);
+    if (trip && trip.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

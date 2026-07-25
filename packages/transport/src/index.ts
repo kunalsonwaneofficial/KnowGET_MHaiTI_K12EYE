@@ -2,11 +2,14 @@
 export * from "./transport-value";
 export * from "./transport-view";
 export * from "./route-stop";
+export * from "./trip-event";
 // aggregates
 export * from "./vehicle";
 export * from "./driver";
 export * from "./route";
 export * from "./vehicle-assignment";
+export * from "./transport-subscription";
+export * from "./trip";
 // pure engines (route schedule + seat utilization; trip occupancy)
 export * from "./route-schedule";
 export * from "./trip-occupancy";
@@ -17,6 +20,8 @@ export * from "./vehicle-service";
 export * from "./driver-service";
 export * from "./route-service";
 export * from "./vehicle-assignment-service";
+export * from "./transport-subscription-service";
+export * from "./trip-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors
