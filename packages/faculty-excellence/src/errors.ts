@@ -307,3 +307,90 @@ export class EngagementNotActiveError extends PlatformError {
     });
   }
 }
+
+// --- Development requirement ------------------------------------------------------
+
+/** The requested development requirement does not exist in the current tenant. */
+export class DevelopmentRequirementNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Development requirement "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A development requirement's required hours must be zero or positive. */
+export class NegativeRequirementError extends PlatformError {
+  constructor(requiredHours: number) {
+    super(`Required development hours must be zero or positive, received ${requiredHours}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { requiredHours },
+    });
+  }
+}
+
+/** An employee has at most one development requirement per category per period. */
+export class DuplicateRequirementError extends PlatformError {
+  constructor(category: string, period: string) {
+    super(`A "${category}" development requirement for period "${period}" already exists`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { category, period },
+    });
+  }
+}
+
+// --- Professional learning activity ----------------------------------------------
+
+/** The requested professional-learning activity does not exist in the current tenant. */
+export class ActivityNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Professional-learning activity "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A professional-learning activity must carry a non-empty title. */
+export class EmptyActivityTitleError extends PlatformError {
+  constructor() {
+    super("A professional-learning activity must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A professional-learning activity must carry a positive number of hours. */
+export class InvalidActivityHoursError extends PlatformError {
+  constructor(hours: number) {
+    super(`A professional-learning activity must have positive hours, received ${hours}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { hours },
+    });
+  }
+}
+
+/** The requested professional-learning-activity lifecycle transition is not permitted. */
+export class InvalidActivityTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition professional-learning activity from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

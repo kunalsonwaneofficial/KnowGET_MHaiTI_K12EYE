@@ -4,6 +4,7 @@ import type { CoachingEngagement } from "./coaching-engagement";
 import type { CoachingSession } from "./coaching-session";
 import type { CompetencyFramework } from "./competency-framework";
 import type { Observation } from "./observation";
+import type { ProfessionalLearningActivity } from "./professional-learning-activity";
 
 // --- Competency framework --------------------------------------------------------
 export const FRAMEWORK_CREATED = "faculty.framework.created";
@@ -167,3 +168,34 @@ export const sessionLogged = (session: CoachingSession): SessionLoggedEvent =>
     },
     { tenantId: session.tenantId },
   );
+
+// --- Professional learning activity ----------------------------------------------
+export const ACTIVITY_PLANNED = "faculty.pd.planned";
+export const ACTIVITY_COMPLETED = "faculty.pd.completed";
+
+export interface ActivityEventPayload {
+  readonly activityId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly category: string;
+  readonly hours: number;
+  readonly status: string;
+}
+
+export type ActivityPlannedEvent = DomainEvent<typeof ACTIVITY_PLANNED, ActivityEventPayload>;
+export type ActivityCompletedEvent = DomainEvent<typeof ACTIVITY_COMPLETED, ActivityEventPayload>;
+
+const activityPayload = (activity: ProfessionalLearningActivity): ActivityEventPayload => ({
+  activityId: activity.id,
+  organizationId: activity.organizationId,
+  employeeId: activity.employeeId,
+  category: activity.category,
+  hours: activity.hours,
+  status: activity.status,
+});
+
+export const activityPlanned = (activity: ProfessionalLearningActivity): ActivityPlannedEvent =>
+  createEvent(ACTIVITY_PLANNED, activityPayload(activity), { tenantId: activity.tenantId });
+
+export const activityCompleted = (activity: ProfessionalLearningActivity): ActivityCompletedEvent =>
+  createEvent(ACTIVITY_COMPLETED, activityPayload(activity), { tenantId: activity.tenantId });

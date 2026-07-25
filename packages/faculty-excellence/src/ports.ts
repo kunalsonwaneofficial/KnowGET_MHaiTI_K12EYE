@@ -2,7 +2,9 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { CoachingEngagement } from "./coaching-engagement";
 import type { CoachingSession } from "./coaching-session";
 import type { CompetencyFramework } from "./competency-framework";
+import type { DevelopmentRequirement } from "./development-requirement";
 import type { Observation } from "./observation";
+import type { ProfessionalLearningActivity } from "./professional-learning-activity";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the
@@ -13,12 +15,14 @@ export interface OrganizationDirectory {
 }
 
 /**
- * Read model over the workforce domain (P2-D12): does this employee exist in the tenant? A staff
- * member observed, coached or developed here is an Employee; the faculty domain links to it and
- * never depends on `@knowget/workforce` directly.
+ * Read model over the workforce domain (P2-D12): a staff member observed, coached or developed here
+ * is an Employee; the faculty domain links to it and never depends on `@knowget/workforce` directly.
+ * `exists` answers presence; `organizationOf` resolves the employee's organization (or `null` if the
+ * employee is unknown) so records that attach directly to an employee derive their org from it.
  */
 export interface EmployeeDirectory {
   exists(tenantId: TenantId, employeeId: Uuid): Promise<boolean>;
+  organizationOf(tenantId: TenantId, employeeId: Uuid): Promise<Uuid | null>;
 }
 
 /** Storage contract for competency frameworks. Tenant-scoped (explicit argument + RLS). */
@@ -213,6 +217,112 @@ export class InMemoryCoachingSessionRepository implements CoachingSessionReposit
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const session = this.byId.get(id);
     if (session && session.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for development requirements. Tenant-scoped (explicit argument + RLS). */
+export interface DevelopmentRequirementRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<DevelopmentRequirement | null>;
+  findByScope(
+    tenantId: TenantId,
+    employeeId: Uuid,
+    category: string,
+    period: string,
+  ): Promise<DevelopmentRequirement | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<DevelopmentRequirement[]>;
+  listByTenant(tenantId: TenantId): Promise<DevelopmentRequirement[]>;
+  save(requirement: DevelopmentRequirement): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link DevelopmentRequirementRepository} — the default for tests and bootstrap. */
+export class InMemoryDevelopmentRequirementRepository implements DevelopmentRequirementRepository {
+  private readonly byId = new Map<string, DevelopmentRequirement>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<DevelopmentRequirement | null> {
+    const requirement = this.byId.get(id);
+    return requirement && requirement.tenantId === tenantId ? requirement : null;
+  }
+
+  async findByScope(
+    tenantId: TenantId,
+    employeeId: Uuid,
+    category: string,
+    period: string,
+  ): Promise<DevelopmentRequirement | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId &&
+          r.employeeId === employeeId &&
+          r.category === category &&
+          r.period === period,
+      ) ?? null
+    );
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<DevelopmentRequirement[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<DevelopmentRequirement[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(requirement: DevelopmentRequirement): Promise<void> {
+    this.byId.set(requirement.id, requirement);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const requirement = this.byId.get(id);
+    if (requirement && requirement.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for professional-learning activities. Tenant-scoped (explicit argument + RLS). */
+export interface ProfessionalLearningActivityRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<ProfessionalLearningActivity | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<ProfessionalLearningActivity[]>;
+  listByTenant(tenantId: TenantId): Promise<ProfessionalLearningActivity[]>;
+  save(activity: ProfessionalLearningActivity): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ProfessionalLearningActivityRepository} — the default for tests and bootstrap. */
+export class InMemoryProfessionalLearningActivityRepository implements ProfessionalLearningActivityRepository {
+  private readonly byId = new Map<string, ProfessionalLearningActivity>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<ProfessionalLearningActivity | null> {
+    const activity = this.byId.get(id);
+    return activity && activity.tenantId === tenantId ? activity : null;
+  }
+
+  async listByEmployee(
+    tenantId: TenantId,
+    employeeId: Uuid,
+  ): Promise<ProfessionalLearningActivity[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<ProfessionalLearningActivity[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(activity: ProfessionalLearningActivity): Promise<void> {
+    this.byId.set(activity.id, activity);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const activity = this.byId.get(id);
+    if (activity && activity.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

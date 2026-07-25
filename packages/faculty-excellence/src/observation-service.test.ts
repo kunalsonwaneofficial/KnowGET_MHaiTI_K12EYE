@@ -24,6 +24,7 @@ const OBSERVER = "55555555-5555-5555-5555-555555555555" as Uuid;
 
 const employees: EmployeeDirectory = {
   exists: async (_t, id) => id === EMPLOYEE || id === OBSERVER,
+  organizationOf: async (_t, id) => (id === EMPLOYEE || id === OBSERVER ? ORG : null),
 };
 
 const activeFramework = (): CompetencyFramework =>

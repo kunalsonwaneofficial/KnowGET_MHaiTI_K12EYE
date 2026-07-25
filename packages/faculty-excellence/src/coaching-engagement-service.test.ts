@@ -17,6 +17,7 @@ const COACHEE = "44444444-4444-4444-4444-444444444444" as Uuid;
 const orgDir: OrganizationDirectory = { exists: async (_t, id) => id === ORG };
 const employees: EmployeeDirectory = {
   exists: async (_t, id) => id === COACH || id === COACH2 || id === COACHEE,
+  organizationOf: async (_t, id) => (id === COACH || id === COACH2 || id === COACHEE ? ORG : null),
 };
 
 function service(): { svc: CoachingEngagementService; events: DomainEvent[] } {

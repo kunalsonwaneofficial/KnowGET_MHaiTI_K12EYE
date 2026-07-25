@@ -18,3 +18,6 @@ export * from "./coaching-engagement";
 export * from "./coaching-engagement-service";
 export * from "./coaching-session";
 export * from "./coaching-session-service";
+export * from "./development-requirement";
+export * from "./professional-learning-activity";
+export * from "./development-service";
