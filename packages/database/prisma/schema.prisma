@@ -2618,3 +2618,215 @@ model FacultyProfile {
   @@index([tenantId, organizationId])
   @@map("faculty_profile")
 }
+
+/// FinancialPeriod (P2-D14) — a named accounting window (term/month/year) postings belong to; open →
+/// closed, reopenable for corrections. Code unique per tenant. Tenant-owned: FORCE RLS.
+model FinancialPeriod {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  label          String
+  startDate      String    @map("start_date")
+  endDate        String    @map("end_date")
+  status         String    @default("open")
+  closedAt       String?   @map("closed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("financial_period")
+}
+
+/// FeeStructure (P2-D14) — a reusable fee schedule (components JSONB) in one currency; draft → active
+/// → archived, components frozen once active. Code unique per tenant. Tenant-owned: FORCE RLS.
+model FeeStructure {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  academicYear   String?   @map("academic_year")
+  currency       String
+  components     Json      @default("[]")
+  status         String    @default("draft")
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("fee_structure")
+}
+
+/// Invoice (P2-D14) — a bill to a student (lines JSONB) in one currency; draft → issued →
+/// partially_paid | paid | overdue | cancelled, amount_paid_minor kept in step with status. Number
+/// unique per tenant. Money as BIGINT minor units. Tenant-owned: FORCE RLS.
+model Invoice {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  studentId       String    @map("student_id") @db.Uuid
+  feeStructureId  String?   @map("fee_structure_id") @db.Uuid
+  number          String
+  currency        String
+  lines           Json      @default("[]")
+  status          String    @default("draft")
+  amountPaidMinor BigInt    @default(0) @map("amount_paid_minor")
+  dueDate         String    @map("due_date")
+  notes           String?
+  issuedAt        String?   @map("issued_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("invoice")
+}
+
+/// Payment (P2-D14) — a tender against an invoice; pending → cleared | failed, cleared → refunded.
+/// Clearing/refunding is applied to the invoice by the service. Money as BIGINT minor units.
+/// Tenant-owned: FORCE RLS.
+model Payment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  invoiceId      String    @map("invoice_id") @db.Uuid
+  amountMinor    BigInt    @map("amount_minor")
+  currency       String
+  method         String
+  reference      String?
+  status         String    @default("pending")
+  receivedAt     String    @map("received_at")
+  clearedAt      String?   @map("cleared_at")
+  refundedAt     String?   @map("refunded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, invoiceId])
+  @@index([tenantId, studentId])
+  @@map("payment")
+}
+
+/// Concession (P2-D14) — a scholarship/discount on a student's fees (percentage, or a fixed amount as
+/// BIGINT minor units); requested → approved → revoked | rejected. Tenant-owned: FORCE RLS.
+model Concession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  feeStructureId String?   @map("fee_structure_id") @db.Uuid
+  type           String
+  percentage     Float?
+  amountMinor    BigInt?   @map("amount_minor")
+  currency       String?
+  reason         String
+  status         String    @default("requested")
+  reviewNote     String?   @map("review_note")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("concession")
+}
+
+/// PayrollRun (P2-D14) — a compensation batch in one currency, optionally scoped to a period; draft →
+/// processed → paid | cancelled. Tenant-owned: FORCE RLS.
+model PayrollRun {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  periodId       String?   @map("period_id") @db.Uuid
+  label          String
+  currency       String
+  status         String    @default("draft")
+  processedAt    String?   @map("processed_at")
+  paidAt         String?   @map("paid_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("payroll_run")
+}
+
+/// Payslip (P2-D14) — an employee's compensation in a run (earnings/deductions JSONB, amounts as minor
+/// units); draft → approved → paid. One per (run, employee). Tenant-owned: FORCE RLS.
+model Payslip {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  payrollRunId   String    @map("payroll_run_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  currency       String
+  earnings       Json      @default("[]")
+  deductions     Json      @default("[]")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, payrollRunId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, employeeId])
+  @@map("payslip")
+}
+
+/// StudentFinancialAccount (P2-D14) — the descriptive receivables read model per student, refreshed
+/// from the pure account-statement engine (never a transaction). Money as BIGINT minor units. One per
+/// student. Tenant-owned: FORCE RLS.
+model StudentFinancialAccount {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  studentId        String    @map("student_id") @db.Uuid
+  currency         String
+  totalBilledMinor BigInt    @default(0) @map("total_billed_minor")
+  totalPaidMinor   BigInt    @default(0) @map("total_paid_minor")
+  outstandingMinor BigInt    @default(0) @map("outstanding_minor")
+  overdueMinor     BigInt    @default(0) @map("overdue_minor")
+  chargeCount      Int       @default(0) @map("charge_count")
+  standing         String    @default("settled")
+  version          Int       @default(1)
+  refreshedAt      String?   @map("refreshed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("student_financial_account")
+}

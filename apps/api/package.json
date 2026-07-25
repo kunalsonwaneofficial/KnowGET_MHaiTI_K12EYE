@@ -35,6 +35,7 @@
     "@knowget/faculty-excellence": "workspace:*",
     "@knowget/family-guardian": "workspace:*",
     "@knowget/files": "workspace:*",
+    "@knowget/financial": "workspace:*",
     "@knowget/governance": "workspace:*",
     "@knowget/health": "workspace:*",
     "@knowget/i18n": "workspace:*",
