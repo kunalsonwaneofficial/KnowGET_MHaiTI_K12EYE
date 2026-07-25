@@ -68,7 +68,7 @@ importers:
         version: 10.5.4(postcss@8.5.19)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@1.21.7)
+        version: 9.39.5(jiti@2.6.1)
       postcss:
         specifier: ^8.4.49
         version: 8.5.19
@@ -93,6 +93,9 @@ importers:
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting
+      '@knowget/assessment-evaluation':
+        specifier: workspace:*
+        version: link:../../packages/assessment-evaluation
       '@knowget/attendance-presence':
         specifier: workspace:*
         version: link:../../packages/attendance-presence
@@ -298,7 +301,7 @@ importers:
         version: 10.5.4(postcss@8.5.19)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@2.6.1)
+        version: 9.39.5(jiti@1.21.7)
       postcss:
         specifier: ^8.4.49
         version: 8.5.19
