@@ -3,6 +3,11 @@ export const SUPPLIER_STATUSES = ["active", "suspended", "blacklisted"] as const
 
 export type SupplierStatus = (typeof SUPPLIER_STATUSES)[number];
 
+/** Lifecycle of an inventory item — active (stockable/orderable) or discontinued. */
+export const ITEM_STATUSES = ["active", "discontinued"] as const;
+
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
 /** Lifecycle of a purchase requisition (an internal request to buy). */
 export const REQUISITION_STATUSES = ["draft", "submitted", "approved", "rejected"] as const;
 
