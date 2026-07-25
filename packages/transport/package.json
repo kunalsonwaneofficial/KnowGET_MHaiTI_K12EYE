@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/transport",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smart Mobility, Transport & Fleet Platform (P2-D16) — the institution's operational transport system of record: the vehicle fleet and drivers, routes and their stops, vehicle-to-route assignments, student transport subscriptions, trips run against routes, and vehicle compliance documents. A pure route-schedule engine computes stop ETAs and seat utilization; a pure trip-occupancy engine reconciles boarding/alighting against vehicle capacity. Money (transport fees, vehicle valuation, maintenance cost) is out of scope — deferred to Finance (P2-D14) and the Asset register (P2-D15).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

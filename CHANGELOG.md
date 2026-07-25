@@ -3,7 +3,71 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D15 · Program: Workforce & Operations · Procurement, Inventory & Assets Platform
+## [Unreleased] — P2-D16 · Program: Workforce & Operations · Smart Mobility, Transport & Fleet Platform
+
+The fifth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
+the P2-D01-M01 organization, P2-D12 workforce and P2-D03 student bases. The institution's **transport
+system of record**, delivered as one `@knowget/transport` package (ADR-0035): the vehicle fleet and
+drivers, routes and stops, vehicle→route assignments, student subscriptions, trips, and vehicle
+compliance. The operational counterpart to the Asset register (P2-D15) — which owns a vehicle as
+depreciating capital while this domain owns it as an operating unit. Two quantities are **derived, not
+stored** — a route's arrival schedule and a trip's occupancy — so the design begins with **two pure
+engines**. Distinctively, **this domain carries no money**: transport fees belong to Finance (P2-D14)
+and vehicle valuation/maintenance to the Asset register (P2-D15), so the boundary is held structurally.
+Descriptive, not predictive — route optimisation and predictive maintenance are deferred to the
+intelligence core (P2-D28).
+
+### Added
+
+- **Smart Mobility, Transport & Fleet Platform (ADR-0035):** two pure engines plus eight aggregates in
+  one `@knowget/transport` package. **Two engines:** `computeRouteSchedule` (per-stop arrival ETAs,
+  duration and final arrival from a departure and ordered stop offsets, validating consecutive sequences
+  and strictly-increasing offsets) with `computeSeatUtilization` / `summarizeFleetUtilization`, and
+  `computeTripOccupancy` (reconciles a boarding/alighting ledger into running-end and peak occupancy,
+  flagging capacity-exceeded at the peak). The aggregates: **Vehicle** (a fleet unit whose seating
+  capacity bounds trip occupancy; active ↔ under_maintenance → retired, registration unique per tenant),
+  **Driver** (a validated Employee with licence number/class/expiry; active ↔ suspended → deactivated,
+  licence + employee unique per tenant), **Route** (an ordered set of named stops served from a scheduled
+  departure; draft → active → suspended → retired, stops frozen once active, code unique per tenant),
+  **VehicleAssignment** (binds an active vehicle + licensed active driver to an active route with the
+  licence valid on the effective date; active → ended, one active per route), **TransportSubscription**
+  (a student's enrollment with pickup/drop stops validated on the route; requested → active → suspended →
+  ended, one open per student+route), **Trip** (a run with a captured seating capacity and an append-only
+  boarding ledger; scheduled → in_progress → completed | cancelled, a board over capacity rejected and an
+  alight of a not-onboard student rejected), **VehicleDocument** (a compliance record, one per type per
+  vehicle, its valid/expiring/expired status derived from the expiry date, never stored) and
+  **RouteUtilizationProfile** (the descriptive seat-usage read model per route, refreshed from the
+  seat-utilization engine, never posted to directly).
+- **No money:** transport fees, vehicle valuation and maintenance cost are deferred to Finance (P2-D14)
+  and the Asset register (P2-D15); the domain defines no monetary field and imports no money core.
+- **Persistence (ADR-0010):** eight tables + migration `20261217000000_add_transport`, each **FORCE
+  RLS** + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; capacities/
+  offsets/percents/versions **INTEGER**, over-capacity/has-active-assignment **BOOLEAN**, route stops &
+  trip events non-null **JSONB**, date/ISO stamps **TEXT**; tenant-scoped DB unique indexes (registration,
+  licence, employee, route code, one document per (vehicle, type), one profile per route).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `fleet/*` (vehicles, drivers,
+  documents) under `fleet:read`/`:write` and `transport/*` (routes, assignments, subscriptions, trips,
+  utilization) under `transport:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + three directory
+  adapters (Organization, Employee, Student); `TransportModule` importing the Organization, Workforce and
+  Student-Lifecycle modules, registered in `app.module`.
+- **Events:** vehicle registered/maintenance/retired; driver registered/suspended/reinstated/deactivated;
+  route activated/suspended/resumed/retired; assignment created/ended; subscription requested/activated/
+  suspended/resumed/ended; trip scheduled/started/completed/cancelled; document recorded/renewed;
+  utilization refreshed.
+
+### Notes
+
+- **Descriptive, not predictive.** A route's schedule and a trip's occupancy are derived by pure
+  engines; route optimisation, demand forecasting and predictive maintenance are deferred to the
+  intelligence core (P2-D28). Identity is referenced not duplicated — a vehicle's org is an Organization
+  (P2-D01-M01), a driver is an Employee (P2-D12), a subscriber is a Student (P2-D03) — through directory
+  ports.
+- **Independent audits.** Two adversarial audits (domain; persistence/API) ran and were **both clean**
+  (no correctness, RLS, scope, route-collision or DI defects). `@knowget/transport` — 42 tests;
+  `apps/api` transport DI-graph spec — 2 tests. New debt: **TD-36** (two status-scoped uniqueness
+  invariants enforced in-service, DB partial-unique backstops deferred).
+
+## P2-D15 · Program: Workforce & Operations · Procurement, Inventory & Assets Platform
 
 The fourth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
 the P2-D01-M01 organization and P2-D12 workforce bases. The institution's **resource system of record**,
