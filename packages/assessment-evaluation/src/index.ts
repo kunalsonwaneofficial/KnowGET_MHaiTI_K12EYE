@@ -11,3 +11,11 @@ export * from "./assessment-view";
 // pure engines (grading, assessment intelligence)
 export * from "./grading";
 export * from "./assessment-intelligence";
+// aggregates
+export * from "./assessment-framework";
+export * from "./assessment-plan";
+// ports
+export * from "./ports";
+// services
+export * from "./assessment-framework-service";
+export * from "./assessment-plan-service";
