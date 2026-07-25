@@ -2,13 +2,13 @@
 
 **Attendance & Presence Intelligence Platform (APIP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                                |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D08 — Attendance & Presence Intelligence Platform                                                                                                                                           |
-| **Status**     | 🟡 Awaiting CI — PR open. Gates green in-sandbox (full monorepo typecheck 95/95, build 51/51, `@knowget/attendance-presence` 39 tests, `apps/api` 184 tests); RLS verified on live PostgreSQL. |
-| **Depends on** | P2-D07 (Academic Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                             |
-| **Date**       | 1 September 2026                                                                                                                                                                               |
-| **Next**       | P2-D09 — Teaching, Learning & Instruction Intelligence Platform (TLIIP)                                                                                                                        |
+|                |                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Contract**   | P2-D08 — Attendance & Presence Intelligence Platform                                                                                                                                                                     |
+| **Status**     | ✅ Complete — CI green; merged to main (`bdcbf9e`). Gates green in-sandbox (full monorepo typecheck 95/95, build 51/51, `@knowget/attendance-presence` 39 tests, `apps/api` 184 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D07 (Academic Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                                                       |
+| **Date**       | 1 September 2026                                                                                                                                                                                                         |
+| **Next**       | P2-D09 — Teaching, Learning & Instruction Intelligence Platform (TLIIP)                                                                                                                                                  |
 
 ---
 
