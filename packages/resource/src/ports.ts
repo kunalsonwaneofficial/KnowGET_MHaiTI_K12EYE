@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { InventoryItem } from "./inventory-item";
+import type { PurchaseRequisition } from "./purchase-requisition";
+import type { StockMovement } from "./stock-movement";
 import type { Supplier } from "./supplier";
 
 /**
@@ -9,6 +11,17 @@ import type { Supplier } from "./supplier";
  */
 export interface OrganizationDirectory {
   exists(tenantId: TenantId, organizationId: Uuid): Promise<boolean>;
+}
+
+/**
+ * Read model over the workforce domain (P2-D12): a requester, custodian or approver is an Employee.
+ * `exists` answers presence; `organizationOf` resolves the employee's organization (or `null` if
+ * unknown) so a requisition derives its organization from the staff member who raised it. The resource
+ * domain links to workforce and never depends on `@knowget/workforce` directly.
+ */
+export interface EmployeeDirectory {
+  exists(tenantId: TenantId, employeeId: Uuid): Promise<boolean>;
+  organizationOf(tenantId: TenantId, employeeId: Uuid): Promise<Uuid | null>;
 }
 
 /** Storage contract for suppliers. Tenant-scoped (explicit argument + RLS). */
@@ -96,6 +109,101 @@ export class InMemoryInventoryItemRepository implements InventoryItemRepository 
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const item = this.byId.get(id);
     if (item && item.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for stock movements (append-only ledger). Tenant-scoped (argument + RLS). */
+export interface StockMovementRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<StockMovement | null>;
+  listByItem(tenantId: TenantId, itemId: Uuid): Promise<StockMovement[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<StockMovement[]>;
+  listByTenant(tenantId: TenantId): Promise<StockMovement[]>;
+  save(movement: StockMovement): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link StockMovementRepository} — the default for tests and bootstrap. */
+export class InMemoryStockMovementRepository implements StockMovementRepository {
+  private readonly byId = new Map<string, StockMovement>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<StockMovement | null> {
+    const movement = this.byId.get(id);
+    return movement && movement.tenantId === tenantId ? movement : null;
+  }
+
+  async listByItem(tenantId: TenantId, itemId: Uuid): Promise<StockMovement[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId && m.itemId === itemId);
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<StockMovement[]> {
+    return [...this.byId.values()].filter(
+      (m) => m.tenantId === tenantId && m.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<StockMovement[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId);
+  }
+
+  async save(movement: StockMovement): Promise<void> {
+    this.byId.set(movement.id, movement);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const movement = this.byId.get(id);
+    if (movement && movement.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for purchase requisitions. Tenant-scoped (explicit argument + RLS). */
+export interface PurchaseRequisitionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<PurchaseRequisition | null>;
+  listByRequester(tenantId: TenantId, requesterId: Uuid): Promise<PurchaseRequisition[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PurchaseRequisition[]>;
+  listByTenant(tenantId: TenantId): Promise<PurchaseRequisition[]>;
+  save(requisition: PurchaseRequisition): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PurchaseRequisitionRepository} — the default for tests and bootstrap. */
+export class InMemoryPurchaseRequisitionRepository implements PurchaseRequisitionRepository {
+  private readonly byId = new Map<string, PurchaseRequisition>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<PurchaseRequisition | null> {
+    const requisition = this.byId.get(id);
+    return requisition && requisition.tenantId === tenantId ? requisition : null;
+  }
+
+  async listByRequester(tenantId: TenantId, requesterId: Uuid): Promise<PurchaseRequisition[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.requesterId === requesterId,
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<PurchaseRequisition[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<PurchaseRequisition[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(requisition: PurchaseRequisition): Promise<void> {
+    this.byId.set(requisition.id, requisition);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const requisition = this.byId.get(id);
+    if (requisition && requisition.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

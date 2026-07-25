@@ -220,3 +220,162 @@ export class InvalidItemTransitionError extends PlatformError {
     });
   }
 }
+
+/**
+ * The employee (P2-D12) a resource record references does not exist in the tenant. A requester,
+ * custodian or approver is an Employee; the domain links to it and never duplicates it.
+ */
+export class EmployeeNotFoundForResourceError extends PlatformError {
+  constructor(employeeId: string) {
+    super(`Employee "${employeeId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { employeeId },
+    });
+  }
+}
+
+// --- Stock movement --------------------------------------------------------------
+
+/** The requested stock movement does not exist in the current tenant. */
+export class StockMovementNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Stock movement "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A stock movement is malformed (bad quantity for its type). */
+export class InvalidStockMovementError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid stock movement: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** An issue cannot draw more stock than is on hand. */
+export class InsufficientStockError extends PlatformError {
+  constructor(itemId: string, requested: number, available: number) {
+    super(`Cannot issue ${requested} of item "${itemId}"; only ${available} on hand`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { itemId, requested, available },
+    });
+  }
+}
+
+// --- Purchase requisition --------------------------------------------------------
+
+/** The requested purchase requisition does not exist in the current tenant. */
+export class PurchaseRequisitionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Purchase requisition "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A purchase requisition must carry a non-empty title. */
+export class EmptyRequisitionTitleError extends PlatformError {
+  constructor() {
+    super("A purchase requisition must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** Only a draft requisition may have its lines edited; once submitted they are frozen. */
+export class RequisitionNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Purchase requisition "${id}" is "${status}"; its lines can no longer be edited`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** A purchase requisition must have at least one line to be submitted. */
+export class EmptyRequisitionError extends PlatformError {
+  constructor() {
+    super("A purchase requisition must have at least one line to be submitted", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested purchase-requisition lifecycle transition is not permitted. */
+export class InvalidRequisitionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition purchase requisition from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A requisition line must carry a non-empty key. */
+export class EmptyRequisitionLineKeyError extends PlatformError {
+  constructor() {
+    super("A requisition line must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A requisition line must carry a non-empty description. */
+export class EmptyRequisitionLineDescriptionError extends PlatformError {
+  constructor() {
+    super("A requisition line must have a non-empty description", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requisition-line key is already used within the requisition. */
+export class DuplicateRequisitionLineKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Requisition line key "${key}" is already used in this requisition`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The referenced requisition line is not part of the requisition. */
+export class RequisitionLineNotFoundError extends PlatformError {
+  constructor(key: string) {
+    super(`Requisition line "${key}" is not part of this requisition`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}

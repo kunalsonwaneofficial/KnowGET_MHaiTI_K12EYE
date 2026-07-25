@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { InventoryItem } from "./inventory-item";
+import { type PurchaseRequisition, requisitionTotalMinor } from "./purchase-requisition";
+import type { StockMovement } from "./stock-movement";
 import type { Supplier } from "./supplier";
 
 // --- Supplier --------------------------------------------------------------------
@@ -74,3 +76,83 @@ export const itemDiscontinued = (item: InventoryItem): ItemDiscontinuedEvent =>
 
 export const itemReactivated = (item: InventoryItem): ItemReactivatedEvent =>
   createEvent(ITEM_REACTIVATED, itemPayload(item), { tenantId: item.tenantId });
+
+// --- Stock movement --------------------------------------------------------------
+export const STOCK_MOVEMENT_RECORDED = "resource.stock.movement_recorded";
+
+export interface StockMovementRecordedPayload {
+  readonly movementId: Uuid;
+  readonly organizationId: Uuid;
+  readonly itemId: Uuid;
+  readonly type: string;
+  readonly quantity: number;
+}
+
+export type StockMovementRecordedEvent = DomainEvent<
+  typeof STOCK_MOVEMENT_RECORDED,
+  StockMovementRecordedPayload
+>;
+
+export const stockMovementRecorded = (movement: StockMovement): StockMovementRecordedEvent =>
+  createEvent(
+    STOCK_MOVEMENT_RECORDED,
+    {
+      movementId: movement.id,
+      organizationId: movement.organizationId,
+      itemId: movement.itemId,
+      type: movement.type,
+      quantity: movement.quantity,
+    },
+    { tenantId: movement.tenantId },
+  );
+
+// --- Purchase requisition --------------------------------------------------------
+export const REQUISITION_SUBMITTED = "resource.requisition.submitted";
+export const REQUISITION_APPROVED = "resource.requisition.approved";
+export const REQUISITION_REJECTED = "resource.requisition.rejected";
+
+export interface RequisitionEventPayload {
+  readonly requisitionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly requesterId: Uuid;
+  readonly totalMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type RequisitionSubmittedEvent = DomainEvent<
+  typeof REQUISITION_SUBMITTED,
+  RequisitionEventPayload
+>;
+export type RequisitionApprovedEvent = DomainEvent<
+  typeof REQUISITION_APPROVED,
+  RequisitionEventPayload
+>;
+export type RequisitionRejectedEvent = DomainEvent<
+  typeof REQUISITION_REJECTED,
+  RequisitionEventPayload
+>;
+
+const requisitionPayload = (requisition: PurchaseRequisition): RequisitionEventPayload => ({
+  requisitionId: requisition.id,
+  organizationId: requisition.organizationId,
+  requesterId: requisition.requesterId,
+  totalMinor: requisitionTotalMinor(requisition),
+  currency: requisition.currency,
+  status: requisition.status,
+});
+
+export const requisitionSubmitted = (requisition: PurchaseRequisition): RequisitionSubmittedEvent =>
+  createEvent(REQUISITION_SUBMITTED, requisitionPayload(requisition), {
+    tenantId: requisition.tenantId,
+  });
+
+export const requisitionApproved = (requisition: PurchaseRequisition): RequisitionApprovedEvent =>
+  createEvent(REQUISITION_APPROVED, requisitionPayload(requisition), {
+    tenantId: requisition.tenantId,
+  });
+
+export const requisitionRejected = (requisition: PurchaseRequisition): RequisitionRejectedEvent =>
+  createEvent(REQUISITION_REJECTED, requisitionPayload(requisition), {
+    tenantId: requisition.tenantId,
+  });
