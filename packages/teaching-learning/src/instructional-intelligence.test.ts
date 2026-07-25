@@ -111,6 +111,32 @@ describe("instructional-intelligence", () => {
     expect(ind.instructionalWorkload).toBe(10);
   });
 
+  it("clamps learning pace and engagement to the documented 0–100 range", () => {
+    const ind = computeInstructionalIndicators({
+      // one planned lesson but two delivered sessions → pace would be 200% unclamped
+      lessonPlans: [{ status: "approved", learningOutcomeIds: [] }],
+      sessions: [
+        {
+          status: "delivered",
+          plannedTopics: [],
+          actualTopicsCovered: [],
+          resourcesUsedIds: [],
+          // engaged > expected (malformed) → engagement would exceed 100% unclamped
+          participation: { expected: 10, engaged: 15 },
+        },
+        {
+          status: "completed",
+          plannedTopics: [],
+          actualTopicsCovered: [],
+          resourcesUsedIds: [],
+          participation: null,
+        },
+      ],
+    });
+    expect(ind.learningPace).toBe(100);
+    expect(ind.studentEngagement).toBe(100);
+  });
+
   it("excludes archived unit-plan outcomes from the coverage target", () => {
     const ind = computeInstructionalIndicators({
       unitPlans: [

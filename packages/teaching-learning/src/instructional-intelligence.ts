@@ -87,10 +87,15 @@ export function computeInstructionalIndicators(scope: {
       expectedTotal += session.participation.expected;
     }
   }
-  const studentEngagement = expectedTotal === 0 ? 0 : round((100 * engagedTotal) / expectedTotal);
+  // Clamped to 100 so a malformed engaged > expected can never breach the 0–100 contract.
+  const studentEngagement =
+    expectedTotal === 0 ? 0 : round(Math.min(100, (100 * engagedTotal) / expectedTotal));
 
-  // Learning pace: how far delivery has progressed through the planned lessons.
-  const learningPace = lessonsPlanned === 0 ? 0 : round((100 * sessionsDelivered) / lessonsPlanned);
+  // Learning pace: how far delivery has progressed through the planned lessons, capped at 100
+  // (delivering more sessions than planned lessons still reads as fully paced; the raw
+  // sessionsDelivered / lessonsPlanned counts remain available for over-delivery detail).
+  const learningPace =
+    lessonsPlanned === 0 ? 0 : round(Math.min(100, (100 * sessionsDelivered) / lessonsPlanned));
 
   // Resource utilisation: average distinct resources referenced per delivered session.
   const resourceRefTotal = sessions
