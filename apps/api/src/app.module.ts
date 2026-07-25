@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AcademicSchedulingModule } from "./domains/academic-scheduling/academic-scheduling.module";
 import { AcademicStructureModule } from "./domains/academic-structure/academic-structure.module";
+import { AttendancePresenceModule } from "./domains/attendance-presence/attendance-presence.module";
 import { GovernanceModule } from "./domains/governance/governance.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
 import { IdentityModule } from "./domains/identity/identity.module";
@@ -49,8 +50,13 @@ const persistedServices =
  * counselling, safeguarding, support and intervention plans) under fine-grained
  * per-area permission scopes; D06 opens the Academic Excellence Platform program
  * with the Academic Structure & Curriculum Platform (calendars, programs,
- * curricula, grades, classes, sections, subjects and learning outcomes). Live
- * security hardening wires the persisted identity/principal→role stores behind
+ * curricula, grades, classes, sections, subjects and learning outcomes); D07 adds
+ * the Academic Scheduling & Resource Orchestration Platform (timetables, schedule
+ * slots, resources, allocations, scheduling policies and substitutions with the
+ * conflict/workload engines); D08 adds the Attendance & Presence Intelligence
+ * Platform (immutable attendance sessions and records, leave, attendance policies,
+ * co-curricular participation and the AI-ready presence profile). Live security
+ * hardening wires the persisted identity/principal→role stores behind
  * `SECURITY_STORE=persisted`.
  */
 @Module({
@@ -72,6 +78,7 @@ const persistedServices =
     LearnerWellbeingModule,
     AcademicStructureModule,
     AcademicSchedulingModule,
+    AttendancePresenceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
