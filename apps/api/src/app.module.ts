@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AcademicSchedulingModule } from "./domains/academic-scheduling/academic-scheduling.module";
 import { AcademicStructureModule } from "./domains/academic-structure/academic-structure.module";
 import { GovernanceModule } from "./domains/governance/governance.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
@@ -70,6 +71,7 @@ const persistedServices =
     FamilyGuardianModule,
     LearnerWellbeingModule,
     AcademicStructureModule,
+    AcademicSchedulingModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
