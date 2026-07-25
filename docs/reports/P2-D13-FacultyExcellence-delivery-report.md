@@ -2,13 +2,13 @@
 
 **Faculty Excellence, Coaching & Professional Growth Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Workforce & Operations
 
-|                |                                                                                                                                                                                                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D13 — Faculty Excellence, Coaching & Professional Growth Platform                                                                                                                                                                                                 |
-| **Status**     | 🟡 Awaiting CI — feature branch `feat/p2-d13-faculty-excellence` pushed. Gates green in-sandbox (full monorepo typecheck 105/105, build 56/56, `@knowget/faculty-excellence` 50 tests, `apps/api` 194 tests); RLS verified on live PostgreSQL. PR open, awaiting CI. |
-| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base), P2-D01-M01 (Organization), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                                                                                                   |
-| **Date**       | 1 December 2026                                                                                                                                                                                                                                                      |
-| **Next**       | P2-D14 — Financial Operations & Fee Management Platform (Program: Workforce & Operations)                                                                                                                                                                            |
+|                |                                                                                                                                                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D13 — Faculty Excellence, Coaching & Professional Growth Platform                                                                                                                                                      |
+| **Status**     | ✅ Complete — CI green; merged to main (`9a1054a`). Gates green in-sandbox (full monorepo typecheck 105/105, build 56/56, `@knowget/faculty-excellence` 50 tests, `apps/api` 194 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base), P2-D01-M01 (Organization), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                                                        |
+| **Date**       | 1 December 2026                                                                                                                                                                                                           |
+| **Next**       | P2-D14 — Financial Operations & Fee Management Platform (Program: Workforce & Operations)                                                                                                                                 |
 
 ---
 
