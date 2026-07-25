@@ -717,3 +717,46 @@ Employee (P2-D12) existence enter through injected directory ports (soft framewo
 competency references stored against the validated anchor — **TD-33**); all seven service tokens are
 exported for **in-process cross-domain use**. The professional-growth base the workforce-intelligence
 and Phase-2 intelligence-core (D25…D30) domains build on.
+
+## Fees, Finance & Payroll Platform (P2-D14, Program: Workforce & Operations · ADR-0033)
+
+The **money system of record for the institution** — built on the student (P2-D03) and workforce
+(P2-D12) bases, owning the compensation boundary those domains deferred — delivered as one
+`@knowget/financial` package on the certified `v0.2.0` baseline. The third contract of **Program C**.
+Its defining decision is that **money is integer minor units plus an ISO-4217 currency, never a
+float**: `money()` validates the amount is an integer and the currency well-formed, arithmetic is
+exact, rounding is explicit half-away-from-zero, and `allocateMoney` splits an amount across weights so
+the parts **sum exactly to the whole** (largest-remainder). The money core and the pure
+`computeAccountStatement` / `summarizeReceivables` engines were built and tested first. It models eight
+aggregates: **FinancialPeriod** (an accounting window; open → closed, reopenable), **FeeStructure** (a
+reusable fee schedule of components in one currency; draft → active → archived, components frozen once
+active), **Invoice** (a bill to a student; draft → issued → partially_paid | paid | overdue |
+cancelled, lines frozen at issue, `amountPaidMinor` recomputed **together with status** by pure
+apply/reverse, overpayment and below-zero reversal rejected, cancel blocked once paid), **Payment** (a
+tender; pending → cleared | failed, cleared → refunded, **inheriting org/student/currency from the
+invoice**, applied to the invoice **before** the payment is persisted so a rejected application leaves
+it untouched), **Concession** (a percentage or fixed scholarship/discount; requested → approved →
+revoked | rejected, pure `concessionAmount` capping a fixed discount at the base), **PayrollRun** (a
+compensation batch in one currency; draft → processed → paid | cancelled), **Payslip** (an employee's
+compensation; draft → approved → paid, one per (run, employee), **net = gross − deductions** pure, its
+earnings seeded from the employee's active-contract **grade/band label** resolved through the
+institution's pay scale — the crossing where the label workforce stores becomes real money) and
+**StudentFinancialAccount** (the descriptive receivables read model per student, **refreshed** from the
+account-statement engine, never posted to directly). It is **descriptive, not predictive**: the account
+is derived, with cash-flow forecasting deferred to the intelligence core (P2-D28). A payer is a
+**Student (P2-D03)** and a payee is an **Employee (P2-D12)**, referenced via directory ports and never
+duplicated. Finance domain events (period opened/closed/reopened; fee structure created/activated/
+archived; invoice issued/paid/overdue/cancelled; payment recorded/cleared/failed/refunded; concession
+requested/approved/rejected/revoked; payroll run processed/paid/cancelled; payslip approved/paid;
+account refreshed) publish onto the shared bus. Eight tables carry **FORCE RLS** tenant isolation,
+verified on live PostgreSQL (BIGINT money round-tripping exactly), with tenant-scoped DB unique indexes
+(period code, fee-structure code, invoice number, one payslip per (run, employee), one account per
+student); scalar money is **BIGINT** minor units (adapter `Number()`/`BigInt()` bridge) and
+component/line/earning lists are non-null JSONB. **Two permission scope pairs** split the platform along
+its confidentiality boundary — `finance:*` for the student-facing money (periods, fee structures,
+invoices, payments, concessions, accounts) and `payroll:*` for staff compensation (runs, payslips) — so
+salary data never shares a scope with fee data. Organization (P2-D01-M01), Student (P2-D03) and
+Employee-compensation (P2-D12) existence enter through injected directory ports; the pay scale is
+composition-root configuration (cross-repository payment atomicity — **TD-34**). All eight service
+tokens are exported for **in-process cross-domain use**. The money base the operational and
+intelligence-core domains build on.

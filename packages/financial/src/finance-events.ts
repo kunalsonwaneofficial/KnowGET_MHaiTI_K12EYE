@@ -1,0 +1,349 @@
+import { createEvent } from "@knowget/events";
+import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Concession } from "./concession";
+import { type FeeStructure, feeStructureTotal } from "./fee-structure";
+import type { FinancialPeriod } from "./financial-period";
+import { type Invoice, invoiceTotalMinor } from "./invoice";
+import type { Payment } from "./payment";
+import type { PayrollRun } from "./payroll-run";
+import { type Payslip, payslipGrossMinor, payslipNetMinor } from "./payslip";
+import type { StudentFinancialAccount } from "./student-financial-account";
+
+// --- Financial period ------------------------------------------------------------
+export const PERIOD_OPENED = "finance.period.opened";
+export const PERIOD_CLOSED = "finance.period.closed";
+export const PERIOD_REOPENED = "finance.period.reopened";
+
+export interface PeriodEventPayload {
+  readonly periodId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly status: string;
+}
+
+export type PeriodOpenedEvent = DomainEvent<typeof PERIOD_OPENED, PeriodEventPayload>;
+export type PeriodClosedEvent = DomainEvent<typeof PERIOD_CLOSED, PeriodEventPayload>;
+export type PeriodReopenedEvent = DomainEvent<typeof PERIOD_REOPENED, PeriodEventPayload>;
+
+const periodPayload = (period: FinancialPeriod): PeriodEventPayload => ({
+  periodId: period.id,
+  organizationId: period.organizationId,
+  code: period.code,
+  status: period.status,
+});
+
+export const periodOpened = (period: FinancialPeriod): PeriodOpenedEvent =>
+  createEvent(PERIOD_OPENED, periodPayload(period), { tenantId: period.tenantId });
+
+export const periodClosed = (period: FinancialPeriod): PeriodClosedEvent =>
+  createEvent(PERIOD_CLOSED, periodPayload(period), { tenantId: period.tenantId });
+
+export const periodReopened = (period: FinancialPeriod): PeriodReopenedEvent =>
+  createEvent(PERIOD_REOPENED, periodPayload(period), { tenantId: period.tenantId });
+
+// --- Fee structure ---------------------------------------------------------------
+export const FEE_STRUCTURE_CREATED = "finance.fee_structure.created";
+export const FEE_STRUCTURE_ACTIVATED = "finance.fee_structure.activated";
+export const FEE_STRUCTURE_ARCHIVED = "finance.fee_structure.archived";
+
+export interface FeeStructureEventPayload {
+  readonly feeStructureId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly componentCount: number;
+  readonly totalMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type FeeStructureCreatedEvent = DomainEvent<
+  typeof FEE_STRUCTURE_CREATED,
+  FeeStructureEventPayload
+>;
+export type FeeStructureActivatedEvent = DomainEvent<
+  typeof FEE_STRUCTURE_ACTIVATED,
+  FeeStructureEventPayload
+>;
+export type FeeStructureArchivedEvent = DomainEvent<
+  typeof FEE_STRUCTURE_ARCHIVED,
+  FeeStructureEventPayload
+>;
+
+const feeStructurePayload = (structure: FeeStructure): FeeStructureEventPayload => ({
+  feeStructureId: structure.id,
+  organizationId: structure.organizationId,
+  code: structure.code,
+  componentCount: structure.components.length,
+  totalMinor: feeStructureTotal(structure).amountMinor,
+  currency: structure.currency,
+  status: structure.status,
+});
+
+export const feeStructureCreated = (structure: FeeStructure): FeeStructureCreatedEvent =>
+  createEvent(FEE_STRUCTURE_CREATED, feeStructurePayload(structure), {
+    tenantId: structure.tenantId,
+  });
+
+export const feeStructureActivated = (structure: FeeStructure): FeeStructureActivatedEvent =>
+  createEvent(FEE_STRUCTURE_ACTIVATED, feeStructurePayload(structure), {
+    tenantId: structure.tenantId,
+  });
+
+export const feeStructureArchived = (structure: FeeStructure): FeeStructureArchivedEvent =>
+  createEvent(FEE_STRUCTURE_ARCHIVED, feeStructurePayload(structure), {
+    tenantId: structure.tenantId,
+  });
+
+// --- Invoice ---------------------------------------------------------------------
+export const INVOICE_ISSUED = "finance.invoice.issued";
+export const INVOICE_PAID = "finance.invoice.paid";
+export const INVOICE_OVERDUE = "finance.invoice.overdue";
+export const INVOICE_CANCELLED = "finance.invoice.cancelled";
+
+export interface InvoiceEventPayload {
+  readonly invoiceId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly number: string;
+  readonly totalMinor: number;
+  readonly amountPaidMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type InvoiceIssuedEvent = DomainEvent<typeof INVOICE_ISSUED, InvoiceEventPayload>;
+export type InvoicePaidEvent = DomainEvent<typeof INVOICE_PAID, InvoiceEventPayload>;
+export type InvoiceOverdueEvent = DomainEvent<typeof INVOICE_OVERDUE, InvoiceEventPayload>;
+export type InvoiceCancelledEvent = DomainEvent<typeof INVOICE_CANCELLED, InvoiceEventPayload>;
+
+const invoicePayload = (invoice: Invoice): InvoiceEventPayload => ({
+  invoiceId: invoice.id,
+  organizationId: invoice.organizationId,
+  studentId: invoice.studentId,
+  number: invoice.number,
+  totalMinor: invoiceTotalMinor(invoice),
+  amountPaidMinor: invoice.amountPaidMinor,
+  currency: invoice.currency,
+  status: invoice.status,
+});
+
+export const invoiceIssued = (invoice: Invoice): InvoiceIssuedEvent =>
+  createEvent(INVOICE_ISSUED, invoicePayload(invoice), { tenantId: invoice.tenantId });
+
+export const invoicePaid = (invoice: Invoice): InvoicePaidEvent =>
+  createEvent(INVOICE_PAID, invoicePayload(invoice), { tenantId: invoice.tenantId });
+
+export const invoiceOverdue = (invoice: Invoice): InvoiceOverdueEvent =>
+  createEvent(INVOICE_OVERDUE, invoicePayload(invoice), { tenantId: invoice.tenantId });
+
+export const invoiceCancelled = (invoice: Invoice): InvoiceCancelledEvent =>
+  createEvent(INVOICE_CANCELLED, invoicePayload(invoice), { tenantId: invoice.tenantId });
+
+// --- Payment ---------------------------------------------------------------------
+export const PAYMENT_RECORDED = "finance.payment.recorded";
+export const PAYMENT_CLEARED = "finance.payment.cleared";
+export const PAYMENT_FAILED = "finance.payment.failed";
+export const PAYMENT_REFUNDED = "finance.payment.refunded";
+
+export interface PaymentEventPayload {
+  readonly paymentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly invoiceId: Uuid;
+  readonly amountMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PaymentRecordedEvent = DomainEvent<typeof PAYMENT_RECORDED, PaymentEventPayload>;
+export type PaymentClearedEvent = DomainEvent<typeof PAYMENT_CLEARED, PaymentEventPayload>;
+export type PaymentFailedEvent = DomainEvent<typeof PAYMENT_FAILED, PaymentEventPayload>;
+export type PaymentRefundedEvent = DomainEvent<typeof PAYMENT_REFUNDED, PaymentEventPayload>;
+
+const paymentPayload = (payment: Payment): PaymentEventPayload => ({
+  paymentId: payment.id,
+  organizationId: payment.organizationId,
+  studentId: payment.studentId,
+  invoiceId: payment.invoiceId,
+  amountMinor: payment.amountMinor,
+  currency: payment.currency,
+  status: payment.status,
+});
+
+export const paymentRecorded = (payment: Payment): PaymentRecordedEvent =>
+  createEvent(PAYMENT_RECORDED, paymentPayload(payment), { tenantId: payment.tenantId });
+
+export const paymentCleared = (payment: Payment): PaymentClearedEvent =>
+  createEvent(PAYMENT_CLEARED, paymentPayload(payment), { tenantId: payment.tenantId });
+
+export const paymentFailed = (payment: Payment): PaymentFailedEvent =>
+  createEvent(PAYMENT_FAILED, paymentPayload(payment), { tenantId: payment.tenantId });
+
+export const paymentRefunded = (payment: Payment): PaymentRefundedEvent =>
+  createEvent(PAYMENT_REFUNDED, paymentPayload(payment), { tenantId: payment.tenantId });
+
+// --- Concession ------------------------------------------------------------------
+export const CONCESSION_REQUESTED = "finance.concession.requested";
+export const CONCESSION_APPROVED = "finance.concession.approved";
+export const CONCESSION_REJECTED = "finance.concession.rejected";
+export const CONCESSION_REVOKED = "finance.concession.revoked";
+
+export interface ConcessionEventPayload {
+  readonly concessionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly type: string;
+  readonly status: string;
+}
+
+export type ConcessionRequestedEvent = DomainEvent<
+  typeof CONCESSION_REQUESTED,
+  ConcessionEventPayload
+>;
+export type ConcessionApprovedEvent = DomainEvent<
+  typeof CONCESSION_APPROVED,
+  ConcessionEventPayload
+>;
+export type ConcessionRejectedEvent = DomainEvent<
+  typeof CONCESSION_REJECTED,
+  ConcessionEventPayload
+>;
+export type ConcessionRevokedEvent = DomainEvent<typeof CONCESSION_REVOKED, ConcessionEventPayload>;
+
+const concessionPayload = (concession: Concession): ConcessionEventPayload => ({
+  concessionId: concession.id,
+  organizationId: concession.organizationId,
+  studentId: concession.studentId,
+  type: concession.type,
+  status: concession.status,
+});
+
+export const concessionRequested = (concession: Concession): ConcessionRequestedEvent =>
+  createEvent(CONCESSION_REQUESTED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionApproved = (concession: Concession): ConcessionApprovedEvent =>
+  createEvent(CONCESSION_APPROVED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionRejected = (concession: Concession): ConcessionRejectedEvent =>
+  createEvent(CONCESSION_REJECTED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionRevoked = (concession: Concession): ConcessionRevokedEvent =>
+  createEvent(CONCESSION_REVOKED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+// --- Payroll run -----------------------------------------------------------------
+export const PAYROLL_RUN_PROCESSED = "finance.payroll_run.processed";
+export const PAYROLL_RUN_PAID = "finance.payroll_run.paid";
+export const PAYROLL_RUN_CANCELLED = "finance.payroll_run.cancelled";
+
+export interface PayrollRunEventPayload {
+  readonly payrollRunId: Uuid;
+  readonly organizationId: Uuid;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PayrollRunProcessedEvent = DomainEvent<
+  typeof PAYROLL_RUN_PROCESSED,
+  PayrollRunEventPayload
+>;
+export type PayrollRunPaidEvent = DomainEvent<typeof PAYROLL_RUN_PAID, PayrollRunEventPayload>;
+export type PayrollRunCancelledEvent = DomainEvent<
+  typeof PAYROLL_RUN_CANCELLED,
+  PayrollRunEventPayload
+>;
+
+const payrollRunPayload = (run: PayrollRun): PayrollRunEventPayload => ({
+  payrollRunId: run.id,
+  organizationId: run.organizationId,
+  currency: run.currency,
+  status: run.status,
+});
+
+export const payrollRunProcessed = (run: PayrollRun): PayrollRunProcessedEvent =>
+  createEvent(PAYROLL_RUN_PROCESSED, payrollRunPayload(run), { tenantId: run.tenantId });
+
+export const payrollRunPaid = (run: PayrollRun): PayrollRunPaidEvent =>
+  createEvent(PAYROLL_RUN_PAID, payrollRunPayload(run), { tenantId: run.tenantId });
+
+export const payrollRunCancelled = (run: PayrollRun): PayrollRunCancelledEvent =>
+  createEvent(PAYROLL_RUN_CANCELLED, payrollRunPayload(run), { tenantId: run.tenantId });
+
+// --- Payslip ---------------------------------------------------------------------
+export const PAYSLIP_APPROVED = "finance.payslip.approved";
+export const PAYSLIP_PAID = "finance.payslip.paid";
+
+export interface PayslipEventPayload {
+  readonly payslipId: Uuid;
+  readonly organizationId: Uuid;
+  readonly payrollRunId: Uuid;
+  readonly employeeId: Uuid;
+  readonly grossMinor: number;
+  readonly netMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PayslipApprovedEvent = DomainEvent<typeof PAYSLIP_APPROVED, PayslipEventPayload>;
+export type PayslipPaidEvent = DomainEvent<typeof PAYSLIP_PAID, PayslipEventPayload>;
+
+const payslipPayload = (payslip: Payslip): PayslipEventPayload => ({
+  payslipId: payslip.id,
+  organizationId: payslip.organizationId,
+  payrollRunId: payslip.payrollRunId,
+  employeeId: payslip.employeeId,
+  grossMinor: payslipGrossMinor(payslip),
+  netMinor: payslipNetMinor(payslip),
+  currency: payslip.currency,
+  status: payslip.status,
+});
+
+export const payslipApproved = (payslip: Payslip): PayslipApprovedEvent =>
+  createEvent(PAYSLIP_APPROVED, payslipPayload(payslip), { tenantId: payslip.tenantId });
+
+export const payslipPaid = (payslip: Payslip): PayslipPaidEvent =>
+  createEvent(PAYSLIP_PAID, payslipPayload(payslip), { tenantId: payslip.tenantId });
+
+// --- Student financial account ---------------------------------------------------
+export const FINANCIAL_ACCOUNT_REFRESHED = "finance.account.refreshed";
+
+export interface FinancialAccountRefreshedPayload {
+  readonly accountId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly outstandingMinor: number;
+  readonly overdueMinor: number;
+  readonly standing: string;
+  readonly currency: string;
+  readonly version: number;
+}
+
+export type FinancialAccountRefreshedEvent = DomainEvent<
+  typeof FINANCIAL_ACCOUNT_REFRESHED,
+  FinancialAccountRefreshedPayload
+>;
+
+export const financialAccountRefreshed = (
+  account: StudentFinancialAccount,
+): FinancialAccountRefreshedEvent =>
+  createEvent(
+    FINANCIAL_ACCOUNT_REFRESHED,
+    {
+      accountId: account.id,
+      organizationId: account.organizationId,
+      studentId: account.studentId,
+      outstandingMinor: account.outstandingMinor,
+      overdueMinor: account.overdueMinor,
+      standing: account.standing,
+      currency: account.currency,
+      version: account.version,
+    },
+    { tenantId: account.tenantId },
+  );

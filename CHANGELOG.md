@@ -3,7 +3,57 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D13 · Program: Workforce & Operations · Faculty Excellence, Coaching & Professional Growth Platform
+## [Unreleased] — P2-D14 · Program: Workforce & Operations · Fees, Finance & Payroll Platform
+
+The third contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
+the P2-D03 student and P2-D12 workforce bases. The institution's **money system of record**, delivered
+as one `@knowget/financial` package (ADR-0033): fee schedules, invoices, payments, concessions,
+accounting periods, staff payroll and a descriptive receivables position. Its defining decision is that
+**money is integer minor units plus an ISO-4217 currency, never a float** — exact arithmetic, explicit
+half-away-from-zero rounding, and a penny-perfect largest-remainder allocation. It owns the
+compensation boundary the workforce domain deferred (which stores the pay grade/band **label** only),
+turning that label into real money through the institution's pay scale. Descriptive, not predictive —
+the receivables account is derived, with forecasting deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Fees, Finance & Payroll Platform (ADR-0033):** a money core plus eight aggregates in one
+  `@knowget/financial` package. **Money** (`money.ts`) is integer minor units + currency with validated
+  construction, exact arithmetic, half-away-from-zero rounding, and **penny-perfect `allocateMoney`**.
+  The aggregates: **FinancialPeriod** (an accounting window; open → closed, reopenable), **FeeStructure**
+  (a reusable fee schedule of components in one currency; draft → active → archived, components frozen
+  once active), **Invoice** (a bill to a student; draft → issued → partially_paid | paid | overdue |
+  cancelled, lines frozen at issue, `amountPaidMinor` recomputed together with status by pure
+  apply/reverse, overpayment and below-zero reversal rejected, cancel blocked once paid), **Payment** (a
+  tender; pending → cleared | failed, cleared → refunded, inheriting org/student/currency from the
+  invoice and applied to it before the payment is persisted), **Concession** (a percentage or fixed
+  scholarship/discount; requested → approved → revoked | rejected, pure `concessionAmount` capping a
+  fixed discount at the base), **PayrollRun** (a compensation batch; draft → processed → paid |
+  cancelled), **Payslip** (an employee's compensation; draft → approved → paid, one per (run, employee),
+  net = gross − deductions pure, earnings seeded from the employee's active-contract grade/band label
+  through the pay scale) and **StudentFinancialAccount** (the descriptive receivables read model per
+  student, refreshed from the account-statement engine, never posted to directly).
+- **Two pure engines:** `computeAccountStatement` (reconciles billable invoices against cleared
+  payments into billed/paid/outstanding and the outstanding portion of overdue invoices, so overdue
+  never exceeds outstanding) and `summarizeReceivables` (organization rollup).
+- **Persistence (ADR-0010):** eight tables + migration `20261215000000_add_financial`, each **FORCE
+  RLS** + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; scalar
+  money as **BIGINT** minor units (adapter `Number()`/`BigInt()` bridge), component/line/earning lists
+  as non-null JSONB, tenant-scoped DB unique indexes (period/fee-structure code, invoice number, one
+  payslip per (run, employee), one account per student).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `finance/*` under
+  `finance:read`/`:write` and `payroll/*` under `payroll:read`/`:write`, so salary data never shares a
+  scope with fee data — with zod DTOs, eight Prisma/RLS adapters, three directory adapters
+  (Organization, Student, Employee-compensation), and `FinancialModule` importing the Organization,
+  Student-Lifecycle and Workforce modules, registered in `app.module`.
+- **Events:** period opened/closed/reopened; fee structure created/activated/archived; invoice
+  issued/paid/overdue/cancelled; payment recorded/cleared/failed/refunded; concession
+  requested/approved/rejected/revoked; payroll run processed/paid/cancelled; payslip approved/paid;
+  account refreshed.
+- **Docs:** ADR-0033, the P2-D14 delivery report, platform-state and technical-debt (**TD-34**, the
+  cross-repository payment-atomicity follow-up) register updates.
+
+## P2-D13 · Program: Workforce & Operations · Faculty Excellence, Coaching & Professional Growth Platform
 
 The second contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core,
 and the P2-D12 workforce base. The **professional-growth system of record for staff**, delivered as
