@@ -807,3 +807,53 @@ ledger, requisitions, orders, positions) and `asset:*` for the fixed-asset regis
 Organization (P2-D01-M01) and Employee (P2-D12) existence enter through injected directory ports. All
 eight service tokens are exported for **in-process cross-domain use**. The resource base the operational
 and intelligence-core domains build on.
+
+## Smart Mobility, Transport & Fleet Platform (P2-D16, Program: Workforce & Operations · ADR-0035)
+
+The **transport system of record for the institution** — the operational counterpart to the Asset
+register (P2-D15), which owns a vehicle as depreciating capital while this domain owns it as an
+operating unit — built on the organization (P2-D01-M01), workforce (P2-D12) and student (P2-D03) bases,
+delivered as one `@knowget/transport` package on the certified `v0.2.0` baseline. The fifth contract of
+**Program C**. Two quantities are **derived, not stored**, so the design begins with **two pure engines**
+built and tested first: `computeRouteSchedule` turns a departure time and ordered stop offsets into
+per-stop arrival ETAs (validating consecutive sequences and strictly-increasing offsets) and
+`computeSeatUtilization` / `summarizeFleetUtilization` value capacity against subscribers; and
+`computeTripOccupancy` reconciles a boarding/alighting ledger into running-end and **peak** occupancy,
+flagging capacity-exceeded at the peak. Distinctively, **this domain carries no money** — transport fees
+belong to Finance (P2-D14) and vehicle valuation/maintenance to the Asset register (P2-D15) — so the
+fee/valuation boundary is held structurally (there is nowhere to put an amount) and no money core is
+imported. It models eight aggregates: **Vehicle** (a fleet unit with a seating capacity that bounds trip
+occupancy; active ↔ under_maintenance → retired, registration unique per tenant, active required to
+assign), **Driver** (a validated **Employee** with a licence number/class/expiry; active ↔ suspended →
+deactivated, licence + employee unique per tenant, org derived from the employee), **Route** (an ordered
+set of named stops served from a scheduled departure in one direction; draft → active → suspended →
+retired, **stops frozen once active**, code unique per tenant, the schedule engine validating offsets
+strictly increase), **VehicleAssignment** (binds an active vehicle + a licensed active driver to an
+active route with the licence valid on the effective date; active → ended, **one active per route**),
+**TransportSubscription** (a student's enrollment with pickup/drop stops validated on the route;
+requested → active → suspended → ended, **one open per student+route**), **Trip** (a run with a captured
+seating capacity and an append-only boarding ledger; scheduled → in_progress → completed | cancelled,
+**a board over capacity rejected** via the occupancy engine and an alight of a not-onboard student
+rejected), **VehicleDocument** (a compliance record — insurance/fitness/permit/pollution/road_tax — one
+per type per vehicle, its valid/expiring/expired status **derived** from the expiry date, never stored)
+and **RouteUtilizationProfile** (the descriptive seat-usage read model per route, **refreshed** from the
+seat-utilization engine, never posted to directly). It is **descriptive, not predictive**: route
+optimisation, demand forecasting and predictive maintenance are deferred to the intelligence core
+(P2-D28). A vehicle's organization is an **Organization (P2-D01-M01)**, a driver is an **Employee
+(P2-D12)** and a subscriber is a **Student (P2-D03)**, referenced via directory ports and never
+duplicated. Transport domain events (vehicle registered/maintenance/retired; driver registered/
+suspended/reinstated/deactivated; route activated/suspended/resumed/retired; assignment created/ended;
+subscription requested/activated/suspended/resumed/ended; trip scheduled/started/completed/cancelled;
+document recorded/renewed; utilization refreshed) publish onto the shared bus. Eight tables carry
+**FORCE RLS** tenant isolation, verified on live PostgreSQL (JSONB stops/events, INTEGER capacity and
+BOOLEAN flags round-tripping exactly), with tenant-scoped DB unique indexes (registration, licence,
+employee, route code, one document per (vehicle, type), one profile per route); capacities/offsets/
+percents/versions are **INTEGER**, over-capacity/has-active-assignment are **BOOLEAN**, route stops and
+trip events are non-null **JSONB**, and date/ISO stamps are **TEXT** — **no money**. **Two permission
+scope pairs** split the platform along its operational boundary — `fleet:*` for the fleet and its people
+and compliance (vehicles, drivers, documents) and `transport:*` for the operations (routes, assignments,
+subscriptions, trips, utilization). Organization, Employee and Student existence enter through injected
+directory ports. Two status-scoped uniqueness invariants (one active assignment per route, one open
+subscription per student+route) are service-enforced (**TD-36**); both independent audits were clean.
+All eight service tokens are exported for **in-process cross-domain use**. The transport base the
+operational and intelligence-core domains build on.
