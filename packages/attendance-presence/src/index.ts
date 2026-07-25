@@ -9,3 +9,12 @@ export * from "./evaluation";
 // pure engines (policy evaluation, presence intelligence)
 export * from "./policy-engine";
 export * from "./presence-intelligence";
+// aggregates
+export * from "./attendance-session";
+export * from "./attendance-record";
+// events + ports
+export * from "./attendance-presence-events";
+export * from "./ports";
+// services
+export * from "./attendance-session-service";
+export * from "./attendance-record-service";
