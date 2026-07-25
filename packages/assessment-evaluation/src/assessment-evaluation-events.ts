@@ -1,5 +1,6 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { AcademicRecord } from "./academic-record";
 import type { Assessment } from "./assessment";
 import type { CompetencyProfile } from "./competency-profile";
 import type { Evaluation } from "./evaluation";
@@ -117,3 +118,84 @@ export const competencyUpdated = (
     },
     { tenantId: profile.tenantId },
   );
+
+// --- Academic record -------------------------------------------------------------
+export const ACADEMIC_RECORD_UPDATED = "assessment.academic_record.updated";
+export const PROMOTION_RECOMMENDED = "assessment.promotion.recommended";
+
+export interface AcademicRecordEventPayload {
+  readonly academicRecordId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly academicYear: string;
+  readonly term: string;
+  readonly status: string;
+}
+
+export type AcademicRecordUpdatedEvent = DomainEvent<
+  typeof ACADEMIC_RECORD_UPDATED,
+  AcademicRecordEventPayload
+>;
+
+const academicRecordPayload = (record: AcademicRecord): AcademicRecordEventPayload => ({
+  academicRecordId: record.id,
+  organizationId: record.organizationId,
+  studentId: record.studentId,
+  academicYear: record.academicYear,
+  term: record.term,
+  status: record.status,
+});
+
+export const academicRecordUpdated = (record: AcademicRecord): AcademicRecordUpdatedEvent =>
+  createEvent(ACADEMIC_RECORD_UPDATED, academicRecordPayload(record), {
+    tenantId: record.tenantId,
+  });
+
+export interface PromotionRecommendedPayload {
+  readonly academicRecordId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly academicYear: string;
+  readonly term: string;
+  readonly promotionDecision: string;
+}
+
+export type PromotionRecommendedEvent = DomainEvent<
+  typeof PROMOTION_RECOMMENDED,
+  PromotionRecommendedPayload
+>;
+
+export const promotionRecommended = (record: AcademicRecord): PromotionRecommendedEvent =>
+  createEvent(
+    PROMOTION_RECOMMENDED,
+    {
+      academicRecordId: record.id,
+      organizationId: record.organizationId,
+      studentId: record.studentId,
+      academicYear: record.academicYear,
+      term: record.term,
+      promotionDecision: record.promotionDecision,
+    },
+    { tenantId: record.tenantId },
+  );
+
+// --- Reporting -------------------------------------------------------------------
+export const REPORT_CARD_GENERATED = "assessment.report_card.generated";
+
+export interface ReportCardGeneratedPayload {
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly academicYear: string;
+  readonly term: string;
+  readonly academicRecordId: Uuid | null;
+}
+
+export type ReportCardGeneratedEvent = DomainEvent<
+  typeof REPORT_CARD_GENERATED,
+  ReportCardGeneratedPayload
+>;
+
+export const reportCardGenerated = (
+  tenantId: AcademicRecord["tenantId"],
+  payload: ReportCardGeneratedPayload,
+): ReportCardGeneratedEvent => createEvent(REPORT_CARD_GENERATED, payload, { tenantId });

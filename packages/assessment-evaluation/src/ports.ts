@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { AcademicRecord } from "./academic-record";
 import type { Assessment } from "./assessment";
 import type { AssessmentFramework } from "./assessment-framework";
 import type { AssessmentPlan } from "./assessment-plan";
@@ -371,6 +372,81 @@ export class InMemoryCompetencyProfileRepository implements CompetencyProfileRep
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const profile = this.byId.get(id);
     if (profile && profile.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Academic record repository ---------------------------------------------------
+
+/**
+ * Storage contract for academic records. `findByStudentYearTerm` enforces one record per
+ * (student, academic year, term); `listByStudent` feeds transcripts and the analytics scope.
+ */
+export interface AcademicRecordRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AcademicRecord | null>;
+  findByStudentYearTerm(
+    tenantId: TenantId,
+    studentId: Uuid,
+    academicYear: string,
+    term: string,
+  ): Promise<AcademicRecord | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<AcademicRecord[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AcademicRecord[]>;
+  listByTenant(tenantId: TenantId): Promise<AcademicRecord[]>;
+  save(record: AcademicRecord): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AcademicRecordRepository} — the default for tests and bootstrap. */
+export class InMemoryAcademicRecordRepository implements AcademicRecordRepository {
+  private readonly byId = new Map<string, AcademicRecord>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AcademicRecord | null> {
+    const record = this.byId.get(id);
+    return record && record.tenantId === tenantId ? record : null;
+  }
+
+  async findByStudentYearTerm(
+    tenantId: TenantId,
+    studentId: Uuid,
+    academicYear: string,
+    term: string,
+  ): Promise<AcademicRecord | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId &&
+          r.studentId === studentId &&
+          r.academicYear === academicYear &&
+          r.term === term,
+      ) ?? null
+    );
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<AcademicRecord[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AcademicRecord[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AcademicRecord[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(record: AcademicRecord): Promise<void> {
+    this.byId.set(record.id, record);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const record = this.byId.get(id);
+    if (record && record.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

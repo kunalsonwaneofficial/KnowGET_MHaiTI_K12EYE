@@ -18,6 +18,7 @@ export * from "./assessment";
 export * from "./question-bank";
 export * from "./evaluation";
 export * from "./competency-profile";
+export * from "./academic-record";
 // events + ports
 export * from "./assessment-evaluation-events";
 export * from "./ports";
@@ -28,3 +29,6 @@ export * from "./assessment-service";
 export * from "./question-bank-service";
 export * from "./evaluation-service";
 export * from "./competency-profile-service";
+export * from "./academic-record-service";
+export * from "./reporting-service";
+export * from "./assessment-analytics-service";
