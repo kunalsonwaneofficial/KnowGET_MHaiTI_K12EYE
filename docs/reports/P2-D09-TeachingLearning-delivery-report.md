@@ -2,13 +2,13 @@
 
 **Teaching, Learning & Instruction Intelligence Platform (TLIIP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D09 — Teaching, Learning & Instruction Intelligence Platform                                                                                                                              |
-| **Status**     | 🟡 Awaiting CI — PR open. Gates green in-sandbox (full monorepo typecheck 97/97, build 52/52, `@knowget/teaching-learning` 32 tests, `apps/api` 186 tests); RLS verified on live PostgreSQL. |
-| **Depends on** | P2-D08 (Attendance & Presence, ADR-0027), P2-D07 (Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)            |
-| **Date**       | 1 October 2026                                                                                                                                                                               |
-| **Next**       | P2-D10 — Assessment, Evaluation & Competency Intelligence Platform (AECIP)                                                                                                                   |
+|                |                                                                                                                                                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D09 — Teaching, Learning & Instruction Intelligence Platform                                                                                                                                                        |
+| **Status**     | ✅ Complete — CI green; merged to main (`f1ef77c`). Gates green in-sandbox (full monorepo typecheck 97/97, build 52/52, `@knowget/teaching-learning` 32 tests, `apps/api` 186 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D08 (Attendance & Presence, ADR-0027), P2-D07 (Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                      |
+| **Date**       | 1 October 2026                                                                                                                                                                                                         |
+| **Next**       | P2-D10 — Assessment, Evaluation & Competency Intelligence Platform (AECIP)                                                                                                                                             |
 
 ---
 
