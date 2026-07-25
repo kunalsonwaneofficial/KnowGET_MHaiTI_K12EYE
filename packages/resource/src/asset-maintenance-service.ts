@@ -11,7 +11,11 @@ import {
 } from "./asset-maintenance";
 import { AssetMaintenanceNotFoundError, AssetNotFoundError } from "./errors";
 import type { AssetMaintenanceRepository, AssetRepository } from "./ports";
-import { maintenanceCompleted, maintenanceScheduled } from "./resource-events";
+import {
+  maintenanceCancelled,
+  maintenanceCompleted,
+  maintenanceScheduled,
+} from "./resource-events";
 
 /** The service schedule input — the organization is derived from the asset, not supplied. */
 export type ScheduleMaintenanceInput = Omit<ScheduleMaintenanceParams, "organizationId">;
@@ -72,7 +76,10 @@ export class AssetMaintenanceService {
   }
 
   async cancel(tenantId: TenantId, id: Uuid, notes?: string | null): Promise<AssetMaintenance> {
-    return this.mutate(tenantId, id, (m) => cancelMaintenance(m, notes));
+    const updated = cancelMaintenance(await this.require(tenantId, id), notes);
+    await this.repository.save(updated);
+    await this.emit(maintenanceCancelled(updated));
+    return updated;
   }
 
   async getById(tenantId: TenantId, id: Uuid): Promise<AssetMaintenance> {

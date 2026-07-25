@@ -47,6 +47,18 @@ describe("AssetMaintenanceService", () => {
     ]);
   });
 
+  it("emits a cancelled event when a scheduled maintenance is cancelled", async () => {
+    const { svc, events, assetId } = await harness();
+    const m = await svc.schedule({ tenantId: TENANT, assetId, description: "Annual service" });
+    const cancelled = await svc.cancel(TENANT, m.id, "no longer needed");
+    expect(cancelled.status).toBe("cancelled");
+    expect(cancelled.notes).toBe("no longer needed");
+    expect(events.map((e) => e.type)).toEqual([
+      "resource.maintenance.scheduled",
+      "resource.maintenance.cancelled",
+    ]);
+  });
+
   it("rejects scheduling against an unknown asset", async () => {
     const { svc } = await harness();
     await expect(

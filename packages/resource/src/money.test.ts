@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { CurrencyMismatchError, InvalidCurrencyError, InvalidMoneyError } from "./errors";
+import {
+  CurrencyMismatchError,
+  InvalidCurrencyError,
+  InvalidMoneyError,
+  InvalidQuantityError,
+} from "./errors";
 import {
   addMoney,
   compareMoney,
@@ -27,6 +32,14 @@ describe("money", () => {
     expect(sumMoney([money(100, "INR"), money(200, "INR")], "INR").amountMinor).toBe(300);
     expect(sumMoney([], "INR").amountMinor).toBe(0);
     expect(() => addMoney(money(1, "INR"), money(1, "USD"))).toThrow(CurrencyMismatchError);
+  });
+
+  it("rejects a non-integer multiplier quantity (no fractional minor units)", () => {
+    // A fractional quantity that happens to yield an integer product must still be rejected as a
+    // bad quantity — not silently accepted, and not mislabelled as a bad amount.
+    expect(() => multiplyMoney(money(2, "INR"), 0.5)).toThrow(InvalidQuantityError);
+    expect(() => multiplyMoney(money(3, "INR"), 1.5)).toThrow(InvalidQuantityError);
+    expect(multiplyMoney(money(1500, "INR"), 0).amountMinor).toBe(0);
   });
 
   it("prorates half-away-from-zero and compares", () => {

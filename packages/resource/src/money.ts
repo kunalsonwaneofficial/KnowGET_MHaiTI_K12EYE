@@ -1,4 +1,9 @@
-import { CurrencyMismatchError, InvalidCurrencyError, InvalidMoneyError } from "./errors";
+import {
+  CurrencyMismatchError,
+  InvalidCurrencyError,
+  InvalidMoneyError,
+  InvalidQuantityError,
+} from "./errors";
 
 /**
  * A money amount — **integer minor units** (paise, cents, …) plus an ISO 4217 currency code. As in the
@@ -54,6 +59,9 @@ export function subtractMoney(a: Money, b: Money): Money {
 
 /** Multiply an amount by an integer quantity — exact (no rounding). */
 export function multiplyMoney(a: Money, quantity: number): Money {
+  if (!Number.isInteger(quantity)) {
+    throw new InvalidQuantityError(quantity);
+  }
   return money(a.amountMinor * quantity, a.currency);
 }
 

@@ -251,6 +251,7 @@ export const assetDisposed = (asset: Asset): AssetDisposedEvent =>
 // --- Asset maintenance -----------------------------------------------------------
 export const MAINTENANCE_SCHEDULED = "resource.maintenance.scheduled";
 export const MAINTENANCE_COMPLETED = "resource.maintenance.completed";
+export const MAINTENANCE_CANCELLED = "resource.maintenance.cancelled";
 
 export interface MaintenanceEventPayload {
   readonly maintenanceId: Uuid;
@@ -265,6 +266,10 @@ export type MaintenanceScheduledEvent = DomainEvent<
 >;
 export type MaintenanceCompletedEvent = DomainEvent<
   typeof MAINTENANCE_COMPLETED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceCancelledEvent = DomainEvent<
+  typeof MAINTENANCE_CANCELLED,
   MaintenanceEventPayload
 >;
 
@@ -282,6 +287,11 @@ export const maintenanceScheduled = (maintenance: AssetMaintenance): Maintenance
 
 export const maintenanceCompleted = (maintenance: AssetMaintenance): MaintenanceCompletedEvent =>
   createEvent(MAINTENANCE_COMPLETED, maintenancePayload(maintenance), {
+    tenantId: maintenance.tenantId,
+  });
+
+export const maintenanceCancelled = (maintenance: AssetMaintenance): MaintenanceCancelledEvent =>
+  createEvent(MAINTENANCE_CANCELLED, maintenancePayload(maintenance), {
     tenantId: maintenance.tenantId,
   });
 
