@@ -3,6 +3,64 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D06 · Program: Academic Excellence Platform · Academic Structure & Curriculum Platform
+
+The first contract of a new program — **Academic Excellence Platform** — on the certified
+`v0.2.0` baseline and the frozen Phase-1 core, alongside the completed Student Lifecycle
+program. The authoritative source for an institution's academic organization — what is
+taught, when, to whom, and under which framework — delivered as one
+`@knowget/academic-structure` package (ADR-0025). Structure, not activity: timetables,
+attendance, teaching, homework, examinations, assessment scoring and report cards are
+explicit non-goals that consume this platform rather than living in it.
+
+### Added
+
+- **Academic Structure & Curriculum Platform (ADR-0025):** eight aggregates in one
+  `@knowget/academic-structure` package — **Academic Calendar** (one per organization and
+  academic year: terms/semesters/trimesters, holidays, examination periods, special events
+  and working days across a draft → published → archived lifecycle), **Academic Program**
+  (Pre-Primary…Diploma/vocational/custom stage groupings of grades), **Curriculum
+  Framework** (board-affiliated, version-controlled via a counter plus an append-only
+  revision log, multiple coexisting per institution — CBSE, ICSE, IB, Cambridge, state
+  boards, vocational, custom — an archived framework immutable), **Grade** (hierarchy
+  level, validated promotion target and rule, age guidelines), **Class** (the running of a
+  grade for one academic year with an optional validated curriculum assignment),
+  **Section** (a teachable division of a class with a capacity and a planned → active →
+  closed lifecycle), **Subject** (mandatory/elective catalog entry with credits, elective
+  group, cross-disciplinary flag and validated prerequisite subjects, self-reference
+  rejected, version-counted) and **Learning Outcome** (a Bloom's-aligned statement attached
+  to a subject, mapped to competencies and aligned to a curriculum framework and assessment
+  methods, versioned). Each is a pure aggregate behind a repository port, a Prisma/RLS
+  adapter at the composition root, an application service on the event bus, and a
+  permission-gated, tenant-scoped REST controller; the academic hierarchy derives its
+  organization from the validated parent (grade → program, class → grade, section → class,
+  outcome → subject) through injected directory ports, so the two can never disagree.
+- **A single `academic:*` scope:** the whole REST surface is gated by one `academic:read` /
+  `academic:write` pair — academic structure is organizational, not personal or sensitive,
+  so per-area scopes (as in Learner Wellbeing) would add cost without benefit.
+- **Persistence:** eight `FORCE ROW LEVEL SECURITY` tenant-isolated tables
+  (`academic_calendar`, `academic_program`, `curriculum_framework`, `grade`,
+  `academic_class`, `section`, `subject`, `learning_outcome`) with the standard
+  `tenant_isolation` policy (fail-closed), soft-delete + audit columns, a DB unique index
+  for every uniqueness rule, and scalar-list columns non-null with an empty-array default
+  (the P2-D05 audit lesson carried forward from the outset) — isolation, fail-closed reads
+  and WITH CHECK cross-tenant rejection verified on live PostgreSQL for all eight tables.
+- **Events:** ten `academic.*` domain events — `academic.year.created`,
+  `academic.calendar.published`, `academic.curriculum.created`,
+  `academic.curriculum.revised`, `academic.grade.created`, `academic.class.created`,
+  `academic.section.created`, `academic.subject.registered`, `academic.subject.updated`,
+  `academic.learning_outcome.defined` — published from the owning service transitions
+  (academic programs intentionally emit none, per the contract).
+- **Docs:** ADR-0025, the P2-D06 delivery report, and platform-state / register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent against the P2-D05 reference; one
+  low finding (a spurious `academic.subject.updated` event on an idempotent prerequisite
+  no-op) was fixed in-milestone — the service now skips the save and event when a transition
+  is a genuine no-op — with a regression test added. All eight service tokens are exported
+  for downstream academic domains. No new technical debt.
+
 ## [Unreleased] — P2-D05 · Program: Student Lifecycle · Learner Wellbeing, Safety & Success Platform
 
 The third contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline and

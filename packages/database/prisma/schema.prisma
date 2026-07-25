@@ -1032,3 +1032,221 @@ model InterventionPlan {
   @@index([tenantId, organizationId])
   @@map("intervention_plan")
 }
+
+/// Academic calendar (P2-D06) — an organization's official schedule for one academic
+/// year: terms/semesters, holidays, examination periods, special events and working days,
+/// across a draft → published → archived lifecycle. One per (organization, academic year).
+/// Tenant-owned: FORCE RLS.
+model AcademicCalendar {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  academicYear       String    @map("academic_year")
+  startDate          String    @map("start_date")
+  endDate            String    @map("end_date")
+  status             String    @default("draft")
+  terms              Json      @default("[]")
+  holidays           Json      @default("[]")
+  examinationPeriods Json      @default("[]") @map("examination_periods")
+  specialEvents      Json      @default("[]") @map("special_events")
+  workingDays        String[]  @map("working_days")
+  publishedAt        DateTime? @map("published_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, academicYear])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("academic_calendar")
+}
+
+/// Academic program (P2-D06) — an educational program (Pre-Primary…Diploma) offered by an
+/// organization, grouping the grades taught under it. One per (organization, code).
+/// Tenant-owned: FORCE RLS.
+model AcademicProgram {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  name           String
+  code           String
+  stage          String
+  description    String?
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("academic_program")
+}
+
+/// Curriculum framework (P2-D06) — a board-affiliated, version-controlled curriculum
+/// definition (learning philosophy, competency model, assessment philosophy, subject
+/// framework) with an append-only revision log. Multiple frameworks coexist per
+/// organization. One per (organization, code). Tenant-owned: FORCE RLS.
+model CurriculumFramework {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  name                 String
+  code                 String
+  board                String
+  version              Int       @default(1)
+  status               String    @default("draft")
+  learningPhilosophy   String?   @map("learning_philosophy")
+  competencyModel      String?   @map("competency_model")
+  assessmentPhilosophy String?   @map("assessment_philosophy")
+  subjectFramework     String[]  @map("subject_framework")
+  revisions            Json      @default("[]")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("curriculum_framework")
+}
+
+/// Grade (P2-D06) — a grade level within a program, with a hierarchy level, an optional
+/// promotion target and rule, and age guidelines. One per (program, code). Tenant-owned:
+/// FORCE RLS.
+model Grade {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  programId      String    @map("program_id") @db.Uuid
+  name           String
+  code           String
+  level          Int
+  nextGradeId    String?   @map("next_grade_id") @db.Uuid
+  promotionRule  String?   @map("promotion_rule")
+  minAge         Int?      @map("min_age")
+  maxAge         Int?      @map("max_age")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, programId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, programId])
+  @@map("grade")
+}
+
+/// Class (P2-D06) — the running of a grade for one academic year, optionally assigned a
+/// curriculum framework. Multiple classes per grade/year, unique by name. Tenant-owned:
+/// FORCE RLS.
+model AcademicClass {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  gradeId               String    @map("grade_id") @db.Uuid
+  academicYear          String    @map("academic_year")
+  name                  String
+  curriculumFrameworkId String?   @map("curriculum_framework_id") @db.Uuid
+  status                String    @default("active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+  updatedBy             String?   @map("updated_by") @db.Uuid
+  deletedAt             DateTime? @map("deleted_at")
+
+  @@unique([tenantId, gradeId, academicYear, name])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, gradeId])
+  @@map("academic_class")
+}
+
+/// Section (P2-D06) — a teachable division of a class, with a seating capacity and a
+/// planned → active → closed lifecycle. One per (class, name). Tenant-owned: FORCE RLS.
+model Section {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  classId        String    @map("class_id") @db.Uuid
+  name           String
+  capacity       Int
+  status         String    @default("planned")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, classId, name])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, classId])
+  @@map("section")
+}
+
+/// Subject (P2-D06) — a catalog entry (mandatory/elective, optionally cross-disciplinary)
+/// with credits, an elective group, prerequisite subjects and a version counter. One per
+/// (organization, code). Tenant-owned: FORCE RLS.
+model Subject {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  name              String
+  code              String
+  kind              String
+  credits           Float?
+  electiveGroup     String?   @map("elective_group")
+  crossDisciplinary Boolean   @default(false) @map("cross_disciplinary")
+  prerequisites     String[]
+  version           Int       @default(1)
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("subject")
+}
+
+/// Learning outcome (P2-D06) — a Bloom's-aligned outcome statement attached to a subject,
+/// mapped to competencies and aligned to a curriculum framework and assessment methods,
+/// with a version counter. One per (subject, code). Tenant-owned: FORCE RLS.
+model LearningOutcome {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  subjectId             String    @map("subject_id") @db.Uuid
+  code                  String
+  statement             String
+  bloomLevel            String?   @map("bloom_level")
+  competencies          String[]
+  curriculumFrameworkId String?   @map("curriculum_framework_id") @db.Uuid
+  assessmentAlignment   String[]  @map("assessment_alignment")
+  version               Int       @default(1)
+  status                String    @default("active")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+  updatedBy             String?   @map("updated_by") @db.Uuid
+  deletedAt             DateTime? @map("deleted_at")
+
+  @@unique([tenantId, subjectId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("learning_outcome")
+}

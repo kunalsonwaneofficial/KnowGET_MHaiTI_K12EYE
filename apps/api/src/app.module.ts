@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { AcademicStructureModule } from "./domains/academic-structure/academic-structure.module";
 import { GovernanceModule } from "./domains/governance/governance.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
 import { IdentityModule } from "./domains/identity/identity.module";
@@ -45,8 +46,11 @@ const persistedServices =
  * D04 adds the Family & Guardian Intelligence Platform; D05 adds the Learner
  * Wellbeing, Safety & Success Platform (wellbeing profile, health, behaviour,
  * counselling, safeguarding, support and intervention plans) under fine-grained
- * per-area permission scopes. Live security hardening wires the persisted
- * identity/principal→role stores behind `SECURITY_STORE=persisted`.
+ * per-area permission scopes; D06 opens the Academic Excellence Platform program
+ * with the Academic Structure & Curriculum Platform (calendars, programs,
+ * curricula, grades, classes, sections, subjects and learning outcomes). Live
+ * security hardening wires the persisted identity/principal→role stores behind
+ * `SECURITY_STORE=persisted`.
  */
 @Module({
   imports: [
@@ -65,6 +69,7 @@ const persistedServices =
     StudentLifecycleModule,
     FamilyGuardianModule,
     LearnerWellbeingModule,
+    AcademicStructureModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

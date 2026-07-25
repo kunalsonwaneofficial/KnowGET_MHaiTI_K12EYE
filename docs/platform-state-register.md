@@ -55,6 +55,13 @@ governance platform), following the domain architecture pattern (ADR-0010):
 | P2-D04 Family & Guardian Intelligence Platform      | ✅ Complete | Family & guardian domain — seven aggregates (family, guardian, student–guardian relationship, immutable consent ledger, prioritized emergency contact, communication profile, intelligence profile) as one `@knowget/family-guardian` package; families independent of Student; guardians ↔ students many-to-many with custody validation; 7 FORCE-RLS tables; 8 domain events; 7 permission-gated REST modules. Gates green; RLS verified on live PostgreSQL. ADR-0023. CI green; **live on `main`**.                                                                                                                                                                                                                                                       |
 | P2-D05 Learner Wellbeing, Safety & Success Platform | ✅ Complete | Wellbeing / safety domain — seven aggregates (wellbeing profile, health record, behaviour record, counselling case, safeguarding case, learner support plan, intervention plan) as one `@knowget/learner-wellbeing` package; every record derives its organization from a validated Student; **fine-grained per-area authorization** (independent `wellbeing`/`health`/`behaviour`/`counselling`/`safeguarding`/`support`/`intervention` scopes); counselling & safeguarding many-per-student with append-only histories and terminal states; traceable safeguarding escalation; 7 FORCE-RLS tables; 11 domain events (content-free); 7 permission-gated REST modules. Gates green; RLS verified on live PostgreSQL. ADR-0024. CI green; **live on `main`**. |
 
+Program: Academic Excellence Platform opens on the same certified `v0.2.0` baseline,
+following the domain architecture pattern (ADR-0010):
+
+| Contract                                        | Status        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-D06 Academic Structure & Curriculum Platform | ✅ Engineered | Academic-structure domain — eight aggregates (academic calendar, program, curriculum framework, grade, class, section, subject, learning outcome) as one `@knowget/academic-structure` package; organization-scoped with the hierarchy deriving org from its parent (grade→program, class→grade, section→class, outcome→subject); multiple curricula coexist per org; version-controlled curricula/subjects/outcomes; 8 FORCE-RLS tables; 10 domain events; 8 REST modules under one `academic:read`/`:write` scope. Gates green; RLS verified on live PostgreSQL. ADR-0025. Branch pushed; **PR open, awaiting CI**. |
+
 ## Reusable capabilities available now
 
 | Package                        | Capability                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -104,6 +111,7 @@ governance platform), following the domain architecture pattern (ADR-0010):
 | `@knowget/student-lifecycle`   | Student Lifecycle Intelligence Platform — prospect / applicant / student (Person- + Membership-linked), enrollment lifecycle (enquiry → alumni), append-only educational journey and permanent timeline, and an AI-ready intelligence profile; tenant-scoped aggregates, directory ports, `student.*` events (P2-D03)                                                                                                                                                                   |
 | `@knowget/family-guardian`     | Family & Guardian Intelligence Platform — family (independent of Student), guardian (Person-linked, legal authority + verification), student↔guardian relationships (many-to-many, custody-validated), immutable versioned consent ledger (policy-linked), prioritized emergency contacts, and per-family communication + AI-ready intelligence profiles; tenant-scoped aggregates, directory ports, `family.*` events (P2-D04)                                                         |
 | `@knowget/learner-wellbeing`   | Learner Wellbeing, Safety & Success Platform — per-learner wellbeing profile, health record, behaviour record (development over punishment) and one-per-learner support & intervention plans, plus many-per-learner counselling and safeguarding cases (append-only histories, terminal states, traceable escalation); Student-derived organization + Person-validated staff via directory ports; fine-grained per-area permission scopes; `wellbeing.*` events (content-free) (P2-D05) |
+| `@knowget/academic-structure`  | Academic Structure & Curriculum Platform — academic calendars, programs, version-controlled curriculum frameworks (multi-curriculum), grades, classes, sections, subjects (mandatory/elective, prerequisites, credits) and Bloom's-aligned learning outcomes; organization-scoped with the hierarchy deriving org from its parent; Organization-validated directory port; `academic.*` events (P2-D06)                                                                                  |
 
 ## Data platform (P1-M03)
 
@@ -394,3 +402,40 @@ All seven service tokens are exported for **in-process cross-domain use**. Non-g
 prediction) are excluded by design; the wellbeing indicators, success metrics and
 early-warning triggers establish a structured, privacy-aware surface only, with prediction
 deferred to the Institutional Intelligence program.
+
+## Academic Structure & Curriculum Platform (P2-D06, Program: Academic Excellence Platform · ADR-0025)
+
+The authoritative source for an institution's academic organization — what is taught, when,
+to whom and under which framework — delivered as one `@knowget/academic-structure` package
+(a single bounded context, ADR-0025): eight aggregates — **Academic Calendar** (an
+organization's official schedule for one academic year: terms/semesters, holidays,
+examination periods, special events, working days, draft → published lifecycle),
+**Academic Program** (Pre-Primary…Diploma/vocational/custom), **Curriculum Framework** (a
+board-affiliated, **version-controlled** curriculum with learning philosophy, competency
+model, assessment philosophy and subject framework, and an append-only revision log —
+multiple curricula coexist per organization), **Grade** (a grade level within a program with
+hierarchy level, validated promotion target and rule, and age guidelines), **Class** (the
+running of a grade for an academic year with an optional curriculum assignment), **Section**
+(a teachable division of a class with capacity and a planned → active → closed lifecycle),
+**Subject** (a mandatory/elective catalog entry with credits, elective group,
+cross-disciplinary flag and prerequisites) and **Learning Outcome** (a Bloom's-aligned
+outcome statement mapped to competencies and aligned to a curriculum framework and
+assessment methods). Each aggregate is pure behind a repository port, with a Prisma/RLS
+adapter at the composition root, an application service on the platform event bus, and a
+permission-gated (`academic:read`/`:write`), tenant-scoped REST controller.
+
+Every record is owned by an **Organization** (P2-D01-M01): the top-level aggregates take it
+directly (validated through an injected directory port), and the hierarchical ones **derive**
+it from their parent — a grade from its program, a class from its grade, a section from its
+class, an outcome from its subject — so the academic ladder is validated at every level and
+the pure package depends on no other domain. Ten `academic.*` domain events (academic year
+created; calendar published; curriculum created/revised; grade/class/section created;
+subject registered/updated; learning outcome defined) publish onto the shared bus; academic
+programs intentionally emit none. Eight tables carry **FORCE RLS** tenant isolation, verified
+on live PostgreSQL; every uniqueness rule is a DB unique index and curricula/subjects/outcomes
+are version-controlled. All eight service tokens are exported for **in-process cross-domain
+use** — every subsequent academic domain (scheduling, teaching, attendance, assessment)
+consumes this platform rather than redefining academic structure. Non-goals (timetable
+generation, attendance, lesson planning, teaching, homework, examinations, assessment
+scoring, report cards) are excluded by design — this platform is structure, not activity.
+This is the first contract of the **Academic Excellence Platform** program.
