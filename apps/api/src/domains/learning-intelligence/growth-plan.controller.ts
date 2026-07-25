@@ -129,6 +129,7 @@ export class GrowthPlanController {
       dto.goalId as Uuid,
       dto.outcome,
       dto.note ?? null,
+      (dto.actor as Uuid | null | undefined) ?? null,
     );
   }
 

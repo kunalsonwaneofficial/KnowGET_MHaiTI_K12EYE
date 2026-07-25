@@ -90,8 +90,9 @@ export class GrowthPlanService {
     goalId: Uuid,
     outcome: "met" | "missed",
     note: string | null = null,
+    actor: Uuid | null = null,
   ): Promise<GrowthPlan> {
-    return this.mutate(tenantId, id, (p) => recordGoalOutcome(p, goalId, outcome, note));
+    return this.mutate(tenantId, id, (p) => recordGoalOutcome(p, goalId, outcome, note, actor));
   }
 
   async achieve(tenantId: TenantId, id: Uuid, actor: Uuid | null = null): Promise<GrowthPlan> {

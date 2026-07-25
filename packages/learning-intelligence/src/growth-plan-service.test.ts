@@ -70,6 +70,8 @@ describe("GrowthPlanService", () => {
 
     const afterOne = await service.recordGoalOutcome(TENANT, plan.id, firstGoal, "met");
     expect(afterOne.progressPercent).toBe(50); // 1 of 2 met
+    // the outcome is auditable in the append-only history
+    expect(afterOne.history.map((h) => h.action)).toContain("goal_met");
 
     const afterTwo = await service.recordGoalOutcome(TENANT, plan.id, secondGoal, "met");
     expect(afterTwo.progressPercent).toBe(100);

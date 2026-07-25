@@ -134,6 +134,7 @@ export const recordGoalOutcomeSchema = z.object({
   goalId: uuid,
   outcome: goalOutcome,
   note: nullableText.optional(),
+  actor: uuid.nullable().optional(),
 });
 
 // --- Cohort insight --------------------------------------------------------------

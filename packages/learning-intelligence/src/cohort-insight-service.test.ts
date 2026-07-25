@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TenantId, Uuid } from "@knowget/types";
 import { CohortInsightService } from "./cohort-insight-service";
-import { CohortInsightStateError } from "./errors";
+import { CohortInsightStateError, DuplicateCohortInsightError } from "./errors";
 import { LearnerInsightProfileService } from "./learner-insight-profile-service";
 import { captureLearningSignal } from "./learning-signal";
 import {
@@ -81,6 +81,19 @@ describe("CohortInsightService", () => {
     expect(refreshed.bandDistribution.at_risk).toBe(1);
     expect(refreshed.learnersNeedingAttention).toBe(1); // only the at_risk learner
     expect(refreshed.version).toBe(2);
+  });
+
+  it("enforces one cohort insight per (scope type, scope id)", async () => {
+    const create = () =>
+      service.create({
+        tenantId: TENANT,
+        organizationId: ORG,
+        scopeType: "section",
+        scopeId: SECTION,
+        label: "Section A",
+      });
+    await create();
+    await expect(create()).rejects.toBeInstanceOf(DuplicateCohortInsightError);
   });
 
   it("scopes the rollup to explicit members and freezes members after publish", async () => {

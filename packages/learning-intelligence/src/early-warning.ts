@@ -57,6 +57,10 @@ const requireText = (value: string, field: string): string => {
   return trimmed;
 };
 
+/** The observed score is a 0–100 dimension-health reading; clamp it (finite → 0 when not). */
+const clampScore = (value: number): number =>
+  Number.isFinite(value) ? Math.min(100, Math.max(0, Math.round(value * 100) / 100)) : 0;
+
 const touch = (warning: EarlyWarning, patch: Partial<EarlyWarning>): EarlyWarning => ({
   ...warning,
   ...patch,
@@ -82,7 +86,7 @@ export function raiseEarlyWarning(params: RaiseEarlyWarningParams): EarlyWarning
     dimension: params.dimension,
     ruleId: requireText(params.ruleId, "rule id"),
     severity: params.severity,
-    observedScore: params.observedScore,
+    observedScore: clampScore(params.observedScore),
     rationale: requireText(params.rationale, "rationale"),
     evidence: params.evidence ? [...params.evidence] : [],
     status: "raised",

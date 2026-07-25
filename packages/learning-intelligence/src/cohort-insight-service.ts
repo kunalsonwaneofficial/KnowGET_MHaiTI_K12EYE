@@ -9,7 +9,11 @@ import {
   setCohortMembers,
 } from "./cohort-insight";
 import { summarizeCohort } from "./learning-intelligence";
-import { CohortInsightNotFoundError, OrganizationNotFoundForInsightError } from "./errors";
+import {
+  CohortInsightNotFoundError,
+  DuplicateCohortInsightError,
+  OrganizationNotFoundForInsightError,
+} from "./errors";
 import type {
   CohortInsightRepository,
   LearnerInsightProfileRepository,
@@ -46,6 +50,9 @@ export class CohortInsightService {
   async create(input: CreateCohortInsightInput): Promise<CohortInsight> {
     if (!(await this.organizations.exists(input.tenantId, input.organizationId))) {
       throw new OrganizationNotFoundForInsightError(input.organizationId);
+    }
+    if (await this.repository.findByScope(input.tenantId, input.scopeType, input.scopeId)) {
+      throw new DuplicateCohortInsightError(input.scopeType, input.scopeId);
     }
     const insight = createCohortInsight(input);
     await this.repository.save(insight);

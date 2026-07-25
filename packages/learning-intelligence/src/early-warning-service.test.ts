@@ -94,4 +94,18 @@ describe("EarlyWarningService", () => {
       EarlyWarningStateError,
     );
   });
+
+  it("clamps an out-of-range manually-supplied observed score to 0–100", async () => {
+    const warning = await service.raise({
+      tenantId: TENANT,
+      organizationId: ORG,
+      studentId: STUDENT,
+      dimension: "wellbeing",
+      ruleId: "manual",
+      severity: "critical",
+      observedScore: 150,
+      rationale: "manual flag",
+    });
+    expect(warning.observedScore).toBe(100);
+  });
 });

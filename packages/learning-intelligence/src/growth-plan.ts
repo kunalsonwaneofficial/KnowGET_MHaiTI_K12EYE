@@ -166,12 +166,17 @@ export function activateGrowthPlan(plan: GrowthPlan, actor: Uuid | null = null):
   });
 }
 
-/** Record a goal's outcome (met or missed) and recompute progress. Only while active. */
+/**
+ * Record a goal's outcome (met or missed) and recompute progress. Only while active. Every outcome
+ * is appended to the append-only history (with the actor, if known), so re-scoring a goal is always
+ * auditable — who changed which goal to what, and when.
+ */
 export function recordGoalOutcome(
   plan: GrowthPlan,
   goalId: Uuid,
   outcome: "met" | "missed",
   note: string | null = null,
+  actor: Uuid | null = null,
 ): GrowthPlan {
   if (plan.status !== "active") {
     throw new GrowthPlanStateError(plan.id, "active", plan.status);
@@ -182,7 +187,11 @@ export function recordGoalOutcome(
   const goals = plan.goals.map((g) =>
     g.id === goalId ? { ...g, status: outcome, note: note?.trim() || g.note } : g,
   );
-  return touch(plan, { goals, progressPercent: progressOf(goals) });
+  return touch(plan, {
+    goals,
+    progressPercent: progressOf(goals),
+    history: [...plan.history, entry(`goal_${outcome}`, actor, note?.trim() || goalId)],
+  });
 }
 
 /** Mark the plan achieved (active → achieved). Terminal. */

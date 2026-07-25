@@ -57,18 +57,6 @@ export class LearnerInsightProfileNotFoundError extends PlatformError {
   }
 }
 
-/** A student already has a learner insight profile. */
-export class DuplicateLearnerInsightProfileError extends PlatformError {
-  constructor(studentId: string) {
-    super(`Student "${studentId}" already has a learner insight profile`, {
-      code: "CONFLICT",
-      httpStatus: 409,
-      isOperational: true,
-      details: { studentId },
-    });
-  }
-}
-
 // --- Learning signal errors ------------------------------------------------------
 
 /** The requested learning signal does not exist in the current tenant. */
@@ -233,6 +221,18 @@ export class CohortInsightNotFoundError extends PlatformError {
       httpStatus: 404,
       isOperational: true,
       details: { id },
+    });
+  }
+}
+
+/** A cohort insight already exists for this (scope type, scope id). */
+export class DuplicateCohortInsightError extends PlatformError {
+  constructor(scopeType: string, scopeId: string) {
+    super(`A cohort insight already exists for ${scopeType} "${scopeId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { scopeType, scopeId },
     });
   }
 }

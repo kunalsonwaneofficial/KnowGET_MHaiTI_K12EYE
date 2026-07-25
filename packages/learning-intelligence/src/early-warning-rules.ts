@@ -48,7 +48,9 @@ export const DEFAULT_EARLY_WARNING_RULES: readonly EarlyWarningRule[] = [
   { id: "attendance-at-risk", dimension: "attendance", maxScore: 49.99, severity: "at_risk" },
   { id: "attendance-critical", dimension: "attendance", maxScore: 24.99, severity: "critical" },
   { id: "engagement-at-risk", dimension: "engagement", maxScore: 49.99, severity: "at_risk" },
+  { id: "engagement-critical", dimension: "engagement", maxScore: 24.99, severity: "critical" },
   { id: "wellbeing-at-risk", dimension: "wellbeing", maxScore: 49.99, severity: "at_risk" },
   { id: "wellbeing-critical", dimension: "wellbeing", maxScore: 24.99, severity: "critical" },
   { id: "progression-at-risk", dimension: "progression", maxScore: 49.99, severity: "at_risk" },
+  { id: "progression-critical", dimension: "progression", maxScore: 24.99, severity: "critical" },
 ];
