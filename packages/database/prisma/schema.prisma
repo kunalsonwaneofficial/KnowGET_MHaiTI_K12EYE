@@ -2406,3 +2406,215 @@ model WorkforceProfile {
   @@index([tenantId, organizationId])
   @@map("workforce_profile")
 }
+
+/// CompetencyFramework (P2-D13) — the institution's professional-practice rubric: a named set of
+/// competency standards faculty are observed and developed against; draft → active → archived,
+/// competencies frozen once active. Tenant-owned: FORCE RLS.
+model CompetencyFramework {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  description    String?
+  competencies   Json      @default("[]")
+  status         String    @default("draft")
+  version        Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("competency_framework")
+}
+
+/// Observation (P2-D13) — a classroom/practice observation of a staff member against a framework:
+/// per-competency 1–4 ratings with evidence, an overall rating, and strengths/growth notes;
+/// scheduled → conducted → shared → acknowledged. Tenant-owned: FORCE RLS.
+model Observation {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  frameworkId     String    @map("framework_id") @db.Uuid
+  employeeId      String    @map("employee_id") @db.Uuid
+  observerId      String    @map("observer_id") @db.Uuid
+  observationType String    @map("observation_type")
+  observedOn      String    @map("observed_on")
+  context         String?
+  ratings         Json      @default("[]")
+  overallRating   Float?    @map("overall_rating")
+  strengths       String?
+  growthAreas     String?   @map("growth_areas")
+  status          String    @default("scheduled")
+  sharedAt        String?   @map("shared_at")
+  acknowledgedAt  String?   @map("acknowledged_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, observerId])
+  @@map("observation")
+}
+
+/// CoachingEngagement (P2-D13) — a coach↔coachee development cycle with a focus; proposed → active →
+/// completed | cancelled; at most one active per coachee. Tenant-owned: FORCE RLS.
+model CoachingEngagement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  coachId        String    @map("coach_id") @db.Uuid
+  coacheeId      String    @map("coachee_id") @db.Uuid
+  focus          String
+  frameworkId    String?   @map("framework_id") @db.Uuid
+  startDate      String    @map("start_date")
+  endDate        String?   @map("end_date")
+  status         String    @default("proposed")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, coacheeId])
+  @@index([tenantId, coachId])
+  @@map("coaching_engagement")
+}
+
+/// CoachingSession (P2-D13) — a logged session within a coaching engagement (date, focus, notes,
+/// next steps). Tenant-owned: FORCE RLS.
+model CoachingSession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  engagementId   String    @map("engagement_id") @db.Uuid
+  sessionDate    String    @map("session_date")
+  focus          String?
+  notes          String?
+  nextSteps      String?   @map("next_steps")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, engagementId])
+  @@map("coaching_session")
+}
+
+/// DevelopmentRequirement (P2-D13) — the CPD mandate: required PD hours per category per period for a
+/// staff member (the "required" side of the development ledger). Tenant-owned: FORCE RLS.
+model DevelopmentRequirement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  category       String
+  period         String
+  requiredHours  Float     @map("required_hours")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId, category, period])
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("development_requirement")
+}
+
+/// ProfessionalLearningActivity (P2-D13) — a piece of CPD a staff member undertakes with a category
+/// and hours; planned → enrolled → completed | cancelled (only completed earns hours). Tenant-owned:
+/// FORCE RLS.
+model ProfessionalLearningActivity {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  title          String
+  category       String
+  provider       String?
+  hours          Float
+  period         String
+  startDate      String    @map("start_date")
+  completedOn    String?   @map("completed_on")
+  status         String    @default("planned")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("professional_learning_activity")
+}
+
+/// DevelopmentGoal (P2-D13) — a professional-growth objective for a staff member (optionally
+/// targeting a competency / arising from a coaching engagement); draft → active → achieved |
+/// abandoned, recording a reasoned outcome. Tenant-owned: FORCE RLS.
+model DevelopmentGoal {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  employeeId          String    @map("employee_id") @db.Uuid
+  description         String
+  targetCompetencyKey String?   @map("target_competency_key")
+  frameworkId         String?   @map("framework_id") @db.Uuid
+  engagementId        String?   @map("engagement_id") @db.Uuid
+  targetDate          String?   @map("target_date")
+  status              String    @default("draft")
+  outcome             String?
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@map("development_goal")
+}
+
+/// FacultyProfile (P2-D13) — the descriptive, AI-ready indicator snapshot per staff member
+/// (observed-practice standing, goal progress, PD compliance, growth band), refreshed by the pure
+/// engine. Never a prediction (P2-D28). One per employee. Tenant-owned: FORCE RLS.
+model FacultyProfile {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  employeeId                String    @map("employee_id") @db.Uuid
+  observationsConsidered    Int       @default(0) @map("observations_considered")
+  averageObservationRating  Float?    @map("average_observation_rating")
+  competenciesObserved      Int       @default(0) @map("competencies_observed")
+  goalsTotal                Int       @default(0) @map("goals_total")
+  goalsAchieved             Int       @default(0) @map("goals_achieved")
+  goalProgressPct           Float     @default(0) @map("goal_progress_pct")
+  developmentComplianceRate Float     @default(0) @map("development_compliance_rate")
+  growthBand                String    @default("emerging") @map("growth_band")
+  status                    String    @default("insufficient_data")
+  version                   Int       @default(1)
+  lastRefreshedAt           String?   @map("last_refreshed_at")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdBy                 String?   @map("created_by") @db.Uuid
+  updatedBy                 String?   @map("updated_by") @db.Uuid
+  deletedAt                 DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("faculty_profile")
+}
