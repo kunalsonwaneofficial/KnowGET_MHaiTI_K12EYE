@@ -25,16 +25,6 @@ export interface StudentDirectory {
   exists(tenantId: TenantId, studentId: Uuid): Promise<boolean>;
 }
 
-/** Does this schedule slot exist in the tenant? (P2-D07) */
-export interface ScheduleSlotDirectory {
-  exists(tenantId: TenantId, scheduleSlotId: Uuid): Promise<boolean>;
-}
-
-/** Does this learning-evidence record exist in the tenant? (P2-D09) */
-export interface LearningEvidenceDirectory {
-  exists(tenantId: TenantId, learningEvidenceId: Uuid): Promise<boolean>;
-}
-
 // --- Assessment framework repository ---------------------------------------------
 
 /** Storage contract for assessment frameworks. */

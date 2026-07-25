@@ -2,8 +2,8 @@ import { PlatformError } from "@knowget/exceptions";
 
 // --- Cross-domain directory errors -----------------------------------------------
 // Every assessment record is owned by an Organization (P2-D01-M01) and references subjects
-// (P2-D06), students (P2-D03), schedule slots (P2-D07) and learning evidence (P2-D09) through
-// injected directory ports, so the pure package never depends on those domain packages.
+// (P2-D06) and students (P2-D03) through injected directory ports, so the pure package never
+// depends on those domain packages.
 
 /** The organization an assessment record belongs to does not exist in the tenant. */
 export class OrganizationNotFoundForAssessmentError extends PlatformError {
