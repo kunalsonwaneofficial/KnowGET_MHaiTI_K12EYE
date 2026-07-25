@@ -1,5 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Asset } from "./asset";
+import type { AssetMaintenance } from "./asset-maintenance";
 import type { InventoryItem } from "./inventory-item";
 import { type PurchaseOrder, purchaseOrderTotalMinor } from "./purchase-order";
 import { type PurchaseRequisition, requisitionTotalMinor } from "./purchase-requisition";
@@ -212,3 +214,72 @@ export const purchaseOrderClosed = (order: PurchaseOrder): PurchaseOrderClosedEv
 
 export const purchaseOrderCancelled = (order: PurchaseOrder): PurchaseOrderCancelledEvent =>
   createEvent(PURCHASE_ORDER_CANCELLED, purchaseOrderPayload(order), { tenantId: order.tenantId });
+
+// --- Asset -----------------------------------------------------------------------
+export const ASSET_REGISTERED = "resource.asset.registered";
+export const ASSET_RETIRED = "resource.asset.retired";
+export const ASSET_DISPOSED = "resource.asset.disposed";
+
+export interface AssetEventPayload {
+  readonly assetId: Uuid;
+  readonly organizationId: Uuid;
+  readonly assetTag: string;
+  readonly status: string;
+}
+
+export type AssetRegisteredEvent = DomainEvent<typeof ASSET_REGISTERED, AssetEventPayload>;
+export type AssetRetiredEvent = DomainEvent<typeof ASSET_RETIRED, AssetEventPayload>;
+export type AssetDisposedEvent = DomainEvent<typeof ASSET_DISPOSED, AssetEventPayload>;
+
+const assetPayload = (asset: Asset): AssetEventPayload => ({
+  assetId: asset.id,
+  organizationId: asset.organizationId,
+  assetTag: asset.assetTag,
+  status: asset.status,
+});
+
+export const assetRegistered = (asset: Asset): AssetRegisteredEvent =>
+  createEvent(ASSET_REGISTERED, assetPayload(asset), { tenantId: asset.tenantId });
+
+export const assetRetired = (asset: Asset): AssetRetiredEvent =>
+  createEvent(ASSET_RETIRED, assetPayload(asset), { tenantId: asset.tenantId });
+
+export const assetDisposed = (asset: Asset): AssetDisposedEvent =>
+  createEvent(ASSET_DISPOSED, assetPayload(asset), { tenantId: asset.tenantId });
+
+// --- Asset maintenance -----------------------------------------------------------
+export const MAINTENANCE_SCHEDULED = "resource.maintenance.scheduled";
+export const MAINTENANCE_COMPLETED = "resource.maintenance.completed";
+
+export interface MaintenanceEventPayload {
+  readonly maintenanceId: Uuid;
+  readonly organizationId: Uuid;
+  readonly assetId: Uuid;
+  readonly status: string;
+}
+
+export type MaintenanceScheduledEvent = DomainEvent<
+  typeof MAINTENANCE_SCHEDULED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceCompletedEvent = DomainEvent<
+  typeof MAINTENANCE_COMPLETED,
+  MaintenanceEventPayload
+>;
+
+const maintenancePayload = (maintenance: AssetMaintenance): MaintenanceEventPayload => ({
+  maintenanceId: maintenance.id,
+  organizationId: maintenance.organizationId,
+  assetId: maintenance.assetId,
+  status: maintenance.status,
+});
+
+export const maintenanceScheduled = (maintenance: AssetMaintenance): MaintenanceScheduledEvent =>
+  createEvent(MAINTENANCE_SCHEDULED, maintenancePayload(maintenance), {
+    tenantId: maintenance.tenantId,
+  });
+
+export const maintenanceCompleted = (maintenance: AssetMaintenance): MaintenanceCompletedEvent =>
+  createEvent(MAINTENANCE_COMPLETED, maintenancePayload(maintenance), {
+    tenantId: maintenance.tenantId,
+  });

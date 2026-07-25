@@ -1,4 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Asset } from "./asset";
+import type { AssetMaintenance } from "./asset-maintenance";
 import type { InventoryItem } from "./inventory-item";
 import type { PurchaseOrder } from "./purchase-order";
 import type { PurchaseRequisition } from "./purchase-requisition";
@@ -259,6 +261,99 @@ export class InMemoryPurchaseOrderRepository implements PurchaseOrderRepository 
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const order = this.byId.get(id);
     if (order && order.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for fixed assets. Tenant-scoped (explicit argument + RLS). */
+export interface AssetRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Asset | null>;
+  findByTag(tenantId: TenantId, assetTag: string): Promise<Asset | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Asset[]>;
+  listByCustodian(tenantId: TenantId, custodianId: Uuid): Promise<Asset[]>;
+  listByTenant(tenantId: TenantId): Promise<Asset[]>;
+  save(asset: Asset): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AssetRepository} — the default for tests and bootstrap. */
+export class InMemoryAssetRepository implements AssetRepository {
+  private readonly byId = new Map<string, Asset>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Asset | null> {
+    const asset = this.byId.get(id);
+    return asset && asset.tenantId === tenantId ? asset : null;
+  }
+
+  async findByTag(tenantId: TenantId, assetTag: string): Promise<Asset | null> {
+    return (
+      [...this.byId.values()].find((a) => a.tenantId === tenantId && a.assetTag === assetTag) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Asset[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByCustodian(tenantId: TenantId, custodianId: Uuid): Promise<Asset[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.custodianId === custodianId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Asset[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(asset: Asset): Promise<void> {
+    this.byId.set(asset.id, asset);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const asset = this.byId.get(id);
+    if (asset && asset.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for asset-maintenance records. Tenant-scoped (explicit argument + RLS). */
+export interface AssetMaintenanceRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AssetMaintenance | null>;
+  listByAsset(tenantId: TenantId, assetId: Uuid): Promise<AssetMaintenance[]>;
+  listByTenant(tenantId: TenantId): Promise<AssetMaintenance[]>;
+  save(maintenance: AssetMaintenance): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AssetMaintenanceRepository} — the default for tests and bootstrap. */
+export class InMemoryAssetMaintenanceRepository implements AssetMaintenanceRepository {
+  private readonly byId = new Map<string, AssetMaintenance>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AssetMaintenance | null> {
+    const maintenance = this.byId.get(id);
+    return maintenance && maintenance.tenantId === tenantId ? maintenance : null;
+  }
+
+  async listByAsset(tenantId: TenantId, assetId: Uuid): Promise<AssetMaintenance[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId && m.assetId === assetId);
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AssetMaintenance[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId);
+  }
+
+  async save(maintenance: AssetMaintenance): Promise<void> {
+    this.byId.set(maintenance.id, maintenance);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const maintenance = this.byId.get(id);
+    if (maintenance && maintenance.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

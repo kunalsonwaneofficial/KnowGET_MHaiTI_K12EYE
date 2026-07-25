@@ -536,3 +536,112 @@ export class SupplierNotActiveError extends PlatformError {
     });
   }
 }
+
+// --- Asset -----------------------------------------------------------------------
+
+/** The requested asset does not exist in the current tenant. */
+export class AssetNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Asset "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An asset must carry a non-empty tag. */
+export class EmptyAssetTagError extends PlatformError {
+  constructor() {
+    super("An asset must have a non-empty tag", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** An asset must carry a non-empty name. */
+export class EmptyAssetNameError extends PlatformError {
+  constructor() {
+    super("An asset must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The asset tag is already in use within the tenant. */
+export class DuplicateAssetTagError extends PlatformError {
+  constructor(assetTag: string) {
+    super(`Asset tag "${assetTag}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { assetTag },
+    });
+  }
+}
+
+/** An asset's valuation is invalid (salvage exceeds cost, or a non-positive useful life). */
+export class InvalidAssetValuationError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid asset valuation: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** The requested asset lifecycle transition is not permitted. */
+export class InvalidAssetTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition asset from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Asset maintenance -----------------------------------------------------------
+
+/** The requested asset-maintenance record does not exist in the current tenant. */
+export class AssetMaintenanceNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Asset maintenance record "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An asset-maintenance record must carry a non-empty description. */
+export class EmptyMaintenanceDescriptionError extends PlatformError {
+  constructor() {
+    super("An asset-maintenance record must have a non-empty description", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested asset-maintenance lifecycle transition is not permitted. */
+export class InvalidMaintenanceTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition asset maintenance from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
