@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@knowget/assessment-evaluation": "workspace:*",
+    "@knowget/learning-intelligence": "workspace:*",
     "@knowget/attendance-presence": "workspace:*",
     "@knowget/academic-scheduling": "workspace:*",
     "@knowget/academic-structure": "workspace:*",

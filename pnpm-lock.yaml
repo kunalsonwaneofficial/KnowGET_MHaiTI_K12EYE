@@ -162,6 +162,9 @@ importers:
       '@knowget/learner-wellbeing':
         specifier: workspace:*
         version: link:../../packages/learner-wellbeing
+      '@knowget/learning-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/learning-intelligence
       '@knowget/logging':
         specifier: workspace:*
         version: link:../../packages/logging
