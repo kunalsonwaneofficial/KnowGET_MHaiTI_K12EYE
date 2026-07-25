@@ -6,21 +6,7 @@ import type {
   PolicyEvaluation,
 } from "./evaluation";
 import { classifyStatus } from "./attendance-status";
-
-/** A closed date range `[fromDate, toDate]` in ISO `YYYY-MM-DD` form. */
-interface DateRange {
-  readonly fromDate: string;
-  readonly toDate: string;
-}
-
-/** Approved-leave ranges from a leave list (ISO dates compare correctly as strings). */
-const approvedRanges = (leaves: readonly LeaveView[]): DateRange[] =>
-  leaves
-    .filter((leave) => leave.status === "approved")
-    .map((leave) => ({ fromDate: leave.fromDate, toDate: leave.toDate }));
-
-const withinAnyRange = (date: string, ranges: readonly DateRange[]): boolean =>
-  ranges.some((range) => range.fromDate <= date && date <= range.toDate);
+import { approvedRanges, withinAnyRange } from "./leave-ranges";
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 

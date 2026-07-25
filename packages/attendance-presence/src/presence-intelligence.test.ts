@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AttendanceRecordView, ParticipationView } from "./evaluation";
+import type { AttendanceRecordView, LeaveView, ParticipationView } from "./evaluation";
 import type { AttendanceStatus } from "./attendance-status";
 import type { ActivityType } from "./participation-type";
 import { computePresenceIndicators } from "./presence-intelligence";
@@ -36,6 +36,22 @@ describe("presence-intelligence", () => {
     expect(ind.riskLevel).toBe("high");
     expect(ind.anomalies.some((a) => a.includes("below"))).toBe(true);
     expect(ind.anomalies.some((a) => a.includes("consecutive"))).toBe(true);
+  });
+
+  it("does not count approved-leave-covered absences toward the chronic-absence streak", () => {
+    // Same five-day absent block as the high-risk case, but every day is covered by an
+    // approved leave: attendance stays healthy and no chronic-absence streak is manufactured.
+    const records = [...many("present", 1, 5), ...many("absent", 6, 10)];
+    const leaves: LeaveView[] = [
+      { fromDate: "2026-09-06", toDate: "2026-09-10", status: "approved" },
+    ];
+    const ind = computePresenceIndicators({ records, leaves });
+    expect(ind.attendancePercentage).toBe(100);
+    expect(ind.longestAbsentStreak).toBe(0);
+    expect(ind.chronicAbsenteeism).toBe(false);
+    expect(ind.riskLevel).toBe("low");
+    expect(ind.leaveCount).toBe(1);
+    expect(ind.anomalies.some((a) => a.includes("consecutive"))).toBe(false);
   });
 
   it("detects a medium risk band and the no-participation anomaly", () => {

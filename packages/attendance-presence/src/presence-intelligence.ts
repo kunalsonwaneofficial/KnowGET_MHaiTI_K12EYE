@@ -1,4 +1,5 @@
 import type { AttendanceRecordView, LeaveView, ParticipationView } from "./evaluation";
+import { approvedRanges, type DateRange, withinAnyRange } from "./leave-ranges";
 import { summarizeAttendance } from "./policy-engine";
 
 /** Thresholds behind the (non-predictive) presence indicators. Descriptive analytics only. */
@@ -26,12 +27,23 @@ export interface PresenceIndicators {
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 
-/** Longest run of consecutive `absent` records once ordered by date. */
-function longestAbsentStreak(records: readonly AttendanceRecordView[]): number {
+/**
+ * Longest run of consecutive **unexcused** `absent` records once ordered by date. An `absent`
+ * record whose date falls within an approved-leave range is excused and excluded from the run
+ * — consistent with {@link summarizeAttendance}, which likewise drops leave-covered absences —
+ * so legitimate leave never manufactures a chronic-absence streak.
+ */
+function longestAbsentStreak(
+  records: readonly AttendanceRecordView[],
+  ranges: readonly DateRange[],
+): number {
   const ordered = [...records].sort((a, b) => a.date.localeCompare(b.date));
   let longest = 0;
   let current = 0;
   for (const record of ordered) {
+    if (record.status === "absent" && withinAnyRange(record.date, ranges)) {
+      continue;
+    }
     if (record.status === "absent") {
       current += 1;
       longest = Math.max(longest, current);
@@ -56,7 +68,7 @@ export function computePresenceIndicators(input: {
   const leaves = input.leaves ?? [];
   const participations = input.participations ?? [];
   const summary = summarizeAttendance(records, leaves);
-  const streak = longestAbsentStreak(records);
+  const streak = longestAbsentStreak(records, approvedRanges(leaves));
   const chronicAbsenteeism =
     summary.attendancePercentage < CHRONIC_ABSENTEEISM_PERCENTAGE ||
     streak >= CHRONIC_ABSENTEEISM_STREAK;
