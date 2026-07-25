@@ -1,8 +1,10 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AcademicCalendar } from "./academic-calendar";
+import type { AcademicClass } from "./academic-class";
 import type { AcademicProgram } from "./academic-program";
 import type { CurriculumFramework } from "./curriculum-framework";
 import type { Grade } from "./grade";
+import type { Section } from "./section";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization exist in
@@ -241,6 +243,128 @@ export class InMemoryGradeRepository implements GradeRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const grade = this.byId.get(id);
     if (grade && grade.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for classes (unique by name within a grade + academic year). */
+export interface AcademicClassRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AcademicClass | null>;
+  findByName(
+    tenantId: TenantId,
+    gradeId: Uuid,
+    academicYear: string,
+    name: string,
+  ): Promise<AcademicClass | null>;
+  listByGrade(tenantId: TenantId, gradeId: Uuid): Promise<AcademicClass[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AcademicClass[]>;
+  listByTenant(tenantId: TenantId): Promise<AcademicClass[]>;
+  save(klass: AcademicClass): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AcademicClassRepository} — the default for tests and bootstrap. */
+export class InMemoryAcademicClassRepository implements AcademicClassRepository {
+  private readonly byId = new Map<string, AcademicClass>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AcademicClass | null> {
+    const klass = this.byId.get(id);
+    return klass && klass.tenantId === tenantId ? klass : null;
+  }
+
+  async findByName(
+    tenantId: TenantId,
+    gradeId: Uuid,
+    academicYear: string,
+    name: string,
+  ): Promise<AcademicClass | null> {
+    return (
+      [...this.byId.values()].find(
+        (c) =>
+          c.tenantId === tenantId &&
+          c.gradeId === gradeId &&
+          c.academicYear === academicYear &&
+          c.name === name,
+      ) ?? null
+    );
+  }
+
+  async listByGrade(tenantId: TenantId, gradeId: Uuid): Promise<AcademicClass[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId && c.gradeId === gradeId);
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AcademicClass[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AcademicClass[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(klass: AcademicClass): Promise<void> {
+    this.byId.set(klass.id, klass);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const klass = this.byId.get(id);
+    if (klass && klass.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for sections (unique by name within a class). */
+export interface SectionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Section | null>;
+  findByName(tenantId: TenantId, classId: Uuid, name: string): Promise<Section | null>;
+  listByClass(tenantId: TenantId, classId: Uuid): Promise<Section[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Section[]>;
+  listByTenant(tenantId: TenantId): Promise<Section[]>;
+  save(section: Section): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SectionRepository} — the default for tests and bootstrap. */
+export class InMemorySectionRepository implements SectionRepository {
+  private readonly byId = new Map<string, Section>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Section | null> {
+    const section = this.byId.get(id);
+    return section && section.tenantId === tenantId ? section : null;
+  }
+
+  async findByName(tenantId: TenantId, classId: Uuid, name: string): Promise<Section | null> {
+    return (
+      [...this.byId.values()].find(
+        (s) => s.tenantId === tenantId && s.classId === classId && s.name === name,
+      ) ?? null
+    );
+  }
+
+  async listByClass(tenantId: TenantId, classId: Uuid): Promise<Section[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId && s.classId === classId);
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Section[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Section[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(section: Section): Promise<void> {
+    this.byId.set(section.id, section);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const section = this.byId.get(id);
+    if (section && section.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

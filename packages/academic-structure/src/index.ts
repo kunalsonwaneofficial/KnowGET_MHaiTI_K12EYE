@@ -8,6 +8,8 @@ export * from "./academic-calendar";
 export * from "./academic-program";
 export * from "./curriculum-framework";
 export * from "./grade";
+export * from "./academic-class";
+export * from "./section";
 // events + ports
 export * from "./academic-structure-events";
 export * from "./ports";
@@ -16,3 +18,5 @@ export * from "./academic-calendar-service";
 export * from "./academic-program-service";
 export * from "./curriculum-framework-service";
 export * from "./grade-service";
+export * from "./academic-class-service";
+export * from "./section-service";

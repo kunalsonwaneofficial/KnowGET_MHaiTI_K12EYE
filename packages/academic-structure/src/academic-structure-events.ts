@@ -1,8 +1,10 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AcademicCalendar } from "./academic-calendar";
+import type { AcademicClass } from "./academic-class";
 import type { CurriculumFramework } from "./curriculum-framework";
 import type { Grade } from "./grade";
+import type { Section } from "./section";
 
 // --- Academic calendar -----------------------------------------------------------
 export const ACADEMIC_YEAR_CREATED = "academic.year.created";
@@ -89,4 +91,52 @@ export const gradeCreated = (grade: Grade): GradeCreatedEvent =>
       level: grade.level,
     },
     { tenantId: grade.tenantId },
+  );
+
+// --- Class -----------------------------------------------------------------------
+export const CLASS_CREATED = "academic.class.created";
+
+export interface ClassCreatedPayload {
+  readonly classId: Uuid;
+  readonly organizationId: Uuid;
+  readonly gradeId: Uuid;
+  readonly academicYear: string;
+}
+
+export type ClassCreatedEvent = DomainEvent<typeof CLASS_CREATED, ClassCreatedPayload>;
+
+export const classCreated = (klass: AcademicClass): ClassCreatedEvent =>
+  createEvent(
+    CLASS_CREATED,
+    {
+      classId: klass.id,
+      organizationId: klass.organizationId,
+      gradeId: klass.gradeId,
+      academicYear: klass.academicYear,
+    },
+    { tenantId: klass.tenantId },
+  );
+
+// --- Section ---------------------------------------------------------------------
+export const SECTION_CREATED = "academic.section.created";
+
+export interface SectionCreatedPayload {
+  readonly sectionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly classId: Uuid;
+  readonly capacity: number;
+}
+
+export type SectionCreatedEvent = DomainEvent<typeof SECTION_CREATED, SectionCreatedPayload>;
+
+export const sectionCreated = (section: Section): SectionCreatedEvent =>
+  createEvent(
+    SECTION_CREATED,
+    {
+      sectionId: section.id,
+      organizationId: section.organizationId,
+      classId: section.classId,
+      capacity: section.capacity,
+    },
+    { tenantId: section.tenantId },
   );

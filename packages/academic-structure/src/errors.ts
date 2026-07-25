@@ -266,3 +266,103 @@ export class InvalidAgeRangeError extends PlatformError {
     });
   }
 }
+
+// --- Class errors ----------------------------------------------------------------
+
+/** The requested class does not exist in the current tenant. */
+export class ClassNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Class "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A grade already has a class with this name for this academic year. */
+export class DuplicateClassError extends PlatformError {
+  constructor(gradeId: string, academicYear: string, name: string) {
+    super(`Grade "${gradeId}" already has a class "${name}" for "${academicYear}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { gradeId, academicYear, name },
+    });
+  }
+}
+
+/** A class field (name, academic year) must carry a non-empty value. */
+export class EmptyClassFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A class must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+// --- Section errors --------------------------------------------------------------
+
+/** The requested section does not exist in the current tenant. */
+export class SectionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Section "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A class already has a section with this name. */
+export class DuplicateSectionError extends PlatformError {
+  constructor(classId: string, name: string) {
+    super(`Class "${classId}" already has a section "${name}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { classId, name },
+    });
+  }
+}
+
+/** A section field (name) must carry a non-empty value. */
+export class EmptySectionFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A section must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** A section capacity must be a non-negative integer. */
+export class InvalidCapacityError extends PlatformError {
+  constructor(capacity: number) {
+    super(`Section capacity ${capacity} must be a non-negative integer`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { capacity },
+    });
+  }
+}
+
+/** The section is closed and cannot be modified. */
+export class SectionClosedError extends PlatformError {
+  constructor(id: string) {
+    super(`Section "${id}" is closed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
