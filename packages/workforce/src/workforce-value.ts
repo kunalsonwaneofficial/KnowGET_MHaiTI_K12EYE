@@ -77,6 +77,19 @@ export const REVIEW_STATUSES = ["draft", "submitted", "acknowledged", "finalized
 
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
+/** Lifecycle of a department (HR org unit) — you archive a department, never delete it. */
+export const DEPARTMENT_STATUSES = ["active", "archived"] as const;
+
+export type DepartmentStatus = (typeof DEPARTMENT_STATUSES)[number];
+
+/**
+ * Lifecycle of a defined position (a budgeted post): `draft` while being defined, `open` once
+ * approved and staffable, `on_hold` during a hiring freeze (reversible), and terminal `closed`.
+ */
+export const POSITION_STATUSES = ["draft", "open", "on_hold", "closed"] as const;
+
+export type PositionStatus = (typeof POSITION_STATUSES)[number];
+
 /**
  * A descriptive attrition-risk band for an employee — never a prediction. It is the worst of a few
  * transparent factors (tenure, review standing, leave utilization); predictive modelling is a
