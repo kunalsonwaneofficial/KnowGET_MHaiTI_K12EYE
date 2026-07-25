@@ -3,6 +3,75 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D07 · Program: Academic Excellence Platform · Enterprise Academic Scheduling & Resource Orchestration Platform
+
+The second contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
+baseline, the frozen Phase-1 core, and the P2-D06 academic structure. The authoritative
+scheduling engine — timetables, resources, allocations, policies and substitutions — with a
+pure conflict engine that prevents invalid schedules, delivered as one
+`@knowget/academic-scheduling` package (ADR-0026). Schedule structure and orchestration, not
+activity: attendance, lesson delivery, homework, examinations, grading and learning analytics
+are explicit non-goals that consume this platform rather than living in it.
+
+### Added
+
+- **Enterprise Academic Scheduling & Resource Orchestration Platform (ADR-0026):** six
+  aggregates in one `@knowget/academic-scheduling` package — **Timetable** (an official
+  institutional timetable for a grade/class/section in an academic year and term;
+  version-controlled via a counter and an append-only revision log; draft → published →
+  archived, revising a published timetable returning it to draft at the next version),
+  **Schedule Slot** (a scheduled instructional period: day, HH:MM range, subject, teacher,
+  section, optional class/venue; one per timetable+day+start+section; editable only while
+  the timetable is a draft), **Resource** (classrooms, laboratories, libraries, sports
+  grounds, auditoriums, conference rooms and equipment; capacity, location, validated
+  recurring availability windows; available → maintenance → retired), **Allocation**
+  (teacher/classroom/laboratory/equipment assignment to a recurring window, validated by
+  kind with capacity enforcement; allocated → released), **Scheduling Policy** (a
+  configurable, version-controlled institutional constraint with open JSON parameters;
+  draft → active → archived) and **Substitution** (a tracked, auditable teacher/venue
+  override, replacement ≠ original; assigned → cancelled | completed). Each is a pure
+  aggregate behind a repository port, a Prisma/RLS adapter at the composition root, an
+  application service on the event bus, and a permission-gated, tenant-scoped REST
+  controller.
+- **A pure conflict engine that gates publication:** `detectConflicts` finds teacher /
+  section / venue double-bookings (same-day overlapping half-open intervals), resource
+  double-allocations, and policy violations (`max_teaching_periods`,
+  `consecutive_period_limit`, `break_rule`) over narrow view interfaces the aggregates
+  structurally satisfy. `TimetableService.publish` refuses to publish any schedule the
+  engine rejects — considering the timetable's own slots plus every other published
+  timetable in the same academic year/term, plus active allocations and active policies —
+  emitting `scheduling.conflict.detected` and throwing on any conflict. Two further pure
+  engines compute **teacher workload** and read-only **scheduling intelligence**
+  (utilisation, density, workload distribution, conflict counts, optimisation hints).
+- **A single `scheduling:*` scope:** the whole REST surface is gated by one
+  `scheduling:read` / `scheduling:write` pair — scheduling is operational structure, not
+  personal or sensitive data. Organization, grade, class, section, subject and teacher
+  existence enter through injected directory ports (backed by the Organization,
+  Academic-Structure and Person modules).
+- **Persistence:** six `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`timetable`,
+  `schedule_slot`, `resource`, `allocation`, `scheduling_policy`, `substitution`) with the
+  standard `tenant_isolation` policy (fail-closed), soft-delete + audit columns, a DB unique
+  index for every uniqueness rule, and non-null JSONB for all structured data (no scalar-list
+  columns) — isolation, fail-closed reads and WITH CHECK cross-tenant rejection verified on
+  live PostgreSQL for all six tables.
+- **Events:** eight `scheduling.*` domain events — `scheduling.timetable.created`,
+  `scheduling.timetable.published`, `scheduling.timetable.revised`,
+  `scheduling.slot.assigned`, `scheduling.resource.allocated`, `scheduling.resource.released`,
+  `scheduling.conflict.detected`, `scheduling.substitution.assigned` — published from the
+  owning service transitions (resources and scheduling policies intentionally emit none).
+- **Docs:** ADR-0026, the P2-D07 delivery report, and platform-state / register updates.
+
+### Notes
+
+- Independent audit found the domain internally consistent against the P2-D06 reference
+  across ten areas (adapter/schema/migration mapping, conflict engine, publish gating,
+  events, permission scopes, DTOs, cross-reference validation, multi-tenancy) with no
+  High/security issues; one medium finding (`remove` omitting the draft-timetable guard) and
+  two low findings (publish state-check ordering; reschedule placement collision surfacing a
+  raw DB error) were fixed in-milestone with regression tests. All six service tokens are
+  exported for downstream academic domains. New technical debt: TD-27 (three scheduling-policy
+  rule types stored and version-controlled but not yet evaluated, behind a stable dispatch).
+
 ## [Unreleased] — P2-D06 · Program: Academic Excellence Platform · Academic Structure & Curriculum Platform
 
 The first contract of a new program — **Academic Excellence Platform** — on the certified
