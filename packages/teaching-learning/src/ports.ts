@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AcademicPlan } from "./academic-plan";
+import type { Assignment } from "./assignment";
+import type { ClassroomSession } from "./classroom-session";
 import type { LearningResource } from "./learning-resource";
 import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
@@ -241,6 +243,118 @@ export class InMemoryLearningResourceRepository implements LearningResourceRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const resource = this.byId.get(id);
     if (resource && resource.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Classroom session repository -------------------------------------------------
+
+/** Storage contract for classroom sessions. Section/subject lists feed the intelligence scope. */
+export interface ClassroomSessionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<ClassroomSession | null>;
+  listBySection(tenantId: TenantId, sectionId: Uuid): Promise<ClassroomSession[]>;
+  listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<ClassroomSession[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<ClassroomSession[]>;
+  listByTenant(tenantId: TenantId): Promise<ClassroomSession[]>;
+  save(session: ClassroomSession): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ClassroomSessionRepository} — the default for tests and bootstrap. */
+export class InMemoryClassroomSessionRepository implements ClassroomSessionRepository {
+  private readonly byId = new Map<string, ClassroomSession>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<ClassroomSession | null> {
+    const session = this.byId.get(id);
+    return session && session.tenantId === tenantId ? session : null;
+  }
+
+  async listBySection(tenantId: TenantId, sectionId: Uuid): Promise<ClassroomSession[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.sectionId === sectionId,
+    );
+  }
+
+  async listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<ClassroomSession[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.subjectId === subjectId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<ClassroomSession[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<ClassroomSession[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(session: ClassroomSession): Promise<void> {
+    this.byId.set(session.id, session);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const session = this.byId.get(id);
+    if (session && session.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Assignment repository --------------------------------------------------------
+
+/** Storage contract for assignments. Section/subject lists feed the intelligence scope. */
+export interface AssignmentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Assignment | null>;
+  listBySection(tenantId: TenantId, sectionId: Uuid): Promise<Assignment[]>;
+  listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<Assignment[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Assignment[]>;
+  listByTenant(tenantId: TenantId): Promise<Assignment[]>;
+  save(assignment: Assignment): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AssignmentRepository} — the default for tests and bootstrap. */
+export class InMemoryAssignmentRepository implements AssignmentRepository {
+  private readonly byId = new Map<string, Assignment>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Assignment | null> {
+    const assignment = this.byId.get(id);
+    return assignment && assignment.tenantId === tenantId ? assignment : null;
+  }
+
+  async listBySection(tenantId: TenantId, sectionId: Uuid): Promise<Assignment[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.sectionId === sectionId,
+    );
+  }
+
+  async listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<Assignment[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.subjectId === subjectId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Assignment[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Assignment[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(assignment: Assignment): Promise<void> {
+    this.byId.set(assignment.id, assignment);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const assignment = this.byId.get(id);
+    if (assignment && assignment.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

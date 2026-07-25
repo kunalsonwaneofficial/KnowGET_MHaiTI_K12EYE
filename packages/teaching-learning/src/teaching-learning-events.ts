@@ -1,6 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AcademicPlan } from "./academic-plan";
+import type { Assignment } from "./assignment";
+import type { AssignmentSubmission } from "./assignment-type";
+import type { ClassroomSession } from "./classroom-session";
 import type { LearningResource } from "./learning-resource";
 import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
@@ -107,4 +110,95 @@ export const learningResourceAdded = (resource: LearningResource): LearningResou
       title: resource.title,
     },
     { tenantId: resource.tenantId },
+  );
+
+// --- Classroom session -----------------------------------------------------------
+export const LESSON_DELIVERED = "teaching.lesson.delivered";
+export const CLASSROOM_SESSION_COMPLETED = "teaching.classroom_session.completed";
+
+export interface ClassroomSessionEventPayload {
+  readonly classroomSessionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly lessonPlanId: Uuid | null;
+  readonly date: string;
+}
+
+export type LessonDeliveredEvent = DomainEvent<
+  typeof LESSON_DELIVERED,
+  ClassroomSessionEventPayload
+>;
+export type ClassroomSessionCompletedEvent = DomainEvent<
+  typeof CLASSROOM_SESSION_COMPLETED,
+  ClassroomSessionEventPayload
+>;
+
+const sessionPayload = (session: ClassroomSession): ClassroomSessionEventPayload => ({
+  classroomSessionId: session.id,
+  organizationId: session.organizationId,
+  lessonPlanId: session.lessonPlanId,
+  date: session.date,
+});
+
+export const lessonDelivered = (session: ClassroomSession): LessonDeliveredEvent =>
+  createEvent(LESSON_DELIVERED, sessionPayload(session), { tenantId: session.tenantId });
+
+export const classroomSessionCompleted = (
+  session: ClassroomSession,
+): ClassroomSessionCompletedEvent =>
+  createEvent(CLASSROOM_SESSION_COMPLETED, sessionPayload(session), {
+    tenantId: session.tenantId,
+  });
+
+// --- Assignment ------------------------------------------------------------------
+export const ASSIGNMENT_PUBLISHED = "teaching.assignment.published";
+export const ASSIGNMENT_SUBMITTED = "teaching.assignment.submitted";
+
+export interface AssignmentPublishedPayload {
+  readonly assignmentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly subjectId: Uuid;
+  readonly assignmentType: string;
+}
+
+export interface AssignmentSubmittedPayload {
+  readonly assignmentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly status: string;
+}
+
+export type AssignmentPublishedEvent = DomainEvent<
+  typeof ASSIGNMENT_PUBLISHED,
+  AssignmentPublishedPayload
+>;
+export type AssignmentSubmittedEvent = DomainEvent<
+  typeof ASSIGNMENT_SUBMITTED,
+  AssignmentSubmittedPayload
+>;
+
+export const assignmentPublished = (assignment: Assignment): AssignmentPublishedEvent =>
+  createEvent(
+    ASSIGNMENT_PUBLISHED,
+    {
+      assignmentId: assignment.id,
+      organizationId: assignment.organizationId,
+      subjectId: assignment.subjectId,
+      assignmentType: assignment.assignmentType,
+    },
+    { tenantId: assignment.tenantId },
+  );
+
+export const assignmentSubmitted = (
+  assignment: Assignment,
+  submission: AssignmentSubmission,
+): AssignmentSubmittedEvent =>
+  createEvent(
+    ASSIGNMENT_SUBMITTED,
+    {
+      assignmentId: assignment.id,
+      organizationId: assignment.organizationId,
+      studentId: submission.studentId,
+      status: submission.status,
+    },
+    { tenantId: assignment.tenantId },
   );

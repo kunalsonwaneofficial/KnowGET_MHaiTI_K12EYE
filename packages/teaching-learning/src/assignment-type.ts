@@ -1,4 +1,4 @@
-import type { ISODateString, Uuid } from "@knowget/types";
+import type { Uuid } from "@knowget/types";
 
 /**
  * The kind of assignment. All share the same publish → track-submissions lifecycle;
@@ -36,6 +36,7 @@ export const isAssignmentType = (value: string): value is AssignmentType =>
 export interface AssignmentSubmission {
   readonly studentId: Uuid;
   readonly status: SubmissionStatus;
-  readonly submittedAt: ISODateString | null;
+  /** A user-supplied timestamp in ISO form, or null while outstanding (plain string, not branded). */
+  readonly submittedAt: string | null;
   readonly note: string | null;
 }
