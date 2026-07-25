@@ -13,6 +13,7 @@ import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
 import { RelationshipModule } from "./domains/relationship/relationship.module";
 import { RolesModule } from "./domains/roles/roles.module";
+import { FacultyExcellenceModule } from "./domains/faculty-excellence/faculty-excellence.module";
 import { StudentLifecycleModule } from "./domains/student-lifecycle/student-lifecycle.module";
 import { TeachingLearningModule } from "./domains/teaching-learning/teaching-learning.module";
 import { WorkforceModule } from "./domains/workforce/workforce.module";
@@ -90,6 +91,7 @@ const persistedServices =
     AssessmentEvaluationModule,
     LearningIntelligenceModule,
     WorkforceModule,
+    FacultyExcellenceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

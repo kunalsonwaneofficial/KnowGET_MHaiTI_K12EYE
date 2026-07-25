@@ -61,9 +61,7 @@ function toFields(activity: ProfessionalLearningActivity) {
 }
 
 /** Prisma-backed {@link ProfessionalLearningActivityRepository} (RLS via {@link withTenant}; soft delete). */
-export class PrismaProfessionalLearningActivityRepository
-  implements ProfessionalLearningActivityRepository
-{
+export class PrismaProfessionalLearningActivityRepository implements ProfessionalLearningActivityRepository {
   constructor(private readonly db: PrismaService) {}
 
   findById(tenantId: TenantId, id: Uuid): Promise<ProfessionalLearningActivity | null> {
