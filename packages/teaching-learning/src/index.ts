@@ -17,6 +17,7 @@ export * from "./lesson-plan";
 export * from "./learning-resource";
 export * from "./classroom-session";
 export * from "./assignment";
+export * from "./learning-evidence";
 // events + ports
 export * from "./teaching-learning-events";
 export * from "./ports";
@@ -27,3 +28,5 @@ export * from "./lesson-plan-service";
 export * from "./learning-resource-service";
 export * from "./classroom-session-service";
 export * from "./assignment-service";
+export * from "./learning-evidence-service";
+export * from "./instructional-analytics-service";

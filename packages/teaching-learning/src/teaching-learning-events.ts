@@ -4,6 +4,7 @@ import type { AcademicPlan } from "./academic-plan";
 import type { Assignment } from "./assignment";
 import type { AssignmentSubmission } from "./assignment-type";
 import type { ClassroomSession } from "./classroom-session";
+import type { LearningEvidence } from "./learning-evidence";
 import type { LearningResource } from "./learning-resource";
 import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
@@ -201,4 +202,37 @@ export const assignmentSubmitted = (
       status: submission.status,
     },
     { tenantId: assignment.tenantId },
+  );
+
+// --- Learning evidence -----------------------------------------------------------
+export const LEARNING_EVIDENCE_CAPTURED = "teaching.learning_evidence.captured";
+
+export interface LearningEvidenceCapturedPayload {
+  readonly learningEvidenceId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly evidenceType: string;
+  readonly activityKind: string;
+  readonly activityId: Uuid;
+}
+
+export type LearningEvidenceCapturedEvent = DomainEvent<
+  typeof LEARNING_EVIDENCE_CAPTURED,
+  LearningEvidenceCapturedPayload
+>;
+
+export const learningEvidenceCaptured = (
+  evidence: LearningEvidence,
+): LearningEvidenceCapturedEvent =>
+  createEvent(
+    LEARNING_EVIDENCE_CAPTURED,
+    {
+      learningEvidenceId: evidence.id,
+      organizationId: evidence.organizationId,
+      studentId: evidence.studentId,
+      evidenceType: evidence.evidenceType,
+      activityKind: evidence.activityKind,
+      activityId: evidence.activityId,
+    },
+    { tenantId: evidence.tenantId },
   );

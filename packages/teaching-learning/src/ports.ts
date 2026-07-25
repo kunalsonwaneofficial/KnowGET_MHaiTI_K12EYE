@@ -2,6 +2,8 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { AcademicPlan } from "./academic-plan";
 import type { Assignment } from "./assignment";
 import type { ClassroomSession } from "./classroom-session";
+import type { InstructionalActivityKind } from "./learning-evidence-type";
+import type { LearningEvidence } from "./learning-evidence";
 import type { LearningResource } from "./learning-resource";
 import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
@@ -355,6 +357,71 @@ export class InMemoryAssignmentRepository implements AssignmentRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const assignment = this.byId.get(id);
     if (assignment && assignment.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Learning evidence repository -------------------------------------------------
+
+/** Storage contract for learning evidence. `listByActivity` traces evidence to its instruction. */
+export interface LearningEvidenceRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LearningEvidence | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<LearningEvidence[]>;
+  listByActivity(
+    tenantId: TenantId,
+    activityKind: InstructionalActivityKind,
+    activityId: Uuid,
+  ): Promise<LearningEvidence[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LearningEvidence[]>;
+  listByTenant(tenantId: TenantId): Promise<LearningEvidence[]>;
+  save(evidence: LearningEvidence): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LearningEvidenceRepository} — the default for tests and bootstrap. */
+export class InMemoryLearningEvidenceRepository implements LearningEvidenceRepository {
+  private readonly byId = new Map<string, LearningEvidence>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LearningEvidence | null> {
+    const evidence = this.byId.get(id);
+    return evidence && evidence.tenantId === tenantId ? evidence : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<LearningEvidence[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.studentId === studentId,
+    );
+  }
+
+  async listByActivity(
+    tenantId: TenantId,
+    activityKind: InstructionalActivityKind,
+    activityId: Uuid,
+  ): Promise<LearningEvidence[]> {
+    return [...this.byId.values()].filter(
+      (e) =>
+        e.tenantId === tenantId && e.activityKind === activityKind && e.activityId === activityId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LearningEvidence[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LearningEvidence[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(evidence: LearningEvidence): Promise<void> {
+    this.byId.set(evidence.id, evidence);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const evidence = this.byId.get(id);
+    if (evidence && evidence.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
