@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { CohortInsight, CohortScopeType } from "./cohort-insight";
 import type { EarlyWarning } from "./early-warning";
 import type { EducationalInsight } from "./educational-insight";
 import type { GrowthPlan } from "./growth-plan";
@@ -345,6 +346,65 @@ export class InMemoryGrowthPlanRepository implements GrowthPlanRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const plan = this.byId.get(id);
     if (plan && plan.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Cohort insight repository ---------------------------------------------------
+
+/** Storage contract for cohort insights. `findByScope` fetches the rollup for a given cohort. */
+export interface CohortInsightRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CohortInsight | null>;
+  findByScope(
+    tenantId: TenantId,
+    scopeType: CohortScopeType,
+    scopeId: Uuid,
+  ): Promise<CohortInsight | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CohortInsight[]>;
+  listByTenant(tenantId: TenantId): Promise<CohortInsight[]>;
+  save(insight: CohortInsight): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CohortInsightRepository} — the default for tests and bootstrap. */
+export class InMemoryCohortInsightRepository implements CohortInsightRepository {
+  private readonly byId = new Map<string, CohortInsight>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CohortInsight | null> {
+    const insight = this.byId.get(id);
+    return insight && insight.tenantId === tenantId ? insight : null;
+  }
+
+  async findByScope(
+    tenantId: TenantId,
+    scopeType: CohortScopeType,
+    scopeId: Uuid,
+  ): Promise<CohortInsight | null> {
+    return (
+      [...this.byId.values()].find(
+        (c) => c.tenantId === tenantId && c.scopeType === scopeType && c.scopeId === scopeId,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CohortInsight[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CohortInsight[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(insight: CohortInsight): Promise<void> {
+    this.byId.set(insight.id, insight);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const insight = this.byId.get(id);
+    if (insight && insight.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

@@ -12,6 +12,7 @@ export * from "./early-warning";
 export * from "./educational-insight";
 export * from "./recommendation";
 export * from "./growth-plan";
+export * from "./cohort-insight";
 // events + ports
 export * from "./learning-intelligence-events";
 export * from "./ports";
@@ -22,3 +23,4 @@ export * from "./early-warning-service";
 export * from "./educational-insight-service";
 export * from "./recommendation-service";
 export * from "./growth-plan-service";
+export * from "./cohort-insight-service";

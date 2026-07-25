@@ -1,5 +1,17 @@
-import { bandFor, type DimensionScore, INSIGHT_DIMENSIONS } from "./insight-value";
-import type { LearnerInsightIndicators, LearningSignalView } from "./insight-view";
+import {
+  bandFor,
+  type DimensionScore,
+  INSIGHT_DIMENSIONS,
+  needsAttention,
+  RISK_BANDS,
+  type RiskBand,
+} from "./insight-value";
+import type {
+  CohortIndicators,
+  CohortProfileView,
+  LearnerInsightIndicators,
+  LearningSignalView,
+} from "./insight-view";
 
 /**
  * The pure learning-intelligence engine — synthesizes a learner's cross-domain descriptive signals
@@ -42,5 +54,48 @@ export function synthesizeLearnerInsight(
     overallBand: bandFor(overallScore),
     signalsConsidered: signals.length,
     dimensionsCovered: dimensions.length,
+  };
+}
+
+/**
+ * The pure cohort-rollup engine — summarizes a set of learner insight profiles into a descriptive
+ * cohort picture: how many learners have data, their average learning-health and band, the
+ * distribution across risk bands, and how many need attention (at_risk or critical). Profiles with
+ * no data (`dimensionsCovered = 0`) are excluded so an un-synthesized learner never drags the
+ * average down. Pure and deterministic; leadership-facing and descriptive only.
+ */
+export function summarizeCohort(profiles: readonly CohortProfileView[]): CohortIndicators {
+  const round = (value: number): number => Math.round(value * 100) / 100;
+
+  const bandDistribution: Record<RiskBand, number> = {
+    on_track: 0,
+    watch: 0,
+    at_risk: 0,
+    critical: 0,
+  };
+  for (const band of RISK_BANDS) {
+    bandDistribution[band] = 0;
+  }
+
+  const considered = profiles.filter((p) => p.dimensionsCovered > 0);
+  let needing = 0;
+  for (const profile of considered) {
+    bandDistribution[profile.overallBand] += 1;
+    if (needsAttention(profile.overallBand)) {
+      needing += 1;
+    }
+  }
+
+  const averageLearningHealth =
+    considered.length === 0
+      ? 0
+      : round(considered.reduce((sum, p) => sum + p.overallScore, 0) / considered.length);
+
+  return {
+    learnersConsidered: considered.length,
+    averageLearningHealth,
+    averageBand: bandFor(averageLearningHealth),
+    bandDistribution,
+    learnersNeedingAttention: needing,
   };
 }

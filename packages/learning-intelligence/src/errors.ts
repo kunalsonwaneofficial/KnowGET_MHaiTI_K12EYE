@@ -236,3 +236,15 @@ export class CohortInsightNotFoundError extends PlatformError {
     });
   }
 }
+
+/** The cohort insight is not in a state from which the attempted transition is allowed. */
+export class CohortInsightStateError extends PlatformError {
+  constructor(id: string, expected: string, actual: string) {
+    super(`Cohort insight "${id}" must be ${expected} for this operation (is ${actual})`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, expected, actual },
+    });
+  }
+}

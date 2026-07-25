@@ -45,3 +45,27 @@ export interface FiredWarning {
   readonly observedScore: number;
   readonly severity: RiskBand;
 }
+
+/**
+ * The minimal view of a learner insight profile the cohort-rollup engine needs. The profile
+ * aggregate structurally satisfies it; a profile with `dimensionsCovered = 0` (no data) is excluded
+ * from the rollup.
+ */
+export interface CohortProfileView {
+  readonly overallScore: number;
+  readonly overallBand: RiskBand;
+  readonly dimensionsCovered: number;
+}
+
+/**
+ * A cohort's descriptive rollup — how many learners have data, their average learning-health and
+ * band, the distribution across risk bands, and how many need attention. Leadership-facing and
+ * descriptive only. Averages are 0–100, two-decimal.
+ */
+export interface CohortIndicators {
+  readonly learnersConsidered: number;
+  readonly averageLearningHealth: number;
+  readonly averageBand: RiskBand;
+  readonly bandDistribution: Readonly<Record<RiskBand, number>>;
+  readonly learnersNeedingAttention: number;
+}
