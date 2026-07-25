@@ -2003,3 +2003,195 @@ model AcademicRecord {
   @@index([tenantId, studentId])
   @@map("academic_record")
 }
+
+/// LearnerInsightProfile (P2-D11) — a learner's unified, synthesized cross-dimension
+/// learning-health picture (descriptive, never predictive). One per student. Tenant-owned: FORCE RLS.
+model LearnerInsightProfile {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  studentId         String    @map("student_id") @db.Uuid
+  overallScore      Float     @default(0) @map("overall_score")
+  overallBand       String    @map("overall_band")
+  dimensions        Json      @default("[]")
+  signalsConsidered Int       @default(0) @map("signals_considered")
+  dimensionsCovered Int       @default(0) @map("dimensions_covered")
+  status            String    @default("insufficient_data")
+  version           Int       @default(1)
+  lastSynthesizedAt String?   @map("last_synthesized_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, studentId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("learner_insight_profile")
+}
+
+/// LearningSignal (P2-D11) — an immutable, evidence-bearing descriptive signal about a learner
+/// distilled from an upstream domain's indicator; the learner's append-only feed. Tenant-owned: FORCE RLS.
+model LearningSignal {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  dimension      String
+  source         String
+  metric         String
+  value          Float
+  trend          String    @default("stable")
+  observedAt     String    @map("observed_at")
+  evidence       Json
+  note           String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("learning_signal")
+}
+
+/// EarlyWarning (P2-D11) — a rule-based, explainable risk flag for a learner (raised → acknowledged
+/// → resolved | dismissed), carrying the fired rule and evidence. Tenant-owned: FORCE RLS.
+model EarlyWarning {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  dimension      String
+  ruleId         String    @map("rule_id")
+  severity       String
+  observedScore  Float     @map("observed_score")
+  rationale      String
+  evidence       Json      @default("[]")
+  status         String    @default("raised")
+  history        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("early_warning")
+}
+
+/// EducationalInsight (P2-D11) — a generated, explainable finding about a learner
+/// (proposed → published → archived) with a narrative and evidence chain. Tenant-owned: FORCE RLS.
+model EducationalInsight {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  category       String
+  dimension      String?
+  title          String
+  narrative      String
+  priority       String    @default("medium")
+  evidence       Json      @default("[]")
+  status         String    @default("proposed")
+  history        Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("educational_insight")
+}
+
+/// Recommendation (P2-D11) — an evidence-grounded, human-in-the-loop suggestion for a learner
+/// (proposed → accepted → actioned | rejected); the platform proposes, humans decide. Tenant-owned: FORCE RLS.
+model Recommendation {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  studentId       String    @map("student_id") @db.Uuid
+  category        String
+  action          String
+  rationale       String
+  priority        String    @default("medium")
+  targetDimension String?   @map("target_dimension")
+  evidence        Json      @default("[]")
+  status          String    @default("proposed")
+  decidedBy       String?   @map("decided_by") @db.Uuid
+  history         Json      @default("[]")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("recommendation")
+}
+
+/// GrowthPlan (P2-D11) — a learner's improvement plan turning accepted recommendations into
+/// measurable goals with tracked outcomes (draft → active → achieved | abandoned). Tenant-owned: FORCE RLS.
+model GrowthPlan {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  studentId              String    @map("student_id") @db.Uuid
+  title                  String
+  focusDimension         String?   @map("focus_dimension")
+  goals                  Json      @default("[]")
+  sourceRecommendationIds Json     @default("[]") @map("source_recommendation_ids")
+  progressPercent        Float     @default(0) @map("progress_percent")
+  status                 String    @default("draft")
+  history                Json      @default("[]")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@map("growth_plan")
+}
+
+/// CohortInsight (P2-D11) — a leadership-facing descriptive rollup of learner intelligence over an
+/// organization, grade or section (draft → published). One per (scope type, scope id). Tenant-owned: FORCE RLS.
+model CohortInsight {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  organizationId          String    @map("organization_id") @db.Uuid
+  scopeType               String    @map("scope_type")
+  scopeId                 String    @map("scope_id") @db.Uuid
+  label                   String
+  memberStudentIds        Json      @default("[]") @map("member_student_ids")
+  learnersConsidered      Int       @default(0) @map("learners_considered")
+  averageLearningHealth   Float     @default(0) @map("average_learning_health")
+  averageBand             String    @map("average_band")
+  bandDistribution        Json      @default("{}") @map("band_distribution")
+  learnersNeedingAttention Int      @default(0) @map("learners_needing_attention")
+  status                  String    @default("draft")
+  version                 Int       @default(1)
+  generatedAt             String?   @map("generated_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdBy               String?   @map("created_by") @db.Uuid
+  updatedBy               String?   @map("updated_by") @db.Uuid
+  deletedAt               DateTime? @map("deleted_at")
+
+  @@unique([tenantId, scopeType, scopeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("cohort_insight")
+}

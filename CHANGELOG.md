@@ -3,6 +3,79 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D11 · Program: Academic Excellence Platform · Learning Intelligence & Educational Insights Platform
+
+The sixth and final contract of Program: Academic Excellence Platform — and the capstone of
+Program B, the learner & academic core (P2-D02…D11) — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D03…D10 learner and academic domains. The domain that brings the learner
+and academic domains together, delivered as one `@knowget/learning-intelligence` package (ADR-0030):
+it **synthesizes** the descriptive indicators those domains already expose into unified learner
+intelligence and explainable educational insights. Synthesis, not prediction — ML forecasting is an
+explicit non-goal deferred to the intelligence core (P2-D28); every conclusion carries an evidence
+chain, recommendations are human-in-the-loop, and it consumes the upstream domains rather than
+recomputing them.
+
+### Added
+
+- **Learning Intelligence & Educational Insights Platform (ADR-0030):** seven aggregates in one
+  `@knowget/learning-intelligence` package — **Learning Signal** (an immutable, evidence-bearing
+  descriptive signal about a learner distilled from an upstream domain's indicator — dimension,
+  0–100 health reading, trend, evidence reference — captured into the learner's append-only feed),
+  **Learner Insight Profile** (the unified per-learner learning-health picture, one per student,
+  **refreshed** by running the synthesis engine over the learner's signals, versioned each refresh),
+  **Early Warning** (a rule-based, explainable risk flag naming the fired rule and the score that
+  tripped it; raised → acknowledged → resolved | dismissed with an append-only history; duplicate
+  open warnings suppressed), **Educational Insight** (a generated explainable finding —
+  strength/gap/trend/risk/opportunity — with a narrative, priority and evidence; proposed →
+  published → archived), **Recommendation** (an evidence-grounded, **human-in-the-loop** suggestion —
+  the platform proposes, a human accepts or rejects it recorded with the decider, then it is
+  actioned; proposed → accepted → actioned | rejected), **Growth Plan** (accepted recommendations
+  turned into measurable goals with recorded, audited outcomes and a derived progress percentage;
+  draft → active → achieved | abandoned) and **Cohort Insight** (a leadership-facing rollup over an
+  organization, grade or section, one per scope; draft → published). Each is a pure aggregate behind
+  a repository port, a Prisma/RLS adapter at the composition root, an application service on the
+  event bus, and a permission-gated, tenant-scoped REST controller.
+- **Three pure engines, built and tested first:** `synthesizeLearnerInsight` (per-dimension mean of
+  the 0–100 health readings → bands → equal-weight overall learning-health; `dimensionsCovered` is
+  the data-sufficiency signal), `evaluateEarlyWarnings` (transparent threshold rules; each fired
+  warning names the rule and score that tripped it; absence of data never fires) and
+  `summarizeCohort` (average learning-health, band distribution and learners-needing-attention over
+  the members' profiles, excluding un-synthesized learners) — all pure, division-safe, two-decimal,
+  clamped 0–100, over narrow views the aggregates structurally satisfy. **Descriptive and
+  explainable only — ML prediction/forecasting is a non-goal deferred to the intelligence core
+  (P2-D28).**
+- **A single `insight:*` scope:** the whole REST surface (seven controllers — signals, profiles,
+  early warnings, insights, recommendations, growth plans, cohort insights) is gated by one
+  `insight:read` / `insight:write` pair. Organization (P2-D01-M01) and student (Student-Lifecycle)
+  existence enter through injected directory ports; upstream evidence is referenced, not recomputed.
+- **Persistence:** seven `FORCE ROW LEVEL SECURITY` tenant-isolated tables (`learner_insight_profile`,
+  `learning_signal`, `early_warning`, `educational_insight`, `recommendation`, `growth_plan`,
+  `cohort_insight`) with the standard `tenant_isolation` policy (fail-closed), soft-delete + audit
+  columns, tenant-scoped DB unique indexes (one profile per student, one cohort insight per scope),
+  non-null JSONB for evidence chains, status histories, dimension scores, goals, id lists and the
+  band distribution, and DOUBLE PRECISION for scores and percentages — isolation, fail-closed reads
+  and WITH CHECK cross-tenant rejection verified on live PostgreSQL for all seven tables.
+- **Events:** nine `insight.*` domain events — `insight.signal.captured`, `insight.profile.refreshed`,
+  `insight.early_warning.raised`, `insight.early_warning.resolved`, `insight.published`,
+  `insight.recommendation.proposed`, `insight.recommendation.accepted`, `insight.growth_plan.activated`,
+  `insight.growth_plan.achieved`.
+- **Docs:** ADR-0030, the P2-D11 delivery report, and platform-state / technical-debt (TD-31) /
+  register updates. **Completes Program B — the learner & academic core.**
+
+### Notes
+
+- Independent audit confirmed the non-goal discipline (descriptive/explainable only, no prediction;
+  human-in-the-loop recommendations; no recomputation of upstream metrics) and found the engines,
+  RLS, adapters and lifecycle clean against the P2-D10 reference. One major finding (the
+  cohort-insight service did not pre-check its one-per-scope invariant, so a duplicate surfaced as a
+  500 rather than a 409) was fixed in-milestone with a `DuplicateCohortInsightError` + `findByScope`
+  pre-check and a regression test; four minor findings (a dead error class, an incomplete default
+  early-warning rule set, un-audited goal outcomes, an unclamped manual score) were also fixed with
+  tests. All seven service tokens are exported. New technical debt: TD-31 (upstream evidence
+  references stored without per-item validation; the learner anchor validated). Gates green (full
+  monorepo typecheck 101/101 and build 54/54, 31 package + 190 API tests); the Prisma
+  build/migration/tests run in CI (TD-12).
+
 ## [Unreleased] — P2-D10 · Program: Academic Excellence Platform · Assessment & Evaluation Platform
 
 The fifth contract of Program: Academic Excellence Platform, on the certified `v0.2.0` baseline,
