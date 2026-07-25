@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Department } from "./department";
+import type { Employee } from "./employee";
+import type { EmploymentContract } from "./employment-contract";
 import type { Position } from "./position";
 
 // --- Department ------------------------------------------------------------------
@@ -74,3 +76,79 @@ export const positionOpened = (position: Position): PositionOpenedEvent =>
 
 export const positionClosed = (position: Position): PositionClosedEvent =>
   createEvent(POSITION_CLOSED, positionPayload(position), { tenantId: position.tenantId });
+
+// --- Employee --------------------------------------------------------------------
+export const EMPLOYEE_ONBOARDED = "workforce.employee.onboarded";
+export const EMPLOYEE_ACTIVATED = "workforce.employee.activated";
+export const EMPLOYEE_SEPARATED = "workforce.employee.separated";
+export const EMPLOYEE_BECAME_ALUMNI = "workforce.employee.became_alumni";
+
+export interface EmployeeEventPayload {
+  readonly employeeId: Uuid;
+  readonly organizationId: Uuid;
+  readonly personId: Uuid;
+  readonly employeeNumber: string;
+  readonly status: string;
+}
+
+export type EmployeeOnboardedEvent = DomainEvent<typeof EMPLOYEE_ONBOARDED, EmployeeEventPayload>;
+export type EmployeeActivatedEvent = DomainEvent<typeof EMPLOYEE_ACTIVATED, EmployeeEventPayload>;
+export type EmployeeSeparatedEvent = DomainEvent<typeof EMPLOYEE_SEPARATED, EmployeeEventPayload>;
+export type EmployeeBecameAlumniEvent = DomainEvent<
+  typeof EMPLOYEE_BECAME_ALUMNI,
+  EmployeeEventPayload
+>;
+
+const employeePayload = (employee: Employee): EmployeeEventPayload => ({
+  employeeId: employee.id,
+  organizationId: employee.organizationId,
+  personId: employee.personId,
+  employeeNumber: employee.employeeNumber,
+  status: employee.status,
+});
+
+export const employeeOnboarded = (employee: Employee): EmployeeOnboardedEvent =>
+  createEvent(EMPLOYEE_ONBOARDED, employeePayload(employee), { tenantId: employee.tenantId });
+
+export const employeeActivated = (employee: Employee): EmployeeActivatedEvent =>
+  createEvent(EMPLOYEE_ACTIVATED, employeePayload(employee), { tenantId: employee.tenantId });
+
+export const employeeSeparated = (employee: Employee): EmployeeSeparatedEvent =>
+  createEvent(EMPLOYEE_SEPARATED, employeePayload(employee), { tenantId: employee.tenantId });
+
+export const employeeBecameAlumni = (employee: Employee): EmployeeBecameAlumniEvent =>
+  createEvent(EMPLOYEE_BECAME_ALUMNI, employeePayload(employee), { tenantId: employee.tenantId });
+
+// --- Employment contract ---------------------------------------------------------
+export const CONTRACT_ISSUED = "workforce.contract.issued";
+export const CONTRACT_ACTIVATED = "workforce.contract.activated";
+export const CONTRACT_ENDED = "workforce.contract.ended";
+
+export interface ContractEventPayload {
+  readonly contractId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly version: number;
+  readonly status: string;
+}
+
+export type ContractIssuedEvent = DomainEvent<typeof CONTRACT_ISSUED, ContractEventPayload>;
+export type ContractActivatedEvent = DomainEvent<typeof CONTRACT_ACTIVATED, ContractEventPayload>;
+export type ContractEndedEvent = DomainEvent<typeof CONTRACT_ENDED, ContractEventPayload>;
+
+const contractPayload = (contract: EmploymentContract): ContractEventPayload => ({
+  contractId: contract.id,
+  organizationId: contract.organizationId,
+  employeeId: contract.employeeId,
+  version: contract.version,
+  status: contract.status,
+});
+
+export const contractIssued = (contract: EmploymentContract): ContractIssuedEvent =>
+  createEvent(CONTRACT_ISSUED, contractPayload(contract), { tenantId: contract.tenantId });
+
+export const contractActivated = (contract: EmploymentContract): ContractActivatedEvent =>
+  createEvent(CONTRACT_ACTIVATED, contractPayload(contract), { tenantId: contract.tenantId });
+
+export const contractEnded = (contract: EmploymentContract): ContractEndedEvent =>
+  createEvent(CONTRACT_ENDED, contractPayload(contract), { tenantId: contract.tenantId });

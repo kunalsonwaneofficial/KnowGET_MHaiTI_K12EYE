@@ -13,3 +13,7 @@ export * from "./department";
 export * from "./department-service";
 export * from "./position";
 export * from "./position-service";
+export * from "./employee";
+export * from "./employee-service";
+export * from "./employment-contract";
+export * from "./employment-contract-service";

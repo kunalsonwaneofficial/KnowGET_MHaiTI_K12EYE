@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Department } from "./department";
+import type { Employee } from "./employee";
+import type { EmploymentContract } from "./employment-contract";
 import type { Position } from "./position";
 
 /**
@@ -8,6 +10,14 @@ import type { Position } from "./position";
  */
 export interface OrganizationDirectory {
   exists(tenantId: TenantId, organizationId: Uuid): Promise<boolean>;
+}
+
+/**
+ * Read model over the person domain (P2-D01-M02): does this person exist in the tenant? Every
+ * employee is a Person; the workforce domain links to it and never depends on `@knowget/person`.
+ */
+export interface PersonDirectory {
+  exists(tenantId: TenantId, personId: Uuid): Promise<boolean>;
 }
 
 /** Storage contract for departments. Tenant-scoped (explicit argument + RLS). */
@@ -109,6 +119,121 @@ export class InMemoryPositionRepository implements PositionRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const position = this.byId.get(id);
     if (position && position.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for employees. Tenant-scoped (explicit argument + RLS). */
+export interface EmployeeRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Employee | null>;
+  findByEmployeeNumber(tenantId: TenantId, employeeNumber: string): Promise<Employee | null>;
+  listByPerson(tenantId: TenantId, personId: Uuid): Promise<Employee[]>;
+  listByDepartment(tenantId: TenantId, departmentId: Uuid): Promise<Employee[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Employee[]>;
+  listByTenant(tenantId: TenantId): Promise<Employee[]>;
+  save(employee: Employee): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EmployeeRepository} — the default for tests and bootstrap. */
+export class InMemoryEmployeeRepository implements EmployeeRepository {
+  private readonly byId = new Map<string, Employee>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Employee | null> {
+    const employee = this.byId.get(id);
+    return employee && employee.tenantId === tenantId ? employee : null;
+  }
+
+  async findByEmployeeNumber(tenantId: TenantId, employeeNumber: string): Promise<Employee | null> {
+    return (
+      [...this.byId.values()].find(
+        (e) => e.tenantId === tenantId && e.employeeNumber === employeeNumber,
+      ) ?? null
+    );
+  }
+
+  async listByPerson(tenantId: TenantId, personId: Uuid): Promise<Employee[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.personId === personId,
+    );
+  }
+
+  async listByDepartment(tenantId: TenantId, departmentId: Uuid): Promise<Employee[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.departmentId === departmentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Employee[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Employee[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(employee: Employee): Promise<void> {
+    this.byId.set(employee.id, employee);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const employee = this.byId.get(id);
+    if (employee && employee.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for employment contracts. Tenant-scoped (explicit argument + RLS). */
+export interface EmploymentContractRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EmploymentContract | null>;
+  findActiveByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<EmploymentContract | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<EmploymentContract[]>;
+  listByTenant(tenantId: TenantId): Promise<EmploymentContract[]>;
+  save(contract: EmploymentContract): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EmploymentContractRepository} — the default for tests and bootstrap. */
+export class InMemoryEmploymentContractRepository implements EmploymentContractRepository {
+  private readonly byId = new Map<string, EmploymentContract>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EmploymentContract | null> {
+    const contract = this.byId.get(id);
+    return contract && contract.tenantId === tenantId ? contract : null;
+  }
+
+  async findActiveByEmployee(
+    tenantId: TenantId,
+    employeeId: Uuid,
+  ): Promise<EmploymentContract | null> {
+    return (
+      [...this.byId.values()].find(
+        (c) => c.tenantId === tenantId && c.employeeId === employeeId && c.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<EmploymentContract[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EmploymentContract[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(contract: EmploymentContract): Promise<void> {
+    this.byId.set(contract.id, contract);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const contract = this.byId.get(id);
+    if (contract && contract.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

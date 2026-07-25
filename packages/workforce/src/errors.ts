@@ -189,3 +189,129 @@ export class InvalidPositionTransitionError extends PlatformError {
     });
   }
 }
+
+/**
+ * The person an employee record links to does not exist in the tenant. Every employee is a Person
+ * (P2-D01-M02); the workforce domain never duplicates identity.
+ */
+export class PersonNotFoundForWorkforceError extends PlatformError {
+  constructor(personId: string) {
+    super(`Person "${personId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
+
+// --- Employee --------------------------------------------------------------------
+
+/** The requested employee does not exist in the current tenant. */
+export class EmployeeNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Employee "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An employee must carry a non-empty employee number. */
+export class EmptyEmployeeNumberError extends PlatformError {
+  constructor() {
+    super("An employee must have a non-empty employee number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The employee number is already in use within the tenant. */
+export class DuplicateEmployeeNumberError extends PlatformError {
+  constructor(employeeNumber: string) {
+    super(`Employee number "${employeeNumber}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { employeeNumber },
+    });
+  }
+}
+
+/** The requested employee lifecycle transition is not permitted. */
+export class InvalidEmployeeTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition employee from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A person may hold at most one active employment per institution. */
+export class DuplicateEmploymentError extends PlatformError {
+  constructor(personId: string) {
+    super(`Person "${personId}" already has an active employment at this organization`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
+
+/** A department or position assigned to an employee must belong to the same organization. */
+export class CrossOrganizationAssignmentError extends PlatformError {
+  constructor(kind: "department" | "position", id: string) {
+    super(`The ${kind} "${id}" belongs to a different organization than the employee`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { kind, id },
+    });
+  }
+}
+
+// --- Employment contract ---------------------------------------------------------
+
+/** The requested employment contract does not exist in the current tenant. */
+export class ContractNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Employment contract "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested employment-contract lifecycle transition is not permitted. */
+export class InvalidContractTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition employment contract from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Only a draft contract may be edited; an active/expired/terminated one is immutable. */
+export class ContractNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Employment contract "${id}" is "${status}" and can no longer be edited`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
