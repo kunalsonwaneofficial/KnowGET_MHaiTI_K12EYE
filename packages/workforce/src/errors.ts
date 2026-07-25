@@ -467,15 +467,3 @@ export class WorkforceProfileNotFoundError extends PlatformError {
     });
   }
 }
-
-/** An employee has at most one workforce profile. */
-export class DuplicateWorkforceProfileError extends PlatformError {
-  constructor(employeeId: string) {
-    super(`Employee "${employeeId}" already has a workforce profile`, {
-      code: "CONFLICT",
-      httpStatus: 409,
-      isOperational: true,
-      details: { employeeId },
-    });
-  }
-}

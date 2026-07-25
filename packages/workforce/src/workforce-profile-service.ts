@@ -1,6 +1,6 @@
 import type { EventBus } from "@knowget/events";
 import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
-import { EmployeeNotFoundError } from "./errors";
+import { EmployeeNotFoundError, WorkforceProfileNotFoundError } from "./errors";
 import { computeLeaveLedger } from "./leave-ledger";
 import type {
   EmployeeRepository,
@@ -99,6 +99,14 @@ export class WorkforceProfileService {
     await this.repository.save(refreshed);
     await this.emit(workforceProfileRefreshed(refreshed));
     return refreshed;
+  }
+
+  async getById(tenantId: TenantId, id: Uuid): Promise<WorkforceProfile> {
+    const profile = await this.repository.findById(tenantId, id);
+    if (!profile) {
+      throw new WorkforceProfileNotFoundError(id);
+    }
+    return profile;
   }
 
   async getByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<WorkforceProfile | null> {

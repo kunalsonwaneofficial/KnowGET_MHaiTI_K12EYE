@@ -1,6 +1,7 @@
 import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import { describe, expect, it } from "vitest";
 import { type Employee, activateEmployee, onboardEmployee } from "./employee";
+import { WorkforceProfileNotFoundError } from "./errors";
 import { grantEntitlement } from "./leave-entitlement";
 import { approveLeave, requestLeave } from "./leave-request";
 import {
@@ -108,6 +109,12 @@ describe("WorkforceProfileService", () => {
     expect(again.id).toBe(profile.id);
     expect(again.version).toBe(3);
     expect(await svc.list(TENANT)).toHaveLength(1);
+
+    // getById resolves the profile and throws for an unknown id
+    expect((await svc.getById(TENANT, profile.id)).employeeId).toBe(e.id);
+    await expect(
+      svc.getById(TENANT, "00000000-0000-0000-0000-000000000000" as Uuid),
+    ).rejects.toBeInstanceOf(WorkforceProfileNotFoundError);
   });
 
   it("rolls up an organization's live workforce by status and attrition risk", async () => {

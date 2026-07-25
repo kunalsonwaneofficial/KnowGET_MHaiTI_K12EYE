@@ -11,7 +11,11 @@ import {
   setContractTerms,
   terminateContract,
 } from "./employment-contract";
-import { ContractNotFoundError, EmployeeNotFoundError } from "./errors";
+import {
+  ContractNotFoundError,
+  EmployeeNotFoundError,
+  InvalidContractTransitionError,
+} from "./errors";
 import type { EmployeeRepository, EmploymentContractRepository } from "./ports";
 import { contractActivated, contractEnded, contractIssued } from "./workforce-events";
 
@@ -81,6 +85,13 @@ export class EmploymentContractService {
    */
   async activate(tenantId: TenantId, id: Uuid): Promise<EmploymentContract> {
     const contract = await this.require(tenantId, id);
+    // Validate the target is activatable BEFORE any destructive side effect: otherwise
+    // re-activating a non-draft (e.g. an already-expired version) while another contract is
+    // active would wrongly expire the good contract and emit a spurious event, then throw —
+    // leaving the employee with zero active contracts.
+    if (contract.status !== "draft") {
+      throw new InvalidContractTransitionError(contract.status, "active");
+    }
     const current = await this.repository.findActiveByEmployee(tenantId, contract.employeeId);
     let supersedes: Uuid | null = null;
     if (current && current.id !== contract.id) {

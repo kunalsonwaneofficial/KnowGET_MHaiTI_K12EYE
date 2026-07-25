@@ -56,4 +56,13 @@ export class WorkforceProfileController {
   ): Promise<WorkforceSummary> {
     return this.service.summarizeOrganization(tenantOf(principal), organizationId as Uuid, asOf);
   }
+
+  @RequirePermissions(WORKFORCE_READ)
+  @Get(":id")
+  async getById(
+    @CurrentPrincipal() principal: Principal,
+    @Param("id") id: string,
+  ): Promise<WorkforceProfile> {
+    return this.service.getById(tenantOf(principal), id as Uuid);
+  }
 }

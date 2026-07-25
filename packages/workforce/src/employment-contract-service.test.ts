@@ -2,7 +2,11 @@ import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import { describe, expect, it } from "vitest";
 import { type Employee, onboardEmployee } from "./employee";
 import { EmploymentContractService } from "./employment-contract-service";
-import { ContractNotEditableError, EmployeeNotFoundError } from "./errors";
+import {
+  ContractNotEditableError,
+  EmployeeNotFoundError,
+  InvalidContractTransitionError,
+} from "./errors";
 import { InMemoryEmployeeRepository, InMemoryEmploymentContractRepository } from "./ports";
 
 const TENANT = "11111111-1111-1111-1111-111111111111" as TenantId;
@@ -85,5 +89,23 @@ describe("EmploymentContractService", () => {
     await expect(svc.setGrade(TENANT, v1.id, "PGT-IV")).rejects.toBeInstanceOf(
       ContractNotEditableError,
     );
+  });
+
+  it("rejects re-activating a superseded version without disturbing the active one", async () => {
+    const { svc, employee, events } = await harness();
+    const v1 = await svc.issue(issue(employee.id));
+    await svc.activate(TENANT, v1.id);
+    const v2 = await svc.issue(issue(employee.id));
+    await svc.activate(TENANT, v2.id); // v1 now expired, v2 active
+    const eventCount = events.length;
+
+    // Re-activating v1 (now expired) must throw and leave v2 active — no side effects, no event.
+    await expect(svc.activate(TENANT, v1.id)).rejects.toBeInstanceOf(
+      InvalidContractTransitionError,
+    );
+    expect((await svc.getActiveForEmployee(TENANT, employee.id))?.id).toBe(v2.id);
+    expect((await svc.getById(TENANT, v2.id)).status).toBe("active");
+    expect((await svc.getById(TENANT, v1.id)).status).toBe("expired");
+    expect(events).toHaveLength(eventCount); // no spurious contract.ended
   });
 });
