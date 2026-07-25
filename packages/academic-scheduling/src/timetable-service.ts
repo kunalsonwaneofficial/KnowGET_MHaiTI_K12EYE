@@ -17,6 +17,8 @@ import {
   SectionNotFoundForSchedulingError,
   TimetableNotFoundError,
 } from "./errors";
+import { computeSchedulingIntelligence, type SchedulingIntelligence } from "./intelligence";
+import { computeTeacherWorkload, type TeacherWorkload } from "./workload";
 import type {
   AllocationConflictSource,
   ClassDirectory,
@@ -190,6 +192,26 @@ export class TimetableService {
 
   async listForOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Timetable[]> {
     return this.repository.listByOrganization(tenantId, organizationId);
+  }
+
+  /**
+   * Compute read-only scheduling intelligence for a timetable — utilisation, density,
+   * teacher-workload distribution, the current conflict count and optimisation hints — over
+   * the same conflict scope publication uses. Descriptive analytics only.
+   */
+  async intelligence(tenantId: TenantId, id: Uuid): Promise<SchedulingIntelligence> {
+    const timetable = await this.require(tenantId, id);
+    return computeSchedulingIntelligence(await this.gatherConflictInput(timetable));
+  }
+
+  /**
+   * Compute one teacher's workload across the timetable's conflict scope (its own slots plus
+   * those of the other published timetables in the same period).
+   */
+  async teacherWorkload(tenantId: TenantId, id: Uuid, teacherId: Uuid): Promise<TeacherWorkload> {
+    const timetable = await this.require(tenantId, id);
+    const { slots } = await this.gatherConflictInput(timetable);
+    return computeTeacherWorkload(slots, teacherId);
   }
 
   /**
