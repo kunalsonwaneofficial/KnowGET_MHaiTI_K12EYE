@@ -10,3 +10,12 @@ export * from "./learning-evidence-type";
 export * from "./instructional-view";
 // pure engine (instructional intelligence)
 export * from "./instructional-intelligence";
+// aggregates
+export * from "./academic-plan";
+export * from "./unit-plan";
+// events + ports
+export * from "./teaching-learning-events";
+export * from "./ports";
+// services
+export * from "./academic-plan-service";
+export * from "./unit-plan-service";

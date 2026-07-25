@@ -30,6 +30,18 @@ export class SubjectNotFoundForTeachingError extends PlatformError {
   }
 }
 
+/** The curriculum framework a unit plan aligns to does not exist (P2-D06). */
+export class CurriculumNotFoundForTeachingError extends PlatformError {
+  constructor(curriculumFrameworkId: string) {
+    super(`Curriculum framework "${curriculumFrameworkId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { curriculumFrameworkId },
+    });
+  }
+}
+
 /** The section a session/assignment references does not exist (P2-D06). */
 export class SectionNotFoundForTeachingError extends PlatformError {
   constructor(sectionId: string) {
