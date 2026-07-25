@@ -14,8 +14,13 @@ export * from "./assessment-intelligence";
 // aggregates
 export * from "./assessment-framework";
 export * from "./assessment-plan";
-// ports
+export * from "./assessment";
+export * from "./question-bank";
+// events + ports
+export * from "./assessment-evaluation-events";
 export * from "./ports";
 // services
 export * from "./assessment-framework-service";
 export * from "./assessment-plan-service";
+export * from "./assessment-service";
+export * from "./question-bank-service";
