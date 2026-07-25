@@ -9,3 +9,12 @@ export * from "./conflict";
 export * from "./conflict-engine";
 export * from "./workload";
 export * from "./intelligence";
+// aggregates
+export * from "./timetable";
+export * from "./schedule-slot";
+// events + ports
+export * from "./academic-scheduling-events";
+export * from "./ports";
+// services
+export * from "./timetable-service";
+export * from "./schedule-slot-service";
