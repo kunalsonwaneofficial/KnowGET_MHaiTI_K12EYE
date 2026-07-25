@@ -4,7 +4,9 @@ import type { AcademicCalendar } from "./academic-calendar";
 import type { AcademicClass } from "./academic-class";
 import type { CurriculumFramework } from "./curriculum-framework";
 import type { Grade } from "./grade";
+import type { LearningOutcome } from "./learning-outcome";
 import type { Section } from "./section";
+import type { Subject } from "./subject";
 
 // --- Academic calendar -----------------------------------------------------------
 export const ACADEMIC_YEAR_CREATED = "academic.year.created";
@@ -139,4 +141,58 @@ export const sectionCreated = (section: Section): SectionCreatedEvent =>
       capacity: section.capacity,
     },
     { tenantId: section.tenantId },
+  );
+
+// --- Subject ---------------------------------------------------------------------
+export const SUBJECT_REGISTERED = "academic.subject.registered";
+export const SUBJECT_UPDATED = "academic.subject.updated";
+
+export interface SubjectEventPayload {
+  readonly subjectId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly version: number;
+}
+
+export type SubjectRegisteredEvent = DomainEvent<typeof SUBJECT_REGISTERED, SubjectEventPayload>;
+export type SubjectUpdatedEvent = DomainEvent<typeof SUBJECT_UPDATED, SubjectEventPayload>;
+
+const subjectPayload = (subject: Subject): SubjectEventPayload => ({
+  subjectId: subject.id,
+  organizationId: subject.organizationId,
+  code: subject.code,
+  version: subject.version,
+});
+
+export const subjectRegistered = (subject: Subject): SubjectRegisteredEvent =>
+  createEvent(SUBJECT_REGISTERED, subjectPayload(subject), { tenantId: subject.tenantId });
+
+export const subjectUpdated = (subject: Subject): SubjectUpdatedEvent =>
+  createEvent(SUBJECT_UPDATED, subjectPayload(subject), { tenantId: subject.tenantId });
+
+// --- Learning outcome ------------------------------------------------------------
+export const LEARNING_OUTCOME_DEFINED = "academic.learning_outcome.defined";
+
+export interface LearningOutcomeDefinedPayload {
+  readonly learningOutcomeId: Uuid;
+  readonly organizationId: Uuid;
+  readonly subjectId: Uuid;
+  readonly code: string;
+}
+
+export type LearningOutcomeDefinedEvent = DomainEvent<
+  typeof LEARNING_OUTCOME_DEFINED,
+  LearningOutcomeDefinedPayload
+>;
+
+export const learningOutcomeDefined = (outcome: LearningOutcome): LearningOutcomeDefinedEvent =>
+  createEvent(
+    LEARNING_OUTCOME_DEFINED,
+    {
+      learningOutcomeId: outcome.id,
+      organizationId: outcome.organizationId,
+      subjectId: outcome.subjectId,
+      code: outcome.code,
+    },
+    { tenantId: outcome.tenantId },
   );

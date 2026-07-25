@@ -10,6 +10,8 @@ export * from "./curriculum-framework";
 export * from "./grade";
 export * from "./academic-class";
 export * from "./section";
+export * from "./subject";
+export * from "./learning-outcome";
 // events + ports
 export * from "./academic-structure-events";
 export * from "./ports";
@@ -20,3 +22,5 @@ export * from "./curriculum-framework-service";
 export * from "./grade-service";
 export * from "./academic-class-service";
 export * from "./section-service";
+export * from "./subject-service";
+export * from "./learning-outcome-service";

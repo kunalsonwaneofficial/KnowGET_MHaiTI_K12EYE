@@ -366,3 +366,103 @@ export class SectionClosedError extends PlatformError {
     });
   }
 }
+
+// --- Subject errors --------------------------------------------------------------
+
+/** The requested subject does not exist in the current tenant. */
+export class SubjectNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Subject "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An organization already has a subject with this code. */
+export class DuplicateSubjectError extends PlatformError {
+  constructor(organizationId: string, code: string) {
+    super(`Organization "${organizationId}" already has a subject with code "${code}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { organizationId, code },
+    });
+  }
+}
+
+/** A subject field (name, code) must carry a non-empty value. */
+export class EmptySubjectFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A subject must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** A subject's credit allocation must be a non-negative number. */
+export class InvalidCreditsError extends PlatformError {
+  constructor(credits: number) {
+    super(`Subject credits ${credits} must be a non-negative number`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { credits },
+    });
+  }
+}
+
+/** A subject cannot be its own prerequisite. */
+export class SelfPrerequisiteError extends PlatformError {
+  constructor(id: string) {
+    super(`Subject "${id}" cannot be its own prerequisite`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Learning outcome errors -----------------------------------------------------
+
+/** The requested learning outcome does not exist in the current tenant. */
+export class LearningOutcomeNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Learning outcome "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A subject already has a learning outcome with this code. */
+export class DuplicateLearningOutcomeError extends PlatformError {
+  constructor(subjectId: string, code: string) {
+    super(`Subject "${subjectId}" already has a learning outcome with code "${code}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { subjectId, code },
+    });
+  }
+}
+
+/** A learning-outcome field (code, statement) must carry a non-empty value. */
+export class EmptyLearningOutcomeFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A learning outcome must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
