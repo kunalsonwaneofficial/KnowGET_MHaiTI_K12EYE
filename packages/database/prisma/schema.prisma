@@ -1595,3 +1595,212 @@ model Participation {
   @@index([tenantId, participantId])
   @@map("participation")
 }
+
+/// AcademicPlan (P2-D09) — institutional instructional planning at a level (annual/term/
+/// department/subject), one per (organization, code), draft → published → archived. Tenant-owned: FORCE RLS.
+model AcademicPlan {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  planType       String    @map("plan_type")
+  code           String
+  title          String
+  academicYear   String?   @map("academic_year")
+  term           String?
+  subjectId      String?   @map("subject_id") @db.Uuid
+  objectives     Json      @default("[]")
+  fromDate       String?   @map("from_date")
+  toDate         String?   @map("to_date")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("academic_plan")
+}
+
+/// UnitPlan (P2-D09) — a subject-scoped sequence of learning experiences with curriculum
+/// alignment, outcomes, competencies, estimated time and assessment strategy. Tenant-owned: FORCE RLS.
+model UnitPlan {
+  id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                    String    @map("tenant_id") @db.Uuid
+  organizationId              String    @map("organization_id") @db.Uuid
+  subjectId                   String    @map("subject_id") @db.Uuid
+  academicPlanId              String?   @map("academic_plan_id") @db.Uuid
+  title                       String
+  sequence                    Int       @default(0)
+  curriculumFrameworkId       String?   @map("curriculum_framework_id") @db.Uuid
+  learningOutcomeIds          Json      @default("[]") @map("learning_outcome_ids")
+  competencies                Json      @default("[]")
+  estimatedInstructionalHours Float     @default(0) @map("estimated_instructional_hours")
+  assessmentStrategy          String?   @map("assessment_strategy")
+  status                      String    @default("draft")
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
+  createdBy                   String?   @map("created_by") @db.Uuid
+  updatedBy                   String?   @map("updated_by") @db.Uuid
+  deletedAt                   DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("unit_plan")
+}
+
+/// LessonPlan (P2-D09) — the version-controlled design of a lesson with a review/approval
+/// workflow (draft → in_review → approved → archived). Tenant-owned: FORCE RLS.
+model LessonPlan {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  subjectId                 String    @map("subject_id") @db.Uuid
+  unitPlanId                String?   @map("unit_plan_id") @db.Uuid
+  title                     String
+  objectives                Json      @default("[]")
+  learningOutcomeIds        Json      @default("[]") @map("learning_outcome_ids")
+  teachingStrategies        Json      @default("[]") @map("teaching_strategies")
+  learningActivities        Json      @default("[]") @map("learning_activities")
+  assessmentCheckpoints     Json      @default("[]") @map("assessment_checkpoints")
+  requiredResourceIds       Json      @default("[]") @map("required_resource_ids")
+  differentiationStrategies Json      @default("[]") @map("differentiation_strategies")
+  reflectionNotes           String?   @map("reflection_notes")
+  version                   Int       @default(1)
+  status                    String    @default("draft")
+  revisions                 Json      @default("[]")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdBy                 String?   @map("created_by") @db.Uuid
+  updatedBy                 String?   @map("updated_by") @db.Uuid
+  deletedAt                 DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@index([tenantId, unitPlanId])
+  @@map("lesson_plan")
+}
+
+/// LearningResource (P2-D09) — a version-controlled, tagged, curriculum-mapped library item
+/// reusable across lessons (draft → published → archived). Tenant-owned: FORCE RLS.
+model LearningResource {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  title              String
+  resourceType       String    @map("resource_type")
+  description        String?
+  url                String?
+  tags               Json      @default("[]")
+  subjectId          String?   @map("subject_id") @db.Uuid
+  learningOutcomeIds Json      @default("[]") @map("learning_outcome_ids")
+  version            Int       @default(1)
+  status             String    @default("draft")
+  revisions          Json      @default("[]")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@map("learning_resource")
+}
+
+/// ClassroomSession (P2-D09) — the delivery of a scheduled session capturing planned vs actual
+/// (scheduled → delivered → completed | cancelled). Tenant-owned: FORCE RLS.
+model ClassroomSession {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  scheduleSlotId      String?   @map("schedule_slot_id") @db.Uuid
+  lessonPlanId        String?   @map("lesson_plan_id") @db.Uuid
+  sectionId           String?   @map("section_id") @db.Uuid
+  subjectId           String?   @map("subject_id") @db.Uuid
+  title               String
+  date                String
+  plannedTopics       Json      @default("[]") @map("planned_topics")
+  actualTopicsCovered Json      @default("[]") @map("actual_topics_covered")
+  activitiesCompleted Json      @default("[]") @map("activities_completed")
+  resourcesUsedIds    Json      @default("[]") @map("resources_used_ids")
+  participation       Json?
+  teacherReflections  String?   @map("teacher_reflections")
+  status              String    @default("scheduled")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, sectionId])
+  @@index([tenantId, subjectId])
+  @@map("classroom_session")
+}
+
+/// Assignment (P2-D09) — scheduled work with a submission window and per-learner completion
+/// tracking (draft → published → closed); evaluation is the Assessment platform's. Tenant-owned: FORCE RLS.
+model Assignment {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  subjectId           String    @map("subject_id") @db.Uuid
+  sectionId           String?   @map("section_id") @db.Uuid
+  lessonPlanId        String?   @map("lesson_plan_id") @db.Uuid
+  title               String
+  assignmentType      String    @map("assignment_type")
+  instructions        String?
+  assignedDate        String?   @map("assigned_date")
+  dueDate             String?   @map("due_date")
+  submissionOpensAt   String?   @map("submission_opens_at")
+  submissionClosesAt  String?   @map("submission_closes_at")
+  status              String    @default("draft")
+  submissions         Json      @default("[]")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subjectId])
+  @@index([tenantId, sectionId])
+  @@map("assignment")
+}
+
+/// LearningEvidence (P2-D09) — a captured record that learning happened, about a Student and
+/// linked to the instructional activity that produced it. Tenant-owned: FORCE RLS.
+model LearningEvidence {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  studentId          String    @map("student_id") @db.Uuid
+  evidenceType       String    @map("evidence_type")
+  activityKind       String    @map("activity_kind")
+  activityId         String    @map("activity_id") @db.Uuid
+  subjectId          String?   @map("subject_id") @db.Uuid
+  learningOutcomeIds Json      @default("[]") @map("learning_outcome_ids")
+  title              String
+  description        String?
+  capturedAt         String    @map("captured_at")
+  capturedBy         String?   @map("captured_by") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, activityKind, activityId])
+  @@map("learning_evidence")
+}
