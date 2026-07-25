@@ -2,13 +2,13 @@
 
 **Learning Intelligence & Educational Insights Platform (LIEIP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D11 — Learning Intelligence & Educational Insights Platform                                                                                                                                     |
-| **Status**     | 🟡 Awaiting CI — PR open. Gates green in-sandbox (full monorepo typecheck 101/101, build 54/54, `@knowget/learning-intelligence` 31 tests, `apps/api` 190 tests); RLS verified on live PostgreSQL. |
-| **Depends on** | P2-D10 (Assessment, ADR-0029), P2-D08/D09 (Attendance, Teaching-Learning), P2-D05 (Wellbeing), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                   |
-| **Date**       | 1 November 2026                                                                                                                                                                                    |
-| **Next**       | P2-D12 — Human Capital & Workforce Intelligence Platform (Program: Workforce, Finance & Resources)                                                                                                 |
+|                |                                                                                                                                                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D11 — Learning Intelligence & Educational Insights Platform                                                                                                                                                               |
+| **Status**     | ✅ Complete — CI green; merged to main (`6edc0b1`). Gates green in-sandbox (full monorepo typecheck 101/101, build 54/54, `@knowget/learning-intelligence` 31 tests, `apps/api` 190 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D10 (Assessment, ADR-0029), P2-D08/D09 (Attendance, Teaching-Learning), P2-D05 (Wellbeing), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                             |
+| **Date**       | 1 November 2026                                                                                                                                                                                                              |
+| **Next**       | P2-D12 — Human Capital & Workforce Intelligence Platform (Program: Workforce, Finance & Resources)                                                                                                                           |
 
 ---
 
