@@ -12,6 +12,7 @@ import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
 import { RelationshipModule } from "./domains/relationship/relationship.module";
+import { ResourceModule } from "./domains/resource/resource.module";
 import { RolesModule } from "./domains/roles/roles.module";
 import { FacultyExcellenceModule } from "./domains/faculty-excellence/faculty-excellence.module";
 import { FinancialModule } from "./domains/financial/financial.module";
@@ -94,6 +95,7 @@ const persistedServices =
     WorkforceModule,
     FacultyExcellenceModule,
     FinancialModule,
+    ResourceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

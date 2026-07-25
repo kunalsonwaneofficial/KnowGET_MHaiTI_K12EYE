@@ -2830,3 +2830,219 @@ model StudentFinancialAccount {
   @@index([tenantId, organizationId])
   @@map("student_financial_account")
 }
+
+/// Supplier (P2-D15) — a vendor the institution procures from; active <-> suspended -> blacklisted,
+/// code unique per tenant. Tenant-owned: FORCE RLS.
+model Supplier {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  category       String?
+  contactEmail   String?   @map("contact_email")
+  contactPhone   String?   @map("contact_phone")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("supplier")
+}
+
+/// InventoryItem (P2-D15) — a stockable good (unit of measure, reorder level, optional standard cost
+/// as BIGINT minor units for valuation); active <-> discontinued, sku unique per tenant. RLS.
+model InventoryItem {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  sku              String
+  name             String
+  category         String?
+  unitOfMeasure    String    @map("unit_of_measure")
+  reorderLevel     Int       @default(0) @map("reorder_level")
+  standardCostMinor BigInt?  @map("standard_cost_minor")
+  currency         String?
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("inventory_item")
+}
+
+/// StockMovement (P2-D15) — an append-only stock ledger entry (receipt/issue/adjustment; signed
+/// quantity). The pure stock-balance engine reconciles movements into on-hand. Tenant-owned: RLS.
+model StockMovement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  itemId         String    @map("item_id") @db.Uuid
+  type           String
+  quantity       Int
+  reason         String?
+  reference      String?
+  occurredAt     String    @map("occurred_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, itemId])
+  @@index([tenantId, organizationId])
+  @@map("stock_movement")
+}
+
+/// PurchaseRequisition (P2-D15) — an internal request to buy (lines JSONB with estimated costs);
+/// draft -> submitted -> approved | rejected. Tenant-owned: FORCE RLS.
+model PurchaseRequisition {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  requesterId    String    @map("requester_id") @db.Uuid
+  title          String
+  justification  String?
+  currency       String
+  lines          Json      @default("[]")
+  status         String    @default("draft")
+  reviewNote     String?   @map("review_note")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, requesterId])
+  @@index([tenantId, organizationId])
+  @@map("purchase_requisition")
+}
+
+/// PurchaseOrder (P2-D15) — an order to a supplier (lines JSONB with quantity, unit price and
+/// received quantity); draft -> issued -> partially_received | received -> closed | cancelled,
+/// number unique per tenant. Tenant-owned: FORCE RLS.
+model PurchaseOrder {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  supplierId     String    @map("supplier_id") @db.Uuid
+  number         String
+  currency       String
+  requisitionId  String?   @map("requisition_id") @db.Uuid
+  expectedDate   String?   @map("expected_date")
+  lines          Json      @default("[]")
+  status         String    @default("draft")
+  issuedAt       String?   @map("issued_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
+  @@index([tenantId, supplierId])
+  @@index([tenantId, organizationId])
+  @@map("purchase_order")
+}
+
+/// Asset (P2-D15) — a fixed asset (acquisition cost, salvage and useful life as BIGINT minor units +
+/// months for straight-line depreciation); in_service <-> under_maintenance -> retired -> disposed,
+/// tag unique per tenant. Tenant-owned: FORCE RLS.
+model Asset {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  assetTag            String    @map("asset_tag")
+  name                String
+  category            String?
+  custodianId         String?   @map("custodian_id") @db.Uuid
+  location            String?
+  acquisitionCostMinor BigInt   @map("acquisition_cost_minor")
+  salvageValueMinor   BigInt    @map("salvage_value_minor")
+  currency            String
+  acquisitionDate     String    @map("acquisition_date")
+  usefulLifeMonths    Int       @map("useful_life_months")
+  status              String    @default("in_service")
+  retiredAt           String?   @map("retired_at")
+  disposedAt          String?   @map("disposed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, assetTag])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, custodianId])
+  @@map("asset")
+}
+
+/// AssetMaintenance (P2-D15) — a maintenance record against an asset (optional actual cost as BIGINT
+/// minor units); scheduled -> completed | cancelled. Tenant-owned: FORCE RLS.
+model AssetMaintenance {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  assetId        String    @map("asset_id") @db.Uuid
+  description    String
+  scheduledDate  String?   @map("scheduled_date")
+  performedDate  String?   @map("performed_date")
+  costMinor      BigInt?   @map("cost_minor")
+  currency       String?
+  status         String    @default("scheduled")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, assetId])
+  @@index([tenantId, organizationId])
+  @@map("asset_maintenance")
+}
+
+/// InventoryPosition (P2-D15) — the descriptive stock read model per item, refreshed from the pure
+/// stock-balance engine (stock value as BIGINT minor units); one per item. Tenant-owned: FORCE RLS.
+model InventoryPosition {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  itemId             String    @map("item_id") @db.Uuid
+  sku                String
+  onHandQuantity     Int       @default(0) @map("on_hand_quantity")
+  receivedQuantity   Int       @default(0) @map("received_quantity")
+  issuedQuantity     Int       @default(0) @map("issued_quantity")
+  adjustmentQuantity Int       @default(0) @map("adjustment_quantity")
+  reorderLevel       Int       @default(0) @map("reorder_level")
+  belowReorder       Boolean   @default(false) @map("below_reorder")
+  stockValueMinor    BigInt?   @map("stock_value_minor")
+  currency           String?
+  version            Int       @default(1)
+  refreshedAt        String?   @map("refreshed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, itemId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("inventory_position")
+}

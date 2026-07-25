@@ -51,6 +51,7 @@
     "@knowget/organization": "workspace:*",
     "@knowget/person": "workspace:*",
     "@knowget/relationship": "workspace:*",
+    "@knowget/resource": "workspace:*",
     "@knowget/roles": "workspace:*",
     "@knowget/search": "workspace:*",
     "@knowget/security": "workspace:*",
