@@ -1250,3 +1250,171 @@ model LearningOutcome {
   @@index([tenantId, subjectId])
   @@map("learning_outcome")
 }
+
+/// Timetable (P2-D07) — an official institutional timetable for a grade (optionally a
+/// specific class/section) in an academic year and term; version-controlled (counter + Json
+/// revision log) across a draft/published/archived lifecycle. One per (organization, code).
+/// Tenant-owned: FORCE RLS.
+model Timetable {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  academicYear   String    @map("academic_year")
+  term           String?
+  gradeId        String    @map("grade_id") @db.Uuid
+  classId        String?   @map("class_id") @db.Uuid
+  sectionId      String?   @map("section_id") @db.Uuid
+  version        Int       @default(1)
+  status         String    @default("draft")
+  revisions      Json      @default("[]")
+  publishedAt    DateTime? @map("published_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("timetable")
+}
+
+/// Schedule slot (P2-D07) — a scheduled instructional period within a timetable (day, HH:MM
+/// time range, subject, teacher, section, optional class/venue). One per (timetable, day,
+/// start, section). Tenant-owned: FORCE RLS.
+model ScheduleSlot {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  timetableId    String    @map("timetable_id") @db.Uuid
+  dayOfWeek      String    @map("day_of_week")
+  startsAt       String    @map("starts_at")
+  endsAt         String    @map("ends_at")
+  subjectId      String    @map("subject_id") @db.Uuid
+  teacherId      String    @map("teacher_id") @db.Uuid
+  classId        String?   @map("class_id") @db.Uuid
+  sectionId      String    @map("section_id") @db.Uuid
+  venueId        String?   @map("venue_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, timetableId, dayOfWeek, startsAt, sectionId])
+  @@index([tenantId])
+  @@index([tenantId, timetableId])
+  @@map("schedule_slot")
+}
+
+/// Resource (P2-D07) — a schedulable institutional resource (classroom, laboratory, etc.)
+/// with optional capacity/location and recurring Json availability windows, across an
+/// available/maintenance/retired lifecycle. One per (organization, code). Tenant-owned: FORCE RLS.
+model Resource {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  code                String
+  name                String
+  kind                String
+  capacity            Int?
+  location            String?
+  availabilityWindows Json      @default("[]") @map("availability_windows")
+  status              String    @default("available")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("resource")
+}
+
+/// Allocation (P2-D07) — assignment of a teacher/classroom/laboratory/equipment to a
+/// recurring weekly window, optionally backing a schedule slot and/or section, across an
+/// allocated/released lifecycle. Tenant-owned: FORCE RLS.
+model Allocation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  resourceKind   String    @map("resource_kind")
+  resourceId     String    @map("resource_id") @db.Uuid
+  scheduleSlotId String?   @map("schedule_slot_id") @db.Uuid
+  sectionId      String?   @map("section_id") @db.Uuid
+  dayOfWeek      String    @map("day_of_week")
+  startsAt       String    @map("starts_at")
+  endsAt         String    @map("ends_at")
+  occupancy      Int?
+  status         String    @default("allocated")
+  releasedAt     DateTime? @map("released_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, resourceId])
+  @@index([tenantId, scheduleSlotId])
+  @@map("allocation")
+}
+
+/// Scheduling policy (P2-D07) — a configurable, version-controlled institutional constraint
+/// (rule type + Json parameters) with a counter and Json revision log, across a
+/// draft/active/archived lifecycle. One per (organization, code). Tenant-owned: FORCE RLS.
+model SchedulingPolicy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  ruleType       String    @map("rule_type")
+  parameters     Json      @default("{}")
+  description    String?
+  version        Int       @default(1)
+  status         String    @default("draft")
+  revisions      Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("scheduling_policy")
+}
+
+/// Substitution (P2-D07) — a tracked, auditable override of a schedule slot's teacher or
+/// venue, recorded against the slot with an optional date, across an
+/// assigned/cancelled/completed lifecycle. Tenant-owned: FORCE RLS.
+model Substitution {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  scheduleSlotId   String    @map("schedule_slot_id") @db.Uuid
+  substitutionType String    @map("substitution_type")
+  originalId       String    @map("original_id") @db.Uuid
+  replacementId    String    @map("replacement_id") @db.Uuid
+  reason           String?
+  date             String?
+  status           String    @default("assigned")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, scheduleSlotId])
+  @@map("substitution")
+}

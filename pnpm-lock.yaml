@@ -68,7 +68,7 @@ importers:
         version: 10.5.4(postcss@8.5.19)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@2.6.1)
+        version: 9.39.5(jiti@1.21.7)
       postcss:
         specifier: ^8.4.49
         version: 8.5.19
@@ -84,6 +84,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@knowget/academic-scheduling':
+        specifier: workspace:*
+        version: link:../../packages/academic-scheduling
       '@knowget/academic-structure':
         specifier: workspace:*
         version: link:../../packages/academic-structure
@@ -289,7 +292,7 @@ importers:
         version: 10.5.4(postcss@8.5.19)
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5(jiti@1.21.7)
+        version: 9.39.5(jiti@2.6.1)
       postcss:
         specifier: ^8.4.49
         version: 8.5.19
