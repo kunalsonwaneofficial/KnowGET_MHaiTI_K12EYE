@@ -67,6 +67,10 @@ describe("SubjectService", () => {
     expect(withPrereq.prerequisites).toEqual([math.id]);
     expect(withPrereq.version).toBe(4); // register + kind + credits + prereq
     expect(events.filter((e) => e.type === "academic.subject.updated")).toHaveLength(3);
+    // adding the same prerequisite again is an idempotent no-op: no version bump, no event
+    const again = await svc.addPrerequisite(TENANT, physics.id, math.id);
+    expect(again.version).toBe(4);
+    expect(events.filter((e) => e.type === "academic.subject.updated")).toHaveLength(3);
     await expect(svc.addPrerequisite(TENANT, physics.id, UNKNOWN)).rejects.toBeInstanceOf(
       SubjectNotFoundError,
     );

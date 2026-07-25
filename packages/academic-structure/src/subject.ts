@@ -118,11 +118,15 @@ export function addPrerequisite(subject: Subject, prerequisiteId: Uuid): Subject
   return bump(subject, { prerequisites: [...subject.prerequisites, prerequisiteId] });
 }
 
-/** Remove a prerequisite subject. */
-export const removePrerequisite = (subject: Subject, prerequisiteId: Uuid): Subject =>
-  bump(subject, {
+/** Remove a prerequisite subject (idempotent — a no-op if it is not present). */
+export function removePrerequisite(subject: Subject, prerequisiteId: Uuid): Subject {
+  if (!subject.prerequisites.includes(prerequisiteId)) {
+    return subject;
+  }
+  return bump(subject, {
     prerequisites: subject.prerequisites.filter((p) => p !== prerequisiteId),
   });
+}
 
 /** Archive the subject. */
 export const archiveSubject = (subject: Subject): Subject => bump(subject, { status: "archived" });

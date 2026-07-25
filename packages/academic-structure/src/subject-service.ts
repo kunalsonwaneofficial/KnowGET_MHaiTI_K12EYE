@@ -128,7 +128,13 @@ export class SubjectService {
     id: Uuid,
     fn: (subject: Subject) => Subject,
   ): Promise<Subject> {
-    const updated = fn(await this.require(tenantId, id));
+    const current = await this.require(tenantId, id);
+    const updated = fn(current);
+    // Idempotent transitions (e.g. adding a prerequisite that is already present)
+    // return the same object with no version bump — do not save or emit for a no-op.
+    if (updated === current) {
+      return current;
+    }
     await this.repository.save(updated);
     await this.emit(subjectUpdated(updated));
     return updated;
