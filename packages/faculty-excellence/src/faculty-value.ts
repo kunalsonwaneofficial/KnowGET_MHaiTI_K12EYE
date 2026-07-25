@@ -20,17 +20,13 @@ export const OBSERVATION_TYPES = ["formal", "informal", "peer", "learning_walk",
 
 export type ObservationType = (typeof OBSERVATION_TYPES)[number];
 
-/** The lifecycle of a coaching engagement (a coach↔coachee cycle). */
+/**
+ * The lifecycle of a coaching engagement (a coach↔coachee cycle). "Running" (sessions may be logged)
+ * means `active` specifically — see {@link isEngagementRunning} in `coaching-engagement.ts`.
+ */
 export const ENGAGEMENT_STATUSES = ["proposed", "active", "completed", "cancelled"] as const;
 
 export type EngagementStatus = (typeof ENGAGEMENT_STATUSES)[number];
-
-/** The terminal engagement statuses — an engagement here is no longer running. */
-export const TERMINAL_ENGAGEMENT_STATUSES: readonly EngagementStatus[] = ["completed", "cancelled"];
-
-/** Whether a coaching engagement is still running (non-terminal). */
-export const isEngagementActive = (status: EngagementStatus): boolean =>
-  !TERMINAL_ENGAGEMENT_STATUSES.includes(status);
 
 /** The lifecycle of a professional-development activity. Only a `completed` activity earns hours. */
 export const ACTIVITY_STATUSES = ["planned", "enrolled", "completed", "cancelled"] as const;
