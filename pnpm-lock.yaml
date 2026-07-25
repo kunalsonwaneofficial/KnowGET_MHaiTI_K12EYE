@@ -93,6 +93,9 @@ importers:
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting
+      '@knowget/attendance-presence':
+        specifier: workspace:*
+        version: link:../../packages/attendance-presence
       '@knowget/auth':
         specifier: workspace:*
         version: link:../../packages/auth

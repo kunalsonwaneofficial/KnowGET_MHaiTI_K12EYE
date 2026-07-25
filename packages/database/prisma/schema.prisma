@@ -1418,3 +1418,180 @@ model Substitution {
   @@index([tenantId, scheduleSlotId])
   @@map("substitution")
 }
+
+/// Attendance session (P2-D08) — a scheduled attendance event (academic period bound to a
+/// P2-D07 schedule slot, or a standalone examination/event/activity/meeting/club session);
+/// scheduled/open/closed/cancelled. One academic session per (schedule slot, date).
+/// Tenant-owned: FORCE RLS.
+model AttendanceSession {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  sessionType    String    @map("session_type")
+  title          String
+  date           String
+  scheduleSlotId String?   @map("schedule_slot_id") @db.Uuid
+  sectionId      String?   @map("section_id") @db.Uuid
+  subjectId      String?   @map("subject_id") @db.Uuid
+  startsAt       String?   @map("starts_at")
+  endsAt         String?   @map("ends_at")
+  status         String    @default("scheduled")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, scheduleSlotId, date])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("attendance_session")
+}
+
+/// Attendance record (P2-D08) — one participant's state (8 statuses, provider-agnostic
+/// method) in one session, with an append-only correction log (JSONB) and a version counter;
+/// immutable, auditable. One per (session, participant). Tenant-owned: FORCE RLS.
+model AttendanceRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  sessionId       String    @map("session_id") @db.Uuid
+  participantId   String    @map("participant_id") @db.Uuid
+  participantType String    @map("participant_type")
+  status          String
+  method          String
+  date            String
+  recordedAt      DateTime  @map("recorded_at")
+  recordedBy      String?   @map("recorded_by") @db.Uuid
+  remarks         String?
+  corrections     Json      @default("[]")
+  version         Int       @default(1)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, sessionId, participantId])
+  @@index([tenantId])
+  @@index([tenantId, sessionId])
+  @@index([tenantId, participantId])
+  @@map("attendance_record")
+}
+
+/// Leave (P2-D08) — a leave request over a date range (student/staff/medical/emergency/
+/// approved-absence), with supporting documents (JSONB), across a requested/approved/
+/// rejected/cancelled workflow. Integrates with attendance rather than replacing it.
+/// Tenant-owned: FORCE RLS.
+model Leave {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  personId            String    @map("person_id") @db.Uuid
+  holderType          String    @map("holder_type")
+  leaveType           String    @map("leave_type")
+  fromDate            String    @map("from_date")
+  toDate              String    @map("to_date")
+  reason              String
+  supportingDocuments Json      @default("[]") @map("supporting_documents")
+  status              String    @default("requested")
+  reviewedBy          String?   @map("reviewed_by") @db.Uuid
+  reviewedAt          DateTime? @map("reviewed_at")
+  decisionNote        String?   @map("decision_note")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, personId])
+  @@map("leave")
+}
+
+/// Attendance policy (P2-D08) — a configurable, version-controlled institutional attendance
+/// rule (rule type + JSONB parameters) with a counter and revision log, across
+/// draft/active/archived. One per (organization, code). Tenant-owned: FORCE RLS.
+model AttendancePolicy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  ruleType       String    @map("rule_type")
+  parameters     Json      @default("{}")
+  description    String?
+  version        Int       @default(1)
+  status         String    @default("draft")
+  revisions      Json      @default("[]")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("attendance_policy")
+}
+
+/// Presence profile (P2-D08) — a participant's longitudinal presence indicators (attendance %,
+/// punctuality, absenteeism, participation, engagement, risk; anomalies as JSONB), a
+/// materialised snapshot with a version counter. One per participant. Tenant-owned: FORCE RLS.
+model PresenceProfile {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  participantId          String    @map("participant_id") @db.Uuid
+  attendancePercentage   Float     @map("attendance_percentage")
+  punctualityRate        Float     @map("punctuality_rate")
+  longestAbsentStreak    Int       @map("longest_absent_streak")
+  chronicAbsenteeism     Boolean   @map("chronic_absenteeism")
+  participationCount     Int       @map("participation_count")
+  participationDiversity Int       @map("participation_diversity")
+  leaveCount             Int       @map("leave_count")
+  engagementScore        Float     @map("engagement_score")
+  riskLevel              String    @map("risk_level")
+  anomalies              Json      @default("[]")
+  lastComputedAt         DateTime? @map("last_computed_at")
+  version                Int       @default(1)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@unique([tenantId, participantId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("presence_profile")
+}
+
+/// Participation (P2-D08) — a record of a participant's co-curricular involvement (club/sport/
+/// cultural/competition/institutional-event/community-service), optionally linked to a
+/// session, with an engagement level. Tenant-owned: FORCE RLS.
+model Participation {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  participantId   String    @map("participant_id") @db.Uuid
+  activityType    String    @map("activity_type")
+  activityName    String    @map("activity_name")
+  date            String
+  sessionId       String?   @map("session_id") @db.Uuid
+  role            String?
+  engagementLevel String?   @map("engagement_level")
+  remarks         String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, participantId])
+  @@map("participation")
+}
