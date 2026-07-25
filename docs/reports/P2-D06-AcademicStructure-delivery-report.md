@@ -2,13 +2,13 @@
 
 **Academic Structure & Curriculum Platform (ASCP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D06 — Academic Structure & Curriculum Platform                                                                                                                                         |
-| **Status**     | ✅ Engineered — gates green in-sandbox (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. Branch `feat/p2-d06-academic-structure` pushed; PR open, awaiting CI. |
-| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                                                                                                       |
-| **Date**       | 21 July 2026                                                                                                                                                                              |
-| **Next**       | P2-D07 — Enterprise Academic Scheduling & Resource Orchestration Platform (EASROP)                                                                                                        |
+|                |                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D06 — Academic Structure & Curriculum Platform                                                                                                       |
+| **Status**     | ✅ Complete — CI green; merged to main (`14786ec`). Gates green in-sandbox (build, lint, typecheck, full test suites); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D01 (Identity & Organization, `v0.2.0`), P2-D02…D05, Phase 1 baseline (`v0.1.0`)                                                                     |
+| **Date**       | 21 July 2026                                                                                                                                            |
+| **Next**       | P2-D07 — Enterprise Academic Scheduling & Resource Orchestration Platform (EASROP)                                                                      |
 
 ---
 
