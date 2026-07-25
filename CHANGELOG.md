@@ -3,6 +3,61 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
+## [Unreleased] — P2-D13 · Program: Workforce & Operations · Faculty Excellence, Coaching & Professional Growth Platform
+
+The second contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core,
+and the P2-D12 workforce base. The **professional-growth system of record for staff**, delivered as
+one `@knowget/faculty-excellence` package (ADR-0032): the coaching and professional development the
+workforce domain explicitly deferred. Development, not prediction — the faculty-growth band is the
+transparent mapping of observed-practice ratings onto an ascending scale, with prediction deferred to
+the intelligence core (P2-D28); a staff member is a validated Employee (P2-D12), never duplicated.
+
+### Added
+
+- **Faculty Excellence, Coaching & Professional Growth Platform (ADR-0032):** eight aggregates in one
+  `@knowget/faculty-excellence` package — **CompetencyFramework** (the institution's practice rubric,
+  a named set of competency standards; draft → active → archived, competencies frozen once active),
+  **Observation** (a classroom/practice observation scored against the framework — per-competency 1–4
+  ratings with evidence, an overall mean rating and strengths/growth notes; scheduled → conducted →
+  shared → acknowledged, only **acknowledged** counting toward growth standing), **CoachingEngagement**
+  (a coach↔coachee cycle; proposed → active → completed | cancelled, at most one active per coachee),
+  **CoachingSession** (a logged session within an active engagement), **DevelopmentRequirement** (the
+  CPD mandate — required hours per category per period), **ProfessionalLearningActivity** (a piece of
+  CPD with hours; planned → enrolled → completed | cancelled, only **completed** earning hours),
+  **DevelopmentGoal** (a growth objective; draft → active → achieved | abandoned, recording a reasoned
+  outcome) and **FacultyProfile** (the descriptive, AI-ready indicator snapshot per employee, one per
+  employee, **refreshed** by the growth engine). Each is a pure aggregate behind a repository port, a
+  Prisma/RLS adapter at the composition root, an application service on the event bus, and a
+  permission-gated, tenant-scoped REST controller.
+- **Two pure engines, built and tested first:** `computeDevelopmentLedger` (reconciles CPD
+  requirements against completed activities into a per-category compliance ledger — required/
+  completed/remaining and a rate that credits completion only **up to each requirement**, so a surplus
+  never masks a deficit; division-safe, clamped 0–100) and `computeFacultyGrowth` / `summarizeFaculty`
+  (acknowledged-observation practice standing, goal progress and PD compliance → a transparent growth
+  band `emerging < developing < proficient < distinguished`, and the leadership rollup).
+- **Persistence:** eight tables (`competency_framework`, `observation`, `coaching_engagement`,
+  `coaching_session`, `development_requirement`, `professional_learning_activity`, `development_goal`,
+  `faculty_profile`) under **FORCE ROW LEVEL SECURITY** with the standard `tenant_isolation` policy
+  (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; tenant-scoped DB unique indexes
+  (framework code, one requirement per (employee, category, period), one profile per employee); a
+  framework's competencies and an observation's ratings as non-null JSONB.
+- **API surface:** seven permission-gated (`faculty:read` / `faculty:write`), tenant-scoped REST
+  controllers over the full lifecycle of each aggregate, the reconciled CPD ledger and the
+  organization rollup; zod request DTOs; Organization (P2-D01-M01) and Employee (P2-D12) directory
+  ports (the employee directory resolves both existence and the employee's organization);
+  `FacultyExcellenceModule` importing the Organization + Workforce modules, registered in `app.module`.
+- **Faculty domain events** on the platform bus — framework created/activated/archived; observation
+  conducted/shared/acknowledged; coaching proposed/accepted/completed and session logged; PD planned/
+  completed; goal activated/achieved; faculty profile refreshed.
+
+### Notes
+
+- **Boundaries held:** the faculty-growth band is descriptive/explainable, never a prediction (P2-D28);
+  a staff member is an Employee (P2-D12), referenced not duplicated; no compensation, LMS or
+  recruitment scope. Cross-domain references enter through directory ports; soft framework/engagement/
+  competency references are stored against the validated Employee/Organization anchor (**TD-33**).
+  Domain Prisma adapters remain at the composition root (**TD-21**).
+
 ## [Unreleased] — P2-D12 · Program: Workforce & Operations · Workforce & Human Capital Platform
 
 The first contract of **Program C** — the operational institution beyond the learner and academic
