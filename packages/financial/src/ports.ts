@@ -1,8 +1,12 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Concession } from "./concession";
 import type { FeeStructure } from "./fee-structure";
 import type { FinancialPeriod } from "./financial-period";
 import type { Invoice } from "./invoice";
+import type { PayComponentInput } from "./pay-component";
 import type { Payment } from "./payment";
+import type { PayrollRun } from "./payroll-run";
+import type { Payslip } from "./payslip";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the
@@ -22,6 +26,25 @@ export interface OrganizationDirectory {
 export interface StudentDirectory {
   exists(tenantId: TenantId, studentId: Uuid): Promise<boolean>;
   organizationOf(tenantId: TenantId, studentId: Uuid): Promise<Uuid | null>;
+}
+
+/** The base earnings drawn from an employee's compensation band (P2-D12 grade/band). */
+export interface EmployeeEarnings {
+  readonly currency: string;
+  readonly components: readonly PayComponentInput[];
+}
+
+/**
+ * Read model over the workforce domain (P2-D12): a staff member paid here is an Employee. `exists`
+ * answers presence; `organizationOf` resolves the employee's organization; `baseEarnings` turns the
+ * employee's grade/band into the concrete earning lines a payslip is seeded from (or `null` if the
+ * employee, or their band, is unknown). The finance domain links to workforce and never depends on
+ * `@knowget/workforce` directly.
+ */
+export interface EmployeeCompensationDirectory {
+  exists(tenantId: TenantId, employeeId: Uuid): Promise<boolean>;
+  organizationOf(tenantId: TenantId, employeeId: Uuid): Promise<Uuid | null>;
+  baseEarnings(tenantId: TenantId, employeeId: Uuid): Promise<EmployeeEarnings | null>;
 }
 
 /** Storage contract for financial periods. Tenant-scoped (explicit argument + RLS). */
@@ -210,6 +233,158 @@ export class InMemoryPaymentRepository implements PaymentRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const payment = this.byId.get(id);
     if (payment && payment.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for concessions. Tenant-scoped (explicit argument + RLS). */
+export interface ConcessionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Concession | null>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Concession[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Concession[]>;
+  listByTenant(tenantId: TenantId): Promise<Concession[]>;
+  save(concession: Concession): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ConcessionRepository} — the default for tests and bootstrap. */
+export class InMemoryConcessionRepository implements ConcessionRepository {
+  private readonly byId = new Map<string, Concession>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Concession | null> {
+    const concession = this.byId.get(id);
+    return concession && concession.tenantId === tenantId ? concession : null;
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<Concession[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Concession[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Concession[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(concession: Concession): Promise<void> {
+    this.byId.set(concession.id, concession);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const concession = this.byId.get(id);
+    if (concession && concession.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for payroll runs. Tenant-scoped (explicit argument + RLS). */
+export interface PayrollRunRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<PayrollRun | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PayrollRun[]>;
+  listByTenant(tenantId: TenantId): Promise<PayrollRun[]>;
+  save(run: PayrollRun): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PayrollRunRepository} — the default for tests and bootstrap. */
+export class InMemoryPayrollRunRepository implements PayrollRunRepository {
+  private readonly byId = new Map<string, PayrollRun>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<PayrollRun | null> {
+    const run = this.byId.get(id);
+    return run && run.tenantId === tenantId ? run : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<PayrollRun[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<PayrollRun[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(run: PayrollRun): Promise<void> {
+    this.byId.set(run.id, run);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const run = this.byId.get(id);
+    if (run && run.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for payslips. Tenant-scoped (explicit argument + RLS). */
+export interface PayslipRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Payslip | null>;
+  findByRunAndEmployee(
+    tenantId: TenantId,
+    payrollRunId: Uuid,
+    employeeId: Uuid,
+  ): Promise<Payslip | null>;
+  listByRun(tenantId: TenantId, payrollRunId: Uuid): Promise<Payslip[]>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<Payslip[]>;
+  listByTenant(tenantId: TenantId): Promise<Payslip[]>;
+  save(payslip: Payslip): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PayslipRepository} — the default for tests and bootstrap. */
+export class InMemoryPayslipRepository implements PayslipRepository {
+  private readonly byId = new Map<string, Payslip>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Payslip | null> {
+    const payslip = this.byId.get(id);
+    return payslip && payslip.tenantId === tenantId ? payslip : null;
+  }
+
+  async findByRunAndEmployee(
+    tenantId: TenantId,
+    payrollRunId: Uuid,
+    employeeId: Uuid,
+  ): Promise<Payslip | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) =>
+          p.tenantId === tenantId && p.payrollRunId === payrollRunId && p.employeeId === employeeId,
+      ) ?? null
+    );
+  }
+
+  async listByRun(tenantId: TenantId, payrollRunId: Uuid): Promise<Payslip[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.payrollRunId === payrollRunId,
+    );
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<Payslip[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Payslip[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(payslip: Payslip): Promise<void> {
+    this.byId.set(payslip.id, payslip);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const payslip = this.byId.get(id);
+    if (payslip && payslip.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

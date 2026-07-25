@@ -1,9 +1,12 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Concession } from "./concession";
 import { type FeeStructure, feeStructureTotal } from "./fee-structure";
 import type { FinancialPeriod } from "./financial-period";
 import { type Invoice, invoiceTotalMinor } from "./invoice";
 import type { Payment } from "./payment";
+import type { PayrollRun } from "./payroll-run";
+import { type Payslip, payslipGrossMinor, payslipNetMinor } from "./payslip";
 
 // --- Financial period ------------------------------------------------------------
 export const PERIOD_OPENED = "finance.period.opened";
@@ -177,3 +180,132 @@ export const paymentFailed = (payment: Payment): PaymentFailedEvent =>
 
 export const paymentRefunded = (payment: Payment): PaymentRefundedEvent =>
   createEvent(PAYMENT_REFUNDED, paymentPayload(payment), { tenantId: payment.tenantId });
+
+// --- Concession ------------------------------------------------------------------
+export const CONCESSION_REQUESTED = "finance.concession.requested";
+export const CONCESSION_APPROVED = "finance.concession.approved";
+export const CONCESSION_REJECTED = "finance.concession.rejected";
+export const CONCESSION_REVOKED = "finance.concession.revoked";
+
+export interface ConcessionEventPayload {
+  readonly concessionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly studentId: Uuid;
+  readonly type: string;
+  readonly status: string;
+}
+
+export type ConcessionRequestedEvent = DomainEvent<
+  typeof CONCESSION_REQUESTED,
+  ConcessionEventPayload
+>;
+export type ConcessionApprovedEvent = DomainEvent<
+  typeof CONCESSION_APPROVED,
+  ConcessionEventPayload
+>;
+export type ConcessionRejectedEvent = DomainEvent<
+  typeof CONCESSION_REJECTED,
+  ConcessionEventPayload
+>;
+export type ConcessionRevokedEvent = DomainEvent<typeof CONCESSION_REVOKED, ConcessionEventPayload>;
+
+const concessionPayload = (concession: Concession): ConcessionEventPayload => ({
+  concessionId: concession.id,
+  organizationId: concession.organizationId,
+  studentId: concession.studentId,
+  type: concession.type,
+  status: concession.status,
+});
+
+export const concessionRequested = (concession: Concession): ConcessionRequestedEvent =>
+  createEvent(CONCESSION_REQUESTED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionApproved = (concession: Concession): ConcessionApprovedEvent =>
+  createEvent(CONCESSION_APPROVED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionRejected = (concession: Concession): ConcessionRejectedEvent =>
+  createEvent(CONCESSION_REJECTED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+export const concessionRevoked = (concession: Concession): ConcessionRevokedEvent =>
+  createEvent(CONCESSION_REVOKED, concessionPayload(concession), {
+    tenantId: concession.tenantId,
+  });
+
+// --- Payroll run -----------------------------------------------------------------
+export const PAYROLL_RUN_PROCESSED = "finance.payroll_run.processed";
+export const PAYROLL_RUN_PAID = "finance.payroll_run.paid";
+export const PAYROLL_RUN_CANCELLED = "finance.payroll_run.cancelled";
+
+export interface PayrollRunEventPayload {
+  readonly payrollRunId: Uuid;
+  readonly organizationId: Uuid;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PayrollRunProcessedEvent = DomainEvent<
+  typeof PAYROLL_RUN_PROCESSED,
+  PayrollRunEventPayload
+>;
+export type PayrollRunPaidEvent = DomainEvent<typeof PAYROLL_RUN_PAID, PayrollRunEventPayload>;
+export type PayrollRunCancelledEvent = DomainEvent<
+  typeof PAYROLL_RUN_CANCELLED,
+  PayrollRunEventPayload
+>;
+
+const payrollRunPayload = (run: PayrollRun): PayrollRunEventPayload => ({
+  payrollRunId: run.id,
+  organizationId: run.organizationId,
+  currency: run.currency,
+  status: run.status,
+});
+
+export const payrollRunProcessed = (run: PayrollRun): PayrollRunProcessedEvent =>
+  createEvent(PAYROLL_RUN_PROCESSED, payrollRunPayload(run), { tenantId: run.tenantId });
+
+export const payrollRunPaid = (run: PayrollRun): PayrollRunPaidEvent =>
+  createEvent(PAYROLL_RUN_PAID, payrollRunPayload(run), { tenantId: run.tenantId });
+
+export const payrollRunCancelled = (run: PayrollRun): PayrollRunCancelledEvent =>
+  createEvent(PAYROLL_RUN_CANCELLED, payrollRunPayload(run), { tenantId: run.tenantId });
+
+// --- Payslip ---------------------------------------------------------------------
+export const PAYSLIP_APPROVED = "finance.payslip.approved";
+export const PAYSLIP_PAID = "finance.payslip.paid";
+
+export interface PayslipEventPayload {
+  readonly payslipId: Uuid;
+  readonly organizationId: Uuid;
+  readonly payrollRunId: Uuid;
+  readonly employeeId: Uuid;
+  readonly grossMinor: number;
+  readonly netMinor: number;
+  readonly currency: string;
+  readonly status: string;
+}
+
+export type PayslipApprovedEvent = DomainEvent<typeof PAYSLIP_APPROVED, PayslipEventPayload>;
+export type PayslipPaidEvent = DomainEvent<typeof PAYSLIP_PAID, PayslipEventPayload>;
+
+const payslipPayload = (payslip: Payslip): PayslipEventPayload => ({
+  payslipId: payslip.id,
+  organizationId: payslip.organizationId,
+  payrollRunId: payslip.payrollRunId,
+  employeeId: payslip.employeeId,
+  grossMinor: payslipGrossMinor(payslip),
+  netMinor: payslipNetMinor(payslip),
+  currency: payslip.currency,
+  status: payslip.status,
+});
+
+export const payslipApproved = (payslip: Payslip): PayslipApprovedEvent =>
+  createEvent(PAYSLIP_APPROVED, payslipPayload(payslip), { tenantId: payslip.tenantId });
+
+export const payslipPaid = (payslip: Payslip): PayslipPaidEvent =>
+  createEvent(PAYSLIP_PAID, payslipPayload(payslip), { tenantId: payslip.tenantId });

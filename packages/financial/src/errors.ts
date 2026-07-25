@@ -492,3 +492,236 @@ export class InvalidPaymentTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Concession ------------------------------------------------------------------
+
+/** The requested concession does not exist in the current tenant. */
+export class ConcessionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Concession "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A concession must carry a non-empty reason. */
+export class EmptyConcessionReasonError extends PlatformError {
+  constructor() {
+    super("A concession must have a non-empty reason", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A percentage concession must be between 0 (exclusive) and 100 (inclusive). */
+export class InvalidConcessionPercentageError extends PlatformError {
+  constructor(percentage: number) {
+    super(`A concession percentage must be between 0 and 100, received ${percentage}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { percentage },
+    });
+  }
+}
+
+/** A fixed concession amount must be a positive whole number of minor units. */
+export class InvalidConcessionAmountError extends PlatformError {
+  constructor(amountMinor: number) {
+    super(`A fixed concession amount must be a positive integer, received ${amountMinor}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { amountMinor },
+    });
+  }
+}
+
+/** The requested concession lifecycle transition is not permitted. */
+export class InvalidConcessionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition concession from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Payroll run -----------------------------------------------------------------
+
+/** The requested payroll run does not exist in the current tenant. */
+export class PayrollRunNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Payroll run "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A payroll run must carry a non-empty label. */
+export class EmptyPayrollRunLabelError extends PlatformError {
+  constructor() {
+    super("A payroll run must have a non-empty label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The requested payroll-run lifecycle transition is not permitted. */
+export class InvalidPayrollRunTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition payroll run from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Only a draft payroll run may have payslips added; once processed the batch is frozen. */
+export class PayrollRunNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Payroll run "${id}" is "${status}"; payslips can no longer be added`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+// --- Payslip ---------------------------------------------------------------------
+
+/** The requested payslip does not exist in the current tenant. */
+export class PayslipNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Payslip "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A pay component must carry a non-empty key. */
+export class EmptyPayComponentKeyError extends PlatformError {
+  constructor() {
+    super("A pay component must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A pay component must carry a non-empty label. */
+export class EmptyPayComponentLabelError extends PlatformError {
+  constructor() {
+    super("A pay component must have a non-empty label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The pay-component key is already used within its list on the payslip. */
+export class DuplicatePayComponentKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Pay component key "${key}" is already used on this payslip`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The referenced pay component is not part of the payslip. */
+export class PayComponentNotFoundError extends PlatformError {
+  constructor(key: string) {
+    super(`Pay component "${key}" is not part of this payslip`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The requested payslip lifecycle transition is not permitted. */
+export class InvalidPayslipTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition payslip from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Only a draft payslip may have its earnings and deductions edited; once approved they are frozen. */
+export class PayslipNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Payslip "${id}" is "${status}"; its earnings and deductions can no longer be edited`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** An employee has at most one payslip per payroll run. */
+export class DuplicatePayslipError extends PlatformError {
+  constructor(payrollRunId: string, employeeId: string) {
+    super(`Employee "${employeeId}" already has a payslip in payroll run "${payrollRunId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { payrollRunId, employeeId },
+    });
+  }
+}
+
+/**
+ * The employee (P2-D12) a payslip is drawn for does not exist in the tenant. A staff member paid here
+ * is an Employee; the finance domain links to it and never duplicates it.
+ */
+export class EmployeeNotFoundForFinanceError extends PlatformError {
+  constructor(employeeId: string) {
+    super(`Employee "${employeeId}" not found in this tenant`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { employeeId },
+    });
+  }
+}
+
+/** The employee has no compensation band (P2-D12 grade/band) to draw payslip earnings from. */
+export class EmployeeCompensationNotFoundError extends PlatformError {
+  constructor(employeeId: string) {
+    super(`Employee "${employeeId}" has no compensation band to draw earnings from`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { employeeId },
+    });
+  }
+}
