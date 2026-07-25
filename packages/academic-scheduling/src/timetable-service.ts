@@ -16,6 +16,7 @@ import {
   ScheduleConflictError,
   SectionNotFoundForSchedulingError,
   TimetableNotFoundError,
+  TimetableStateError,
 } from "./errors";
 import { computeSchedulingIntelligence, type SchedulingIntelligence } from "./intelligence";
 import { computeTeacherWorkload, type TeacherWorkload } from "./workload";
@@ -149,6 +150,9 @@ export class TimetableService {
    */
   async publish(tenantId: TenantId, id: Uuid): Promise<Timetable> {
     const timetable = await this.require(tenantId, id);
+    if (timetable.status !== "draft") {
+      throw new TimetableStateError(timetable.id, "draft", timetable.status);
+    }
     const conflicts = detectConflicts(await this.gatherConflictInput(timetable));
     if (conflicts.length > 0) {
       const kinds = [...new Set(conflicts.map((c) => c.kind))];

@@ -5,6 +5,7 @@ import {
   GradeNotFoundForSchedulingError,
   OrganizationNotFoundForSchedulingError,
   ScheduleConflictError,
+  TimetableStateError,
 } from "./errors";
 import {
   InMemoryScheduleSlotRepository,
@@ -171,6 +172,15 @@ describe("TimetableService", () => {
       sectionId: SECTION_B,
     });
     expect(await timetables.validate(TENANT, tt.id)).toHaveLength(1);
+  });
+
+  it("refuses to re-publish an already-published timetable with a state error", async () => {
+    const { events, timetables } = harness();
+    const tt = await timetables.create(createInput());
+    await timetables.publish(TENANT, tt.id);
+    await expect(timetables.publish(TENANT, tt.id)).rejects.toBeInstanceOf(TimetableStateError);
+    // the second attempt fails the state check before conflict detection — no spurious event
+    expect(events.filter((e) => e.type === "scheduling.conflict.detected")).toHaveLength(0);
   });
 
   it("revises a published timetable back to draft at the next version", async () => {

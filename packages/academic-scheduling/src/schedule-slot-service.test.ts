@@ -100,6 +100,25 @@ describe("ScheduleSlotService", () => {
     await expect(slots.assign(base(timetableId))).rejects.toBeInstanceOf(TimetableStateError);
   });
 
+  it("refuses to remove or reschedule a slot once its timetable is published", async () => {
+    const { slots, timetables, timetableId } = await harness();
+    const slot = await slots.assign(base(timetableId));
+    await timetables.publish(TENANT, timetableId);
+    await expect(slots.remove(TENANT, slot.id)).rejects.toBeInstanceOf(TimetableStateError);
+    await expect(
+      slots.reschedule(TENANT, slot.id, "tuesday", "09:00", "10:00"),
+    ).rejects.toBeInstanceOf(TimetableStateError);
+  });
+
+  it("refuses to reschedule a slot onto an occupied placement", async () => {
+    const { slots, timetableId } = await harness();
+    await slots.assign(base(timetableId));
+    const other = await slots.assign({ ...base(timetableId), startsAt: "10:00", endsAt: "11:00" });
+    await expect(
+      slots.reschedule(TENANT, other.id, "monday", "09:00", "10:00"),
+    ).rejects.toBeInstanceOf(DuplicateScheduleSlotError);
+  });
+
   it("reschedules and reassigns a slot", async () => {
     const { slots, timetableId } = await harness();
     const slot = await slots.assign(base(timetableId));

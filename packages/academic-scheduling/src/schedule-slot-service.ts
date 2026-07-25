@@ -135,11 +135,26 @@ export class ScheduleSlotService {
     startsAt: string,
     endsAt: string,
   ): Promise<ScheduleSlot> {
-    return this.mutate(tenantId, id, (slot) => rescheduleSlot(slot, dayOfWeek, startsAt, endsAt));
+    const slot = await this.require(tenantId, id);
+    await this.requireDraftTimetable(tenantId, slot.timetableId);
+    const clash = await this.repository.findByPlacement(
+      tenantId,
+      slot.timetableId,
+      dayOfWeek,
+      startsAt,
+      slot.sectionId,
+    );
+    if (clash && clash.id !== slot.id) {
+      throw new DuplicateScheduleSlotError(slot.timetableId, dayOfWeek, startsAt, slot.sectionId);
+    }
+    const updated = rescheduleSlot(slot, dayOfWeek, startsAt, endsAt);
+    await this.repository.save(updated);
+    return updated;
   }
 
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
-    await this.require(tenantId, id);
+    const slot = await this.require(tenantId, id);
+    await this.requireDraftTimetable(tenantId, slot.timetableId);
     await this.repository.remove(tenantId, id);
   }
 
