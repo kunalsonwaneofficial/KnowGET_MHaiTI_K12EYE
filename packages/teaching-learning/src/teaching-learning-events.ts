@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AcademicPlan } from "./academic-plan";
+import type { LearningResource } from "./learning-resource";
+import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
 
 // --- Academic plan ---------------------------------------------------------------
@@ -52,4 +54,57 @@ export const unitPlanCreated = (unit: UnitPlan): UnitPlanCreatedEvent =>
       title: unit.title,
     },
     { tenantId: unit.tenantId },
+  );
+
+// --- Lesson plan -----------------------------------------------------------------
+export const LESSON_PLANNED = "teaching.lesson.planned";
+
+export interface LessonPlannedPayload {
+  readonly lessonPlanId: Uuid;
+  readonly organizationId: Uuid;
+  readonly subjectId: Uuid;
+  readonly unitPlanId: Uuid | null;
+  readonly title: string;
+}
+
+export type LessonPlannedEvent = DomainEvent<typeof LESSON_PLANNED, LessonPlannedPayload>;
+
+export const lessonPlanned = (plan: LessonPlan): LessonPlannedEvent =>
+  createEvent(
+    LESSON_PLANNED,
+    {
+      lessonPlanId: plan.id,
+      organizationId: plan.organizationId,
+      subjectId: plan.subjectId,
+      unitPlanId: plan.unitPlanId,
+      title: plan.title,
+    },
+    { tenantId: plan.tenantId },
+  );
+
+// --- Learning resource -----------------------------------------------------------
+export const LEARNING_RESOURCE_ADDED = "teaching.learning_resource.added";
+
+export interface LearningResourceAddedPayload {
+  readonly learningResourceId: Uuid;
+  readonly organizationId: Uuid;
+  readonly resourceType: string;
+  readonly title: string;
+}
+
+export type LearningResourceAddedEvent = DomainEvent<
+  typeof LEARNING_RESOURCE_ADDED,
+  LearningResourceAddedPayload
+>;
+
+export const learningResourceAdded = (resource: LearningResource): LearningResourceAddedEvent =>
+  createEvent(
+    LEARNING_RESOURCE_ADDED,
+    {
+      learningResourceId: resource.id,
+      organizationId: resource.organizationId,
+      resourceType: resource.resourceType,
+      title: resource.title,
+    },
+    { tenantId: resource.tenantId },
   );

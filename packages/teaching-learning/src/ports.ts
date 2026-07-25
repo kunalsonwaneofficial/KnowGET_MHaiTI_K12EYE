@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AcademicPlan } from "./academic-plan";
+import type { LearningResource } from "./learning-resource";
+import type { LessonPlan } from "./lesson-plan";
 import type { UnitPlan } from "./unit-plan";
 
 // --- Cross-domain directory ports ------------------------------------------------
@@ -134,6 +136,111 @@ export class InMemoryUnitPlanRepository implements UnitPlanRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const unit = this.byId.get(id);
     if (unit && unit.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Lesson plan repository -------------------------------------------------------
+
+/** Storage contract for lesson plans. */
+export interface LessonPlanRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LessonPlan | null>;
+  listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<LessonPlan[]>;
+  listByUnit(tenantId: TenantId, unitPlanId: Uuid): Promise<LessonPlan[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LessonPlan[]>;
+  listByTenant(tenantId: TenantId): Promise<LessonPlan[]>;
+  save(plan: LessonPlan): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LessonPlanRepository} — the default for tests and bootstrap. */
+export class InMemoryLessonPlanRepository implements LessonPlanRepository {
+  private readonly byId = new Map<string, LessonPlan>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LessonPlan | null> {
+    const plan = this.byId.get(id);
+    return plan && plan.tenantId === tenantId ? plan : null;
+  }
+
+  async listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<LessonPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.subjectId === subjectId,
+    );
+  }
+
+  async listByUnit(tenantId: TenantId, unitPlanId: Uuid): Promise<LessonPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.unitPlanId === unitPlanId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LessonPlan[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LessonPlan[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(plan: LessonPlan): Promise<void> {
+    this.byId.set(plan.id, plan);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const plan = this.byId.get(id);
+    if (plan && plan.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Learning resource repository -------------------------------------------------
+
+/** Storage contract for learning resources. */
+export interface LearningResourceRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LearningResource | null>;
+  listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<LearningResource[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LearningResource[]>;
+  listByTenant(tenantId: TenantId): Promise<LearningResource[]>;
+  save(resource: LearningResource): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LearningResourceRepository} — the default for tests and bootstrap. */
+export class InMemoryLearningResourceRepository implements LearningResourceRepository {
+  private readonly byId = new Map<string, LearningResource>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LearningResource | null> {
+    const resource = this.byId.get(id);
+    return resource && resource.tenantId === tenantId ? resource : null;
+  }
+
+  async listBySubject(tenantId: TenantId, subjectId: Uuid): Promise<LearningResource[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.subjectId === subjectId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LearningResource[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LearningResource[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(resource: LearningResource): Promise<void> {
+    this.byId.set(resource.id, resource);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const resource = this.byId.get(id);
+    if (resource && resource.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

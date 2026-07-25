@@ -13,9 +13,13 @@ export * from "./instructional-intelligence";
 // aggregates
 export * from "./academic-plan";
 export * from "./unit-plan";
+export * from "./lesson-plan";
+export * from "./learning-resource";
 // events + ports
 export * from "./teaching-learning-events";
 export * from "./ports";
 // services
 export * from "./academic-plan-service";
 export * from "./unit-plan-service";
+export * from "./lesson-plan-service";
+export * from "./learning-resource-service";
