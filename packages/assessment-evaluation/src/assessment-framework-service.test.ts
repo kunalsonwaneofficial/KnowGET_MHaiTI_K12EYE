@@ -3,6 +3,7 @@ import type { TenantId, Uuid } from "@knowget/types";
 import { AssessmentFrameworkService } from "./assessment-framework-service";
 import {
   AssessmentFrameworkArchivedError,
+  AssessmentFrameworkStateError,
   DuplicateAssessmentFrameworkError,
   OrganizationNotFoundForAssessmentError,
 } from "./errors";
@@ -59,6 +60,14 @@ describe("AssessmentFrameworkService", () => {
     expect(revised.version).toBe(2);
     expect(revised.status).toBe("active");
     expect(revised.revisions).toHaveLength(1);
+  });
+
+  it("refuses to revise a draft (revise is not a shortcut into active)", async () => {
+    const framework = await create();
+    expect(framework.status).toBe("draft");
+    await expect(service.revise(TENANT, framework.id, "premature")).rejects.toBeInstanceOf(
+      AssessmentFrameworkStateError,
+    );
   });
 
   it("freezes an archived framework", async () => {

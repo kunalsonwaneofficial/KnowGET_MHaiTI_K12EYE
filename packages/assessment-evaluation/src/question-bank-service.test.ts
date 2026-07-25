@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TenantId, Uuid } from "@knowget/types";
-import { DuplicateQuestionBankError, QuestionBankArchivedError } from "./errors";
+import {
+  DuplicateQuestionBankError,
+  QuestionBankArchivedError,
+  QuestionBankStateError,
+} from "./errors";
 import { InMemoryQuestionBankRepository, type OrganizationDirectory } from "./ports";
 import { QuestionBankService } from "./question-bank-service";
 
@@ -68,5 +72,13 @@ describe("QuestionBankService", () => {
         difficulty: "hard",
       }),
     ).rejects.toBeInstanceOf(QuestionBankArchivedError);
+  });
+
+  it("refuses to revise a draft bank (revise is not a shortcut into active)", async () => {
+    const bank = await create();
+    expect(bank.status).toBe("draft");
+    await expect(service.revise(TENANT, bank.id, "premature")).rejects.toBeInstanceOf(
+      QuestionBankStateError,
+    );
   });
 });

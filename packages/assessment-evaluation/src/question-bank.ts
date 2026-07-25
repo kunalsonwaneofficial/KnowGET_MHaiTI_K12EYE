@@ -3,6 +3,7 @@ import type { ISODateString, TenantId, Uuid } from "@knowget/types";
 import {
   EmptyQuestionBankFieldError,
   QuestionBankArchivedError,
+  QuestionBankStateError,
   QuestionNotFoundError,
 } from "./errors";
 import type {
@@ -151,9 +152,16 @@ export function activateQuestionBank(bank: QuestionBank): QuestionBank {
   return touch(bank, { status: "active" });
 }
 
-/** Revise the bank — bump the version and append to the revision log, keeping it active. */
+/**
+ * Revise the bank — bump the version and append to the revision log, keeping it active. Only an
+ * active bank may be revised; a draft must be activated first (revise is not a shortcut into
+ * `active`).
+ */
 export function reviseQuestionBank(bank: QuestionBank, note: string): QuestionBank {
   assertNotArchived(bank);
+  if (bank.status !== "active") {
+    throw new QuestionBankStateError(bank.id, "active", bank.status);
+  }
   const version = bank.version + 1;
   const revision: QuestionBankRevision = {
     version,

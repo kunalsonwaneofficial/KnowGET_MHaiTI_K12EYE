@@ -94,6 +94,18 @@ export class AssessmentFrameworkArchivedError extends PlatformError {
   }
 }
 
+/** The assessment framework is not in a state from which the attempted transition is allowed. */
+export class AssessmentFrameworkStateError extends PlatformError {
+  constructor(id: string, expected: string, actual: string) {
+    super(`Assessment framework "${id}" must be ${expected} for this operation (is ${actual})`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, expected, actual },
+    });
+  }
+}
+
 // --- Assessment plan errors ------------------------------------------------------
 
 /** The requested assessment plan does not exist in the current tenant. */
@@ -220,6 +232,18 @@ export class QuestionBankArchivedError extends PlatformError {
   }
 }
 
+/** The question bank is not in a state from which the attempted transition is allowed. */
+export class QuestionBankStateError extends PlatformError {
+  constructor(id: string, expected: string, actual: string) {
+    super(`Question bank "${id}" must be ${expected} for this operation (is ${actual})`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, expected, actual },
+    });
+  }
+}
+
 /** The requested question does not exist in the bank. */
 export class QuestionNotFoundError extends PlatformError {
   constructor(bankId: string, questionId: string) {
@@ -292,18 +316,6 @@ export class CompetencyProfileNotFoundError extends PlatformError {
       httpStatus: 404,
       isOperational: true,
       details: { id },
-    });
-  }
-}
-
-/** A student already has a competency profile. */
-export class DuplicateCompetencyProfileError extends PlatformError {
-  constructor(studentId: string) {
-    super(`Student "${studentId}" already has a competency profile`, {
-      code: "CONFLICT",
-      httpStatus: 409,
-      isOperational: true,
-      details: { studentId },
     });
   }
 }

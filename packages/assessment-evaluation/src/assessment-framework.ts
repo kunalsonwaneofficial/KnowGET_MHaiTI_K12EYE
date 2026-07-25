@@ -6,7 +6,11 @@ import type {
   AssessmentModel,
   GradeBand,
 } from "./assessment-framework-value";
-import { AssessmentFrameworkArchivedError, EmptyAssessmentFrameworkFieldError } from "./errors";
+import {
+  AssessmentFrameworkArchivedError,
+  AssessmentFrameworkStateError,
+  EmptyAssessmentFrameworkFieldError,
+} from "./errors";
 
 /**
  * An institution's assessment philosophy — the assessment model (traditional / CCE / CBE /
@@ -144,12 +148,19 @@ export function activateAssessmentFramework(framework: AssessmentFramework): Ass
   return touch(framework, { status: "active" });
 }
 
-/** Revise the framework — bump the version and append to the revision log, keeping it active. */
+/**
+ * Revise the framework — bump the version and append to the revision log, keeping it active. Only
+ * an active framework may be revised; a draft must be activated first (revise is not a shortcut
+ * into `active`).
+ */
 export function reviseAssessmentFramework(
   framework: AssessmentFramework,
   note: string,
 ): AssessmentFramework {
   assertNotArchived(framework);
+  if (framework.status !== "active") {
+    throw new AssessmentFrameworkStateError(framework.id, "active", framework.status);
+  }
   const version = framework.version + 1;
   const revision: AssessmentFrameworkRevision = {
     version,
