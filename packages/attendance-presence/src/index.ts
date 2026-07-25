@@ -26,3 +26,4 @@ export * from "./leave-service";
 export * from "./attendance-policy-service";
 export * from "./presence-profile-service";
 export * from "./participation-service";
+export * from "./attendance-evaluation-service";

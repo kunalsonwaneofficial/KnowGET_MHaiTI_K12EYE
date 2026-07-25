@@ -1,5 +1,6 @@
 import { createEvent } from "@knowget/events";
-import type { DomainEvent, Uuid } from "@knowget/types";
+import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
+import type { AttendancePolicyRuleType } from "./attendance-policy-rule";
 import type { AttendanceRecord } from "./attendance-record";
 import type { AttendanceSession } from "./attendance-session";
 import type { Leave } from "./leave";
@@ -135,3 +136,47 @@ export const participationRecorded = (participation: Participation): Participati
     },
     { tenantId: participation.tenantId },
   );
+
+// --- Policy evaluation -----------------------------------------------------------
+// These carry computed results (not aggregate state), so their factories take the tenant
+// and an explicit payload rather than an aggregate.
+export const ATTENDANCE_POLICY_EVALUATED = "attendance.policy.evaluated";
+export const ATTENDANCE_THRESHOLD_REACHED = "attendance.threshold.reached";
+
+export interface AttendancePolicyEvaluatedPayload {
+  readonly organizationId: Uuid;
+  readonly participantId: Uuid;
+  readonly attendancePercentage: number;
+  readonly policiesEvaluated: number;
+  readonly compliant: boolean;
+}
+
+export interface AttendanceThresholdReachedPayload {
+  readonly organizationId: Uuid;
+  readonly participantId: Uuid;
+  readonly policyId: Uuid;
+  readonly ruleType: AttendancePolicyRuleType;
+  readonly attendancePercentage: number;
+  readonly threshold: number;
+}
+
+export type AttendancePolicyEvaluatedEvent = DomainEvent<
+  typeof ATTENDANCE_POLICY_EVALUATED,
+  AttendancePolicyEvaluatedPayload
+>;
+export type AttendanceThresholdReachedEvent = DomainEvent<
+  typeof ATTENDANCE_THRESHOLD_REACHED,
+  AttendanceThresholdReachedPayload
+>;
+
+export const attendancePolicyEvaluated = (
+  tenantId: TenantId,
+  payload: AttendancePolicyEvaluatedPayload,
+): AttendancePolicyEvaluatedEvent =>
+  createEvent(ATTENDANCE_POLICY_EVALUATED, payload, { tenantId });
+
+export const attendanceThresholdReached = (
+  tenantId: TenantId,
+  payload: AttendanceThresholdReachedPayload,
+): AttendanceThresholdReachedEvent =>
+  createEvent(ATTENDANCE_THRESHOLD_REACHED, payload, { tenantId });
