@@ -2,13 +2,13 @@
 
 **Assessment & Evaluation Platform (AEP)** · Phase 2 (Enterprise Domain Engineering) · Program: Academic Excellence Platform
 
-|                |                                                                                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D10 — Assessment & Evaluation Platform                                                                                                                                                                    |
-| **Status**     | 🟡 Awaiting CI — PR open. Gates green in-sandbox (full monorepo typecheck 99/99, build 53/53, `@knowget/assessment-evaluation` 38 tests, `apps/api` 188 tests); RLS verified on live PostgreSQL.             |
-| **Depends on** | P2-D09 (Teaching-Learning, ADR-0028), P2-D08 (Attendance, ADR-0027), P2-D07 (Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`) |
-| **Date**       | 15 October 2026                                                                                                                                                                                              |
-| **Next**       | P2-D11 — Learning Intelligence & Educational Insights Platform (LIEIP)                                                                                                                                       |
+|                |                                                                                                                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D10 — Assessment & Evaluation Platform                                                                                                                                                                                  |
+| **Status**     | ✅ Complete — CI green; merged to main (`5ffb7b5`). Gates green in-sandbox (full monorepo typecheck 99/99, build 53/53, `@knowget/assessment-evaluation` 38 tests, `apps/api` 188 tests); RLS verified on live PostgreSQL. |
+| **Depends on** | P2-D09 (Teaching-Learning, ADR-0028), P2-D08 (Attendance, ADR-0027), P2-D07 (Scheduling, ADR-0026), P2-D06 (Academic Structure, ADR-0025), P2-D03 (Student Lifecycle), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)               |
+| **Date**       | 15 October 2026                                                                                                                                                                                                            |
+| **Next**       | P2-D11 — Learning Intelligence & Educational Insights Platform (LIEIP)                                                                                                                                                     |
 
 ---
 
