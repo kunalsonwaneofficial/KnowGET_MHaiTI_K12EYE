@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Allocation } from "./allocation";
 import type { ConflictAllocation, SchedulingConstraint } from "./conflict";
+import type { Resource } from "./resource";
 import type { ScheduleSlot } from "./schedule-slot";
 import type { Timetable } from "./timetable";
 
@@ -198,6 +200,129 @@ export class InMemoryScheduleSlotRepository implements ScheduleSlotRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const slot = this.byId.get(id);
     if (slot && slot.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Resource repository ---------------------------------------------------------
+
+/** Storage contract for schedulable resources (one per organization + code). */
+export interface ResourceRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Resource | null>;
+  findByCode(tenantId: TenantId, organizationId: Uuid, code: string): Promise<Resource | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Resource[]>;
+  listByTenant(tenantId: TenantId): Promise<Resource[]>;
+  save(resource: Resource): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ResourceRepository} — the default for tests and bootstrap. */
+export class InMemoryResourceRepository implements ResourceRepository {
+  private readonly byId = new Map<string, Resource>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Resource | null> {
+    const resource = this.byId.get(id);
+    return resource && resource.tenantId === tenantId ? resource : null;
+  }
+
+  async findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<Resource | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) => r.tenantId === tenantId && r.organizationId === organizationId && r.code === code,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Resource[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Resource[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(resource: Resource): Promise<void> {
+    this.byId.set(resource.id, resource);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const resource = this.byId.get(id);
+    if (resource && resource.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+// --- Allocation repository -------------------------------------------------------
+
+/**
+ * Storage contract for allocations. `listForConflict` returns only `allocated` allocations
+ * for an organization, so an `AllocationRepository` structurally satisfies
+ * {@link AllocationConflictSource} — the timetable service can consume it directly.
+ */
+export interface AllocationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Allocation | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Allocation[]>;
+  listByResource(tenantId: TenantId, resourceId: Uuid): Promise<Allocation[]>;
+  listBySlot(tenantId: TenantId, scheduleSlotId: Uuid): Promise<Allocation[]>;
+  listForConflict(tenantId: TenantId, organizationId: Uuid): Promise<Allocation[]>;
+  listByTenant(tenantId: TenantId): Promise<Allocation[]>;
+  save(allocation: Allocation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AllocationRepository} — the default for tests and bootstrap. */
+export class InMemoryAllocationRepository implements AllocationRepository {
+  private readonly byId = new Map<string, Allocation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Allocation | null> {
+    const allocation = this.byId.get(id);
+    return allocation && allocation.tenantId === tenantId ? allocation : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Allocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByResource(tenantId: TenantId, resourceId: Uuid): Promise<Allocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.resourceId === resourceId,
+    );
+  }
+
+  async listBySlot(tenantId: TenantId, scheduleSlotId: Uuid): Promise<Allocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.scheduleSlotId === scheduleSlotId,
+    );
+  }
+
+  async listForConflict(tenantId: TenantId, organizationId: Uuid): Promise<Allocation[]> {
+    return [...this.byId.values()].filter(
+      (a) =>
+        a.tenantId === tenantId && a.organizationId === organizationId && a.status === "allocated",
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Allocation[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(allocation: Allocation): Promise<void> {
+    this.byId.set(allocation.id, allocation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const allocation = this.byId.get(id);
+    if (allocation && allocation.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

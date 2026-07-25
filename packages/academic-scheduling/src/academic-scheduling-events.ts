@@ -1,5 +1,6 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Allocation } from "./allocation";
 import type { ConflictKind } from "./conflict";
 import type { ScheduleSlot } from "./schedule-slot";
 import type { Timetable } from "./timetable";
@@ -67,6 +68,35 @@ export const scheduleSlotAssigned = (slot: ScheduleSlot): ScheduleSlotAssignedEv
     },
     { tenantId: slot.tenantId },
   );
+
+// --- Allocation ------------------------------------------------------------------
+export const RESOURCE_ALLOCATED = "scheduling.resource.allocated";
+export const RESOURCE_RELEASED = "scheduling.resource.released";
+
+export interface AllocationEventPayload {
+  readonly allocationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly resourceKind: string;
+  readonly resourceId: Uuid;
+  readonly scheduleSlotId: Uuid | null;
+}
+
+export type ResourceAllocatedEvent = DomainEvent<typeof RESOURCE_ALLOCATED, AllocationEventPayload>;
+export type ResourceReleasedEvent = DomainEvent<typeof RESOURCE_RELEASED, AllocationEventPayload>;
+
+const allocationPayload = (allocation: Allocation): AllocationEventPayload => ({
+  allocationId: allocation.id,
+  organizationId: allocation.organizationId,
+  resourceKind: allocation.resourceKind,
+  resourceId: allocation.resourceId,
+  scheduleSlotId: allocation.scheduleSlotId,
+});
+
+export const resourceAllocated = (allocation: Allocation): ResourceAllocatedEvent =>
+  createEvent(RESOURCE_ALLOCATED, allocationPayload(allocation), { tenantId: allocation.tenantId });
+
+export const resourceReleased = (allocation: Allocation): ResourceReleasedEvent =>
+  createEvent(RESOURCE_RELEASED, allocationPayload(allocation), { tenantId: allocation.tenantId });
 
 // --- Conflict --------------------------------------------------------------------
 export const CONFLICT_DETECTED = "scheduling.conflict.detected";
