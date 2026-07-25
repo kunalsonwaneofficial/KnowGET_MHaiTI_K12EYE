@@ -3,6 +3,8 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Department } from "./department";
 import type { Employee } from "./employee";
 import type { EmploymentContract } from "./employment-contract";
+import type { LeaveRequest } from "./leave-request";
+import type { PerformanceReview } from "./performance-review";
 import type { Position } from "./position";
 
 // --- Department ------------------------------------------------------------------
@@ -152,3 +154,75 @@ export const contractActivated = (contract: EmploymentContract): ContractActivat
 
 export const contractEnded = (contract: EmploymentContract): ContractEndedEvent =>
   createEvent(CONTRACT_ENDED, contractPayload(contract), { tenantId: contract.tenantId });
+
+// --- Leave request ---------------------------------------------------------------
+export const LEAVE_REQUESTED = "workforce.leave.requested";
+export const LEAVE_APPROVED = "workforce.leave.approved";
+export const LEAVE_REJECTED = "workforce.leave.rejected";
+export const LEAVE_CANCELLED = "workforce.leave.cancelled";
+
+export interface LeaveEventPayload {
+  readonly leaveRequestId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly leaveType: string;
+  readonly days: number;
+  readonly status: string;
+}
+
+export type LeaveRequestedEvent = DomainEvent<typeof LEAVE_REQUESTED, LeaveEventPayload>;
+export type LeaveApprovedEvent = DomainEvent<typeof LEAVE_APPROVED, LeaveEventPayload>;
+export type LeaveRejectedEvent = DomainEvent<typeof LEAVE_REJECTED, LeaveEventPayload>;
+export type LeaveCancelledEvent = DomainEvent<typeof LEAVE_CANCELLED, LeaveEventPayload>;
+
+const leavePayload = (request: LeaveRequest): LeaveEventPayload => ({
+  leaveRequestId: request.id,
+  organizationId: request.organizationId,
+  employeeId: request.employeeId,
+  leaveType: request.leaveType,
+  days: request.days,
+  status: request.status,
+});
+
+export const leaveRequested = (request: LeaveRequest): LeaveRequestedEvent =>
+  createEvent(LEAVE_REQUESTED, leavePayload(request), { tenantId: request.tenantId });
+
+export const leaveApproved = (request: LeaveRequest): LeaveApprovedEvent =>
+  createEvent(LEAVE_APPROVED, leavePayload(request), { tenantId: request.tenantId });
+
+export const leaveRejected = (request: LeaveRequest): LeaveRejectedEvent =>
+  createEvent(LEAVE_REJECTED, leavePayload(request), { tenantId: request.tenantId });
+
+export const leaveCancelled = (request: LeaveRequest): LeaveCancelledEvent =>
+  createEvent(LEAVE_CANCELLED, leavePayload(request), { tenantId: request.tenantId });
+
+// --- Performance review ----------------------------------------------------------
+export const REVIEW_SUBMITTED = "workforce.review.submitted";
+export const REVIEW_FINALIZED = "workforce.review.finalized";
+
+export interface ReviewEventPayload {
+  readonly reviewId: Uuid;
+  readonly organizationId: Uuid;
+  readonly employeeId: Uuid;
+  readonly period: string;
+  readonly overallRating: number | null;
+  readonly status: string;
+}
+
+export type ReviewSubmittedEvent = DomainEvent<typeof REVIEW_SUBMITTED, ReviewEventPayload>;
+export type ReviewFinalizedEvent = DomainEvent<typeof REVIEW_FINALIZED, ReviewEventPayload>;
+
+const reviewPayload = (review: PerformanceReview): ReviewEventPayload => ({
+  reviewId: review.id,
+  organizationId: review.organizationId,
+  employeeId: review.employeeId,
+  period: review.period,
+  overallRating: review.overallRating,
+  status: review.status,
+});
+
+export const reviewSubmitted = (review: PerformanceReview): ReviewSubmittedEvent =>
+  createEvent(REVIEW_SUBMITTED, reviewPayload(review), { tenantId: review.tenantId });
+
+export const reviewFinalized = (review: PerformanceReview): ReviewFinalizedEvent =>
+  createEvent(REVIEW_FINALIZED, reviewPayload(review), { tenantId: review.tenantId });

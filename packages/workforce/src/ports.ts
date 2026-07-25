@@ -2,6 +2,9 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { Department } from "./department";
 import type { Employee } from "./employee";
 import type { EmploymentContract } from "./employment-contract";
+import type { LeaveEntitlement } from "./leave-entitlement";
+import type { LeaveRequest } from "./leave-request";
+import type { PerformanceReview } from "./performance-review";
 import type { Position } from "./position";
 
 /**
@@ -234,6 +237,149 @@ export class InMemoryEmploymentContractRepository implements EmploymentContractR
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const contract = this.byId.get(id);
     if (contract && contract.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for leave entitlements. Tenant-scoped (explicit argument + RLS). */
+export interface LeaveEntitlementRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LeaveEntitlement | null>;
+  findByScope(
+    tenantId: TenantId,
+    employeeId: Uuid,
+    leaveType: string,
+    period: string,
+  ): Promise<LeaveEntitlement | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<LeaveEntitlement[]>;
+  listByTenant(tenantId: TenantId): Promise<LeaveEntitlement[]>;
+  save(entitlement: LeaveEntitlement): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LeaveEntitlementRepository} — the default for tests and bootstrap. */
+export class InMemoryLeaveEntitlementRepository implements LeaveEntitlementRepository {
+  private readonly byId = new Map<string, LeaveEntitlement>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LeaveEntitlement | null> {
+    const entitlement = this.byId.get(id);
+    return entitlement && entitlement.tenantId === tenantId ? entitlement : null;
+  }
+
+  async findByScope(
+    tenantId: TenantId,
+    employeeId: Uuid,
+    leaveType: string,
+    period: string,
+  ): Promise<LeaveEntitlement | null> {
+    return (
+      [...this.byId.values()].find(
+        (e) =>
+          e.tenantId === tenantId &&
+          e.employeeId === employeeId &&
+          e.leaveType === leaveType &&
+          e.period === period,
+      ) ?? null
+    );
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<LeaveEntitlement[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LeaveEntitlement[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(entitlement: LeaveEntitlement): Promise<void> {
+    this.byId.set(entitlement.id, entitlement);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const entitlement = this.byId.get(id);
+    if (entitlement && entitlement.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for leave requests. Tenant-scoped (explicit argument + RLS). */
+export interface LeaveRequestRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LeaveRequest | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<LeaveRequest[]>;
+  listByTenant(tenantId: TenantId): Promise<LeaveRequest[]>;
+  save(request: LeaveRequest): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LeaveRequestRepository} — the default for tests and bootstrap. */
+export class InMemoryLeaveRequestRepository implements LeaveRequestRepository {
+  private readonly byId = new Map<string, LeaveRequest>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LeaveRequest | null> {
+    const request = this.byId.get(id);
+    return request && request.tenantId === tenantId ? request : null;
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<LeaveRequest[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LeaveRequest[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(request: LeaveRequest): Promise<void> {
+    this.byId.set(request.id, request);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const request = this.byId.get(id);
+    if (request && request.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for performance reviews. Tenant-scoped (explicit argument + RLS). */
+export interface PerformanceReviewRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<PerformanceReview | null>;
+  listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<PerformanceReview[]>;
+  listByTenant(tenantId: TenantId): Promise<PerformanceReview[]>;
+  save(review: PerformanceReview): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PerformanceReviewRepository} — the default for tests and bootstrap. */
+export class InMemoryPerformanceReviewRepository implements PerformanceReviewRepository {
+  private readonly byId = new Map<string, PerformanceReview>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<PerformanceReview | null> {
+    const review = this.byId.get(id);
+    return review && review.tenantId === tenantId ? review : null;
+  }
+
+  async listByEmployee(tenantId: TenantId, employeeId: Uuid): Promise<PerformanceReview[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.employeeId === employeeId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<PerformanceReview[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(review: PerformanceReview): Promise<void> {
+    this.byId.set(review.id, review);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const review = this.byId.get(id);
+    if (review && review.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

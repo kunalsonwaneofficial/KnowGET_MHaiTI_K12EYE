@@ -315,3 +315,141 @@ export class ContractNotEditableError extends PlatformError {
     });
   }
 }
+
+// --- Leave entitlement -----------------------------------------------------------
+
+/** The requested leave entitlement does not exist in the current tenant. */
+export class LeaveEntitlementNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Leave entitlement "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A leave entitlement's day count must be zero or positive. */
+export class NegativeEntitlementError extends PlatformError {
+  constructor(entitledDays: number) {
+    super(`Leave entitlement days must be zero or positive, received ${entitledDays}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { entitledDays },
+    });
+  }
+}
+
+/** An employee has at most one entitlement per leave type per period. */
+export class DuplicateEntitlementError extends PlatformError {
+  constructor(leaveType: string, period: string) {
+    super(`A "${leaveType}" entitlement for period "${period}" already exists for this employee`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { leaveType, period },
+    });
+  }
+}
+
+// --- Leave request ---------------------------------------------------------------
+
+/** The requested leave request does not exist in the current tenant. */
+export class LeaveRequestNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Leave request "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A leave request must span a positive number of days. */
+export class InvalidLeaveDaysError extends PlatformError {
+  constructor(days: number) {
+    super(`A leave request must span a positive number of days, received ${days}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { days },
+    });
+  }
+}
+
+/** The requested leave-request lifecycle transition is not permitted. */
+export class InvalidLeaveTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition leave request from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Performance review ----------------------------------------------------------
+
+/** The requested performance review does not exist in the current tenant. */
+export class ReviewNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Performance review "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An overall review rating must lie within 1–5. */
+export class InvalidRatingError extends PlatformError {
+  constructor(rating: number) {
+    super(`An overall rating must be between 1 and 5, received ${rating}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { rating },
+    });
+  }
+}
+
+/** A review cannot be submitted without an overall rating. */
+export class MissingRatingError extends PlatformError {
+  constructor(id: string) {
+    super(`Performance review "${id}" cannot be submitted without an overall rating`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested performance-review lifecycle transition is not permitted. */
+export class InvalidReviewTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition performance review from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Only a draft review may be edited; once submitted its content is frozen. */
+export class ReviewNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Performance review "${id}" is "${status}" and can no longer be edited`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}

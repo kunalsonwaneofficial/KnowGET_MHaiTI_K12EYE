@@ -17,3 +17,8 @@ export * from "./employee";
 export * from "./employee-service";
 export * from "./employment-contract";
 export * from "./employment-contract-service";
+export * from "./leave-entitlement";
+export * from "./leave-request";
+export * from "./leave-service";
+export * from "./performance-review";
+export * from "./performance-review-service";
