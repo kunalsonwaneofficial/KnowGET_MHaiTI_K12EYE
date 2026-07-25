@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AcademicCalendar } from "./academic-calendar";
 import type { AcademicProgram } from "./academic-program";
+import type { CurriculumFramework } from "./curriculum-framework";
+import type { Grade } from "./grade";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization exist in
@@ -123,6 +125,122 @@ export class InMemoryAcademicProgramRepository implements AcademicProgramReposit
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const program = this.byId.get(id);
     if (program && program.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for curriculum frameworks (one per organization + code). */
+export interface CurriculumFrameworkRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CurriculumFramework | null>;
+  findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<CurriculumFramework | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CurriculumFramework[]>;
+  listByTenant(tenantId: TenantId): Promise<CurriculumFramework[]>;
+  save(framework: CurriculumFramework): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CurriculumFrameworkRepository} — the default for tests and bootstrap. */
+export class InMemoryCurriculumFrameworkRepository implements CurriculumFrameworkRepository {
+  private readonly byId = new Map<string, CurriculumFramework>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CurriculumFramework | null> {
+    const framework = this.byId.get(id);
+    return framework && framework.tenantId === tenantId ? framework : null;
+  }
+
+  async findByCode(
+    tenantId: TenantId,
+    organizationId: Uuid,
+    code: string,
+  ): Promise<CurriculumFramework | null> {
+    return (
+      [...this.byId.values()].find(
+        (f) => f.tenantId === tenantId && f.organizationId === organizationId && f.code === code,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CurriculumFramework[]> {
+    return [...this.byId.values()].filter(
+      (f) => f.tenantId === tenantId && f.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CurriculumFramework[]> {
+    return [...this.byId.values()].filter((f) => f.tenantId === tenantId);
+  }
+
+  async save(framework: CurriculumFramework): Promise<void> {
+    this.byId.set(framework.id, framework);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const framework = this.byId.get(id);
+    if (framework && framework.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for grades (one per program + code). */
+export interface GradeRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Grade | null>;
+  findByCode(tenantId: TenantId, programId: Uuid, code: string): Promise<Grade | null>;
+  listByProgram(tenantId: TenantId, programId: Uuid): Promise<Grade[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Grade[]>;
+  listByTenant(tenantId: TenantId): Promise<Grade[]>;
+  save(grade: Grade): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link GradeRepository} — the default for tests and bootstrap. */
+export class InMemoryGradeRepository implements GradeRepository {
+  private readonly byId = new Map<string, Grade>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Grade | null> {
+    const grade = this.byId.get(id);
+    return grade && grade.tenantId === tenantId ? grade : null;
+  }
+
+  async findByCode(tenantId: TenantId, programId: Uuid, code: string): Promise<Grade | null> {
+    return (
+      [...this.byId.values()].find(
+        (g) => g.tenantId === tenantId && g.programId === programId && g.code === code,
+      ) ?? null
+    );
+  }
+
+  async listByProgram(tenantId: TenantId, programId: Uuid): Promise<Grade[]> {
+    return [...this.byId.values()].filter(
+      (g) => g.tenantId === tenantId && g.programId === programId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Grade[]> {
+    return [...this.byId.values()].filter(
+      (g) => g.tenantId === tenantId && g.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Grade[]> {
+    return [...this.byId.values()].filter((g) => g.tenantId === tenantId);
+  }
+
+  async save(grade: Grade): Promise<void> {
+    this.byId.set(grade.id, grade);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const grade = this.byId.get(id);
+    if (grade && grade.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

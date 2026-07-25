@@ -166,3 +166,103 @@ export class EmptyProgramFieldError extends PlatformError {
     });
   }
 }
+
+// --- Curriculum framework errors -------------------------------------------------
+
+/** The requested curriculum framework does not exist in the current tenant. */
+export class CurriculumFrameworkNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Curriculum framework "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An organization already has a curriculum framework with this code. */
+export class DuplicateCurriculumFrameworkError extends PlatformError {
+  constructor(organizationId: string, code: string) {
+    super(`Organization "${organizationId}" already has a curriculum with code "${code}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { organizationId, code },
+    });
+  }
+}
+
+/** A curriculum field (name, code, board, revision note) must be non-empty. */
+export class EmptyCurriculumFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A curriculum framework must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** The curriculum framework is archived and cannot be modified or revised. */
+export class CurriculumArchivedError extends PlatformError {
+  constructor(id: string) {
+    super(`Curriculum framework "${id}" is archived`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Grade errors ----------------------------------------------------------------
+
+/** The requested grade does not exist in the current tenant. */
+export class GradeNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Grade "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A program already has a grade with this code. */
+export class DuplicateGradeError extends PlatformError {
+  constructor(programId: string, code: string) {
+    super(`Program "${programId}" already has a grade with code "${code}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { programId, code },
+    });
+  }
+}
+
+/** A grade field (name, code) must carry a non-empty value. */
+export class EmptyGradeFieldError extends PlatformError {
+  constructor(field: string) {
+    super(`A grade must have a non-empty ${field}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field },
+    });
+  }
+}
+
+/** A grade's age guideline has a maximum below its minimum. */
+export class InvalidAgeRangeError extends PlatformError {
+  constructor(minAge: number, maxAge: number) {
+    super(`Age range maximum ${maxAge} is below minimum ${minAge}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { minAge, maxAge },
+    });
+  }
+}
