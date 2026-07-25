@@ -2,10 +2,12 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
 import type { Route } from "./route";
+import type { RouteUtilizationProfile } from "./route-utilization-profile";
 import type { TransportSubscription } from "./transport-subscription";
 import type { Trip } from "./trip";
 import type { Vehicle } from "./vehicle";
 import type { VehicleAssignment } from "./vehicle-assignment";
+import type { VehicleDocument } from "./vehicle-document";
 
 // --- Vehicle ---------------------------------------------------------------------
 export const VEHICLE_REGISTERED = "transport.vehicle.registered";
@@ -276,3 +278,63 @@ export const tripCompleted = (trip: Trip): TripCompletedEvent =>
 
 export const tripCancelled = (trip: Trip): TripCancelledEvent =>
   createEvent(TRIP_CANCELLED, tripPayload(trip), { tenantId: trip.tenantId });
+
+// --- Vehicle document ------------------------------------------------------------
+export const DOCUMENT_RECORDED = "transport.document.recorded";
+export const DOCUMENT_RENEWED = "transport.document.renewed";
+
+export interface DocumentEventPayload {
+  readonly documentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly vehicleId: Uuid;
+  readonly type: string;
+  readonly expiresOn: string;
+}
+
+export type DocumentRecordedEvent = DomainEvent<typeof DOCUMENT_RECORDED, DocumentEventPayload>;
+export type DocumentRenewedEvent = DomainEvent<typeof DOCUMENT_RENEWED, DocumentEventPayload>;
+
+const documentPayload = (document: VehicleDocument): DocumentEventPayload => ({
+  documentId: document.id,
+  organizationId: document.organizationId,
+  vehicleId: document.vehicleId,
+  type: document.type,
+  expiresOn: document.expiresOn,
+});
+
+export const documentRecorded = (document: VehicleDocument): DocumentRecordedEvent =>
+  createEvent(DOCUMENT_RECORDED, documentPayload(document), { tenantId: document.tenantId });
+
+export const documentRenewed = (document: VehicleDocument): DocumentRenewedEvent =>
+  createEvent(DOCUMENT_RENEWED, documentPayload(document), { tenantId: document.tenantId });
+
+// --- Route utilization profile ---------------------------------------------------
+export const UTILIZATION_REFRESHED = "transport.utilization.refreshed";
+
+export interface UtilizationRefreshedPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly routeId: Uuid;
+  readonly subscriberCount: number;
+  readonly overCapacity: boolean;
+  readonly version: number;
+}
+
+export type UtilizationRefreshedEvent = DomainEvent<
+  typeof UTILIZATION_REFRESHED,
+  UtilizationRefreshedPayload
+>;
+
+export const utilizationRefreshed = (profile: RouteUtilizationProfile): UtilizationRefreshedEvent =>
+  createEvent(
+    UTILIZATION_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      routeId: profile.routeId,
+      subscriberCount: profile.subscriberCount,
+      overCapacity: profile.overCapacity,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );

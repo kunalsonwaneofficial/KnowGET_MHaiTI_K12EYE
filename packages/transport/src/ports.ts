@@ -1,10 +1,12 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Driver } from "./driver";
 import type { Route } from "./route";
+import type { RouteUtilizationProfile } from "./route-utilization-profile";
 import type { TransportSubscription } from "./transport-subscription";
 import type { Trip } from "./trip";
 import type { Vehicle } from "./vehicle";
 import type { VehicleAssignment } from "./vehicle-assignment";
+import type { VehicleDocument } from "./vehicle-document";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the
@@ -382,6 +384,120 @@ export class InMemoryTripRepository implements TripRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const trip = this.byId.get(id);
     if (trip && trip.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for vehicle documents. Tenant-scoped (explicit argument + RLS). */
+export interface VehicleDocumentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<VehicleDocument | null>;
+  findByVehicleAndType(
+    tenantId: TenantId,
+    vehicleId: Uuid,
+    type: string,
+  ): Promise<VehicleDocument | null>;
+  listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<VehicleDocument[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<VehicleDocument[]>;
+  listByTenant(tenantId: TenantId): Promise<VehicleDocument[]>;
+  save(document: VehicleDocument): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link VehicleDocumentRepository} — the default for tests and bootstrap. */
+export class InMemoryVehicleDocumentRepository implements VehicleDocumentRepository {
+  private readonly byId = new Map<string, VehicleDocument>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<VehicleDocument | null> {
+    const document = this.byId.get(id);
+    return document && document.tenantId === tenantId ? document : null;
+  }
+
+  async findByVehicleAndType(
+    tenantId: TenantId,
+    vehicleId: Uuid,
+    type: string,
+  ): Promise<VehicleDocument | null> {
+    return (
+      [...this.byId.values()].find(
+        (d) => d.tenantId === tenantId && d.vehicleId === vehicleId && d.type === type,
+      ) ?? null
+    );
+  }
+
+  async listByVehicle(tenantId: TenantId, vehicleId: Uuid): Promise<VehicleDocument[]> {
+    return [...this.byId.values()].filter(
+      (d) => d.tenantId === tenantId && d.vehicleId === vehicleId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<VehicleDocument[]> {
+    return [...this.byId.values()].filter(
+      (d) => d.tenantId === tenantId && d.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<VehicleDocument[]> {
+    return [...this.byId.values()].filter((d) => d.tenantId === tenantId);
+  }
+
+  async save(document: VehicleDocument): Promise<void> {
+    this.byId.set(document.id, document);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const document = this.byId.get(id);
+    if (document && document.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for route utilization profiles (one per route). Tenant-scoped (argument + RLS). */
+export interface RouteUtilizationProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<RouteUtilizationProfile | null>;
+  findByRoute(tenantId: TenantId, routeId: Uuid): Promise<RouteUtilizationProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<RouteUtilizationProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<RouteUtilizationProfile[]>;
+  save(profile: RouteUtilizationProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link RouteUtilizationProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryRouteUtilizationProfileRepository implements RouteUtilizationProfileRepository {
+  private readonly byId = new Map<string, RouteUtilizationProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<RouteUtilizationProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByRoute(tenantId: TenantId, routeId: Uuid): Promise<RouteUtilizationProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.routeId === routeId) ?? null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<RouteUtilizationProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<RouteUtilizationProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: RouteUtilizationProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

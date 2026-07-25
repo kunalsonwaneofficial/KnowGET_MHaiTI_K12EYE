@@ -539,3 +539,66 @@ export class InvalidTripEventError extends PlatformError {
     });
   }
 }
+
+// --- Vehicle document ------------------------------------------------------------
+
+/** The requested vehicle document does not exist in the current tenant. */
+export class DocumentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Vehicle document "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A vehicle document must carry a non-empty document number. */
+export class EmptyDocumentNumberError extends PlatformError {
+  constructor() {
+    super("A vehicle document must have a non-empty document number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A vehicle document must have valid issue/expiry dates, with expiry on or after issue. */
+export class InvalidDocumentDatesError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid vehicle document dates: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** The vehicle already has a document of this type; renew it instead of recording another. */
+export class DuplicateDocumentError extends PlatformError {
+  constructor(vehicleId: string, type: string) {
+    super(`Vehicle "${vehicleId}" already has a "${type}" document`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { vehicleId, type },
+    });
+  }
+}
+
+// --- Route utilization profile ---------------------------------------------------
+
+/** The requested route utilization profile does not exist in the current tenant. */
+export class RouteUtilizationProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Route utilization profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

@@ -1,4 +1,4 @@
-import type { TripEventType } from "./transport-value";
+import type { ComplianceStatus, DocumentType, TripEventType } from "./transport-value";
 
 /**
  * The narrow views the pure engines consume. The aggregates structurally satisfy them, so the engines
@@ -85,4 +85,19 @@ export interface TripOccupancy {
   readonly eventCount: number;
   readonly capacityExceeded: boolean;
   readonly utilizationPercent: number;
+}
+
+// --- Document compliance ---------------------------------------------------------
+
+/**
+ * A vehicle document's compliance as of a date — its type, number and expiry, the derived status
+ * (`valid`, `expiring` within the warning window, or `expired`) and the whole days to expiry (negative
+ * once expired). Descriptive and exact; computed from the expiry date, never stored.
+ */
+export interface DocumentCompliance {
+  readonly type: DocumentType;
+  readonly documentNumber: string;
+  readonly expiresOn: string;
+  readonly status: ComplianceStatus;
+  readonly daysToExpiry: number;
 }
