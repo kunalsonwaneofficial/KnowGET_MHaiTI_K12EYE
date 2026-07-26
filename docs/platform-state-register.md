@@ -1229,3 +1229,58 @@ application grade threw the code error — and two integrity/consistency refinem
 regression tests); seat capacity is advisory, an opt-in hard cap deferred (**TD-43**). All eight service tokens
 are exported for **in-process cross-domain use**. The operational admissions base the remaining Program-D
 (Alumni, P2-D24) and intelligence-core domains build on.
+
+## Alumni, Community & Relationship Platform (P2-D24, Program: Campus & Engagement · ADR-0043)
+
+The **alumni-network system of record for the institution** — the alumni-network profiles built on the alumnus
+lifecycle stage, the regional/interest chapters and their memberships, the reunions and networking events and
+their registrations, the mentorship connections between alumni, and the immutable giving record — built on the
+organization (P2-D01-M01) and person (P2-D01-M02) bases, delivered as one `@knowget/alumni` package on the
+certified `v0.2.0` baseline. The **sixth and final contract of Program D (Campus & Engagement)**. Its defining
+boundary is **Student Lifecycle (P2-D03)**, exactly as for admissions: P2-D03 owns the prospect → applicant →
+student → **alumnus** lifecycle _record_; this domain models the alumnus's **network membership** on top of it,
+referencing the alumnus as a **Person** and never re-modelling the lifecycle — where admissions (P2-D23) runs
+the funnel that brings students in, this keeps the relationship after they leave, both attaching to the same
+Person. Several quantities are **derived, not stored**, so the design begins with **two pure engines** built and
+tested first: the **engagement engine** (`computeAlumniEngagement` values an alumnus's engagement — a weighted,
+capped 0–100 score over attended events / active chapters / active mentorships / contributions and the level it
+falls in; `summarizeAlumniEngagement` rolls a set into count / average / per-level distribution) and the
+**participation engine** (`computeEventParticipation` values an event's fill / remaining / over-subscribed /
+attendance rate against capacity, 0 = untracked; `summarizeParticipation` rolls a set up, **counting only
+capacity-tracked events toward the overall fill**). Distinctively, **one of the eight aggregates is an immutable
+append-only record** (a contribution is written once, never edited — its repository omits `remove`), and **this
+domain carries no money**. It models eight aggregates: **AlumniProfile** (the network-membership anchor
+referencing the alumnus as a Person; active ↔ lapsed → opted_out, one per person per tenant), **AlumniChapter**
+(a regional/interest/class-year/professional community; forming → active ↔ inactive → archived, code unique,
+joinable while forming/active), **ChapterMembership** (an alumnus in a chapter with a role; active → left with
+left → active reactivation, **one row per (chapter, alumnus)** — rejoin reactivates, never duplicates),
+**AlumniEvent** (a reunion/networking/webinar/fundraiser/volunteer event with a capacity — 0 = untracked — and
+window; draft → scheduled → open → closed → completed | cancelled, registrations only while open),
+**EventRegistration** (an alumnus's registration; registered → attended | no_show | cancelled with cancelled →
+registered reinstatement, **one row per (event, alumnus)**), **MentorshipConnection** (a mentor ↔ mentee between
+two **distinct** alumni; proposed → active → completed | ended), **Contribution** (an **immutable** giving
+record — type + **non-monetary recognition tier** + optional campaign ref; the amount is Finance's, P2-D14) and
+**AlumniEngagementProfile** (the descriptive per-alumnus read model, **refreshed** from the engagement engine,
+never posted to directly). The **alumni-engagement-profile service** is the integration spine — it gathers an
+alumnus's attended registrations, active chapter memberships, active mentorships and contributions, rolls them
+through the engagement engine and refreshes the one profile per alumnus (live read helpers derive engagement and
+event participation on demand without persisting). It is **descriptive, not predictive** (giving-propensity /
+engagement forecasting are P2-D28). **Gift amounts** stay in **Finance (P2-D14)**, **community delivery** in
+**notifications (P1-M05) / engagement (P2-D22)**, and the alumnus lifecycle record in **Student Lifecycle
+(P2-D03)**. An alumni record's org is an **Organization**, and an alumnus a **Person**, referenced via directory
+ports and never duplicated. Money-free, free-text-free, **PII-free** alumni events (no person name, no graduation
+year, no chapter/event name, no mentorship focus, no campaign ref, no gift amount) publish onto the shared bus.
+Eight tables carry **FORCE RLS** tenant isolation, verified on live PostgreSQL (INTEGER capacity/counts/score
+round-tripping exactly, cross-tenant INSERT rejected, every business unique — one profile per (tenant, alumnus
+person); chapter/event code; one membership per (chapter, profile); one registration per (event, profile); one
+engagement profile per profile — rejecting duplicates 23505), with **all uniqueness absolute and DB-backed** —
+no status-scoped TOCTOU guard, like P2-D21/D22/D23 and unlike D16–D20, the two one-row-per-pair aggregates
+reactivating rather than duplicating on return. **Two permission scope pairs** split the platform — `alumni:*`
+for the individual relationship surface (profiles, mentorships, contributions, the engagement profile) and
+`community:*` for the community surface (chapters, memberships, events, registrations). Organization and Person
+existence enter through injected directory ports. Both independent adversarial audits were **clean of functional
+defects** (two low design notes — a role dropped on chapter rejoin, and the participation rollup blending tracked
+and untracked capacity — polished before merge with regression tests); event capacity is advisory, an opt-in
+hard cap deferred (**TD-44**). All eight service tokens are exported for **in-process cross-domain use**. The
+operational alumni base — closing **Program D** and the operational core **D01–D24** — the intelligence-core
+domains (Program E, D25–D30) build on.

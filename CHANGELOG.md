@@ -3,7 +3,73 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D23 · Program: Campus & Engagement · Admissions, Marketing, Enrollment & Growth Platform
+## [Unreleased] — P2-D24 · Program: Campus & Engagement · Alumni, Community & Relationship Platform
+
+The sixth and final contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the
+frozen Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **alumni-
+network system of record**, delivered as one `@knowget/alumni` package (ADR-0043): the alumni-network profiles
+built on the alumnus lifecycle stage, the regional/interest chapters and their memberships, the reunions and
+networking events and their registrations, the mentorship connections between alumni, and the immutable giving
+record, with a descriptive per-alumnus engagement profile. Its defining boundary is **Student Lifecycle
+(P2-D03)**, exactly as for admissions: P2-D03 owns the prospect → applicant → student → **alumnus** lifecycle
+_record_; this domain models the alumnus's **network membership** on top of it, referencing the alumnus as a
+**Person** and never re-modelling the lifecycle. Several quantities are **derived, not stored** — an alumnus's
+engagement and an event's participation — so the design begins with **two pure engines**. Distinctively, **one
+of the eight aggregates is an immutable append-only record** (contribution), and **this domain carries no
+money** — gift **amounts are Finance's (P2-D14)**. **Community message delivery** stays in notifications
+(P1-M05) / engagement (P2-D22). Descriptive, not predictive — giving-propensity and engagement forecasting are
+deferred to the intelligence core (P2-D28). This completes **Program D** and the operational core **D01–D24**.
+
+### Added
+
+- **Alumni, Community & Relationship Platform (ADR-0043):** two pure engines plus eight aggregates in one
+  `@knowget/alumni` package. **Two engines:** the engagement engine (`computeAlumniEngagement` — a weighted,
+  capped 0–100 score over attended events / active chapters / active mentorships / contributions + the level it
+  falls in; `summarizeAlumniEngagement` — count / average / per-level rollup) and the participation engine
+  (`computeEventParticipation` — fill / remaining / over-subscribed / attendance rate vs capacity, 0 =
+  untracked; `summarizeParticipation` — the rollup, fill over capacity-tracked events only). The aggregates:
+  **AlumniProfile** (the network-membership anchor referencing the alumnus as a Person; active ↔ lapsed →
+  opted_out, one per person per tenant), **AlumniChapter** (a regional/interest/class-year/professional
+  community; forming → active ↔ inactive → archived, code unique, joinable while forming/active),
+  **ChapterMembership** (an alumnus in a chapter with a role; active → left with reactivation, **one row per
+  (chapter, alumnus)** — rejoin reactivates), **AlumniEvent** (a reunion/networking/etc. with a capacity — 0 =
+  untracked — and window; draft → scheduled → open → closed → completed | cancelled, registrations only while
+  open), **EventRegistration** (registered → attended | no_show | cancelled with cancelled → registered
+  reinstatement, **one row per (event, alumnus)**), **MentorshipConnection** (a mentor ↔ mentee between two
+  **distinct** alumni; proposed → active → completed | ended), **Contribution** (an **immutable** giving
+  record — type + non-monetary recognition tier + optional campaign ref) and **AlumniEngagementProfile** (the
+  descriptive per-alumnus read model, refreshed from the engagement engine). The **AlumniEngagementProfileService**
+  integration spine gathers an alumnus's attended registrations / active memberships / active mentorships /
+  contributions and rolls them through the engagement engine; it also derives live event participation.
+- **Student-Lifecycle boundary:** the alumnus lifecycle record stays in Student Lifecycle (P2-D03); an alumni
+  profile is built on P2-D03's alumnus stage, referencing the alumnus as a Person and never re-modelling the
+  lifecycle. With admissions (P2-D23) and alumni (P2-D24) both attaching to P2-D03, the learner's whole arc —
+  enquiry to alumnus — is one Person.
+- **No money & no free-text/PII events:** the domain defines no monetary field (gift amounts → Finance,
+  P2-D14), and no domain event carries a person name, a graduation year, a chapter/event name, a mentorship
+  focus, a campaign ref or a gift amount — only ids, codes, types, roles, tiers, statuses, scores and counts,
+  on the `alumni.*` namespace.
+- **Boundaries:** gift **amounts** stay in Finance (P2-D14); the prospect/applicant/student/alumnus lifecycle
+  record stays in Student Lifecycle (P2-D03); **community message delivery** stays in notifications (P1-M05) /
+  engagement (P2-D22). Giving-propensity and engagement forecasting (P2-D28) are out of scope.
+- **Persistence (ADR-0010):** eight tables + migration `20261225000000_add_alumni`, each **FORCE RLS** +
+  `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL (INTEGER capacity/counts/
+  score, TEXT dates/codes/tiers round-tripping exactly; cross-tenant INSERT rejected; every business unique
+  rejecting duplicates 23505). **All uniqueness is DB-backed** (one profile per (tenant, alumnus person);
+  chapter/event code per tenant; one membership per (chapter, profile); one registration per (event, profile);
+  one engagement profile per profile) — no status-scoped TOCTOU guard, like P2-D21/D22/D23 and unlike D16–D20,
+  the two one-row-per-pair aggregates reactivating rather than duplicating on return.
+- **API:** eight permission-gated, tenant-scoped REST controllers — `alumni/*` (profiles, mentorships,
+  contributions, the engagement profile) under `alumni:read`/`:write` and `community/*` (chapters, memberships,
+  events, registrations) under `community:read`/`:write`; zod DTOs; eight Prisma/RLS adapters (the two
+  immutable ones omit `remove`) + two directory adapters (Organization, Person); `AlumniModule` importing the
+  Organization and Person modules and exporting every service token, registered in `app.module`.
+- **Event capacity** is advisory, an opt-in hard cap deferred (**TD-44**); both independent adversarial audits
+  (domain; persistence/API) were clean of functional defects, with two low design notes (a role dropped on
+  chapter rejoin; the participation rollup blending tracked/untracked capacity) polished before merge with
+  regression tests.
+
+## P2-D23 · Program: Campus & Engagement · Admissions, Marketing, Enrollment & Growth Platform
 
 The fifth contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
 Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **admissions
