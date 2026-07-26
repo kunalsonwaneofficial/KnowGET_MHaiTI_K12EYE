@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Copy } from "./copy";
+import type { DigitalAsset } from "./digital-asset";
+import type { LibraryMember } from "./library-member";
 import type { Title } from "./title";
 
 /**
@@ -112,6 +114,119 @@ export class InMemoryCopyRepository implements CopyRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const copy = this.byId.get(id);
     if (copy && copy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for digital assets. Tenant-scoped (explicit argument + RLS). */
+export interface DigitalAssetRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<DigitalAsset | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<DigitalAsset[]>;
+  listByTenant(tenantId: TenantId): Promise<DigitalAsset[]>;
+  save(asset: DigitalAsset): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link DigitalAssetRepository} — the default for tests and bootstrap. */
+export class InMemoryDigitalAssetRepository implements DigitalAssetRepository {
+  private readonly byId = new Map<string, DigitalAsset>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<DigitalAsset | null> {
+    const asset = this.byId.get(id);
+    return asset && asset.tenantId === tenantId ? asset : null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<DigitalAsset[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<DigitalAsset[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(asset: DigitalAsset): Promise<void> {
+    this.byId.set(asset.id, asset);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const asset = this.byId.get(id);
+    if (asset && asset.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for library members. Tenant-scoped (explicit argument + RLS). */
+export interface LibraryMemberRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<LibraryMember | null>;
+  findByMembershipNumber(
+    tenantId: TenantId,
+    membershipNumber: string,
+  ): Promise<LibraryMember | null>;
+  findByPersonAndOrganization(
+    tenantId: TenantId,
+    personId: Uuid,
+    organizationId: Uuid,
+  ): Promise<LibraryMember | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LibraryMember[]>;
+  listByTenant(tenantId: TenantId): Promise<LibraryMember[]>;
+  save(member: LibraryMember): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LibraryMemberRepository} — the default for tests and bootstrap. */
+export class InMemoryLibraryMemberRepository implements LibraryMemberRepository {
+  private readonly byId = new Map<string, LibraryMember>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<LibraryMember | null> {
+    const member = this.byId.get(id);
+    return member && member.tenantId === tenantId ? member : null;
+  }
+
+  async findByMembershipNumber(
+    tenantId: TenantId,
+    membershipNumber: string,
+  ): Promise<LibraryMember | null> {
+    return (
+      [...this.byId.values()].find(
+        (m) => m.tenantId === tenantId && m.membershipNumber === membershipNumber,
+      ) ?? null
+    );
+  }
+
+  async findByPersonAndOrganization(
+    tenantId: TenantId,
+    personId: Uuid,
+    organizationId: Uuid,
+  ): Promise<LibraryMember | null> {
+    return (
+      [...this.byId.values()].find(
+        (m) =>
+          m.tenantId === tenantId && m.personId === personId && m.organizationId === organizationId,
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<LibraryMember[]> {
+    return [...this.byId.values()].filter(
+      (m) => m.tenantId === tenantId && m.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<LibraryMember[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId);
+  }
+
+  async save(member: LibraryMember): Promise<void> {
+    this.byId.set(member.id, member);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const member = this.byId.get(id);
+    if (member && member.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

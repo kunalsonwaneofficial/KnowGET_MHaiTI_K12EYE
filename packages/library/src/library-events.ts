@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Copy } from "./copy";
+import type { DigitalAsset } from "./digital-asset";
+import type { LibraryMember } from "./library-member";
 import type { Title } from "./title";
 
 // --- Title -----------------------------------------------------------------------
@@ -78,3 +80,84 @@ export const copyLost = (copy: Copy): CopyLostEvent =>
 
 export const copyWithdrawn = (copy: Copy): CopyWithdrawnEvent =>
   createEvent(COPY_WITHDRAWN, copyPayload(copy), { tenantId: copy.tenantId });
+
+// --- Digital asset ---------------------------------------------------------------
+export const DIGITAL_CATALOGED = "library.digital.cataloged";
+export const DIGITAL_RETIRED = "library.digital.retired";
+export const DIGITAL_REACTIVATED = "library.digital.reactivated";
+export const DIGITAL_LICENSE_RENEWED = "library.digital.license_renewed";
+
+export interface DigitalEventPayload {
+  readonly assetId: Uuid;
+  readonly organizationId: Uuid;
+  readonly title: string;
+  readonly format: string;
+  readonly status: string;
+}
+
+export type DigitalCatalogedEvent = DomainEvent<typeof DIGITAL_CATALOGED, DigitalEventPayload>;
+export type DigitalRetiredEvent = DomainEvent<typeof DIGITAL_RETIRED, DigitalEventPayload>;
+export type DigitalReactivatedEvent = DomainEvent<typeof DIGITAL_REACTIVATED, DigitalEventPayload>;
+export type DigitalLicenseRenewedEvent = DomainEvent<
+  typeof DIGITAL_LICENSE_RENEWED,
+  DigitalEventPayload
+>;
+
+const digitalPayload = (asset: DigitalAsset): DigitalEventPayload => ({
+  assetId: asset.id,
+  organizationId: asset.organizationId,
+  title: asset.title,
+  format: asset.format,
+  status: asset.status,
+});
+
+export const digitalCataloged = (asset: DigitalAsset): DigitalCatalogedEvent =>
+  createEvent(DIGITAL_CATALOGED, digitalPayload(asset), { tenantId: asset.tenantId });
+
+export const digitalRetired = (asset: DigitalAsset): DigitalRetiredEvent =>
+  createEvent(DIGITAL_RETIRED, digitalPayload(asset), { tenantId: asset.tenantId });
+
+export const digitalReactivated = (asset: DigitalAsset): DigitalReactivatedEvent =>
+  createEvent(DIGITAL_REACTIVATED, digitalPayload(asset), { tenantId: asset.tenantId });
+
+export const digitalLicenseRenewed = (asset: DigitalAsset): DigitalLicenseRenewedEvent =>
+  createEvent(DIGITAL_LICENSE_RENEWED, digitalPayload(asset), { tenantId: asset.tenantId });
+
+// --- Library member --------------------------------------------------------------
+export const MEMBER_REGISTERED = "library.member.registered";
+export const MEMBER_SUSPENDED = "library.member.suspended";
+export const MEMBER_REINSTATED = "library.member.reinstated";
+export const MEMBER_EXPIRED = "library.member.expired";
+
+export interface MemberEventPayload {
+  readonly memberId: Uuid;
+  readonly organizationId: Uuid;
+  readonly personId: Uuid;
+  readonly membershipNumber: string;
+  readonly status: string;
+}
+
+export type MemberRegisteredEvent = DomainEvent<typeof MEMBER_REGISTERED, MemberEventPayload>;
+export type MemberSuspendedEvent = DomainEvent<typeof MEMBER_SUSPENDED, MemberEventPayload>;
+export type MemberReinstatedEvent = DomainEvent<typeof MEMBER_REINSTATED, MemberEventPayload>;
+export type MemberExpiredEvent = DomainEvent<typeof MEMBER_EXPIRED, MemberEventPayload>;
+
+const memberPayload = (member: LibraryMember): MemberEventPayload => ({
+  memberId: member.id,
+  organizationId: member.organizationId,
+  personId: member.personId,
+  membershipNumber: member.membershipNumber,
+  status: member.status,
+});
+
+export const memberRegistered = (member: LibraryMember): MemberRegisteredEvent =>
+  createEvent(MEMBER_REGISTERED, memberPayload(member), { tenantId: member.tenantId });
+
+export const memberSuspended = (member: LibraryMember): MemberSuspendedEvent =>
+  createEvent(MEMBER_SUSPENDED, memberPayload(member), { tenantId: member.tenantId });
+
+export const memberReinstated = (member: LibraryMember): MemberReinstatedEvent =>
+  createEvent(MEMBER_REINSTATED, memberPayload(member), { tenantId: member.tenantId });
+
+export const memberExpired = (member: LibraryMember): MemberExpiredEvent =>
+  createEvent(MEMBER_EXPIRED, memberPayload(member), { tenantId: member.tenantId });
