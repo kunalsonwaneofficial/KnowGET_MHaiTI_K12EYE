@@ -3,7 +3,76 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D22 · Program: Campus & Engagement · Unified Communication, Engagement & Collaboration Platform
+## [Unreleased] — P2-D23 · Program: Campus & Engagement · Admissions, Marketing, Enrollment & Growth Platform
+
+The fifth contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **admissions
+system of record**, delivered as one `@knowget/admissions` package (ADR-0042): the marketing campaigns it runs
+and the leads they draw, the admission cycles it opens with their per-grade seat plans, the applications
+families submit and the immutable entrance evaluations they gather, the offers extended and the immutable
+enrollment confirmations that close the funnel, and the descriptive per-cycle funnel profile. Its defining
+boundary is **Student Lifecycle (P2-D03)**: that domain owns the prospect/applicant/student **records** and the
+enrolled-student lifecycle; this one runs the funnel that _ends_ where P2-D03 _begins_ — an application
+references its applicant as a **Person**, and a confirmed enrollment is the **hand-off point**
+(`admissions.enrollment.confirmed`, which Student Lifecycle consumes to enrol the student). Several quantities
+are **derived, not stored** — the admissions funnel (leads → applications → offers → enrollments + conversion
+rates) and a cycle's seat intake — so the design begins with **two pure engines**. Distinctively, **two of the
+eight aggregates are immutable append-only records** (admission evaluation, enrollment confirmation), and **this
+domain carries no money** — application and admission **fees are Finance's (P2-D14)**. **Marketing message
+delivery** stays in notifications (P1-M05) / engagement (P2-D22). Descriptive, not predictive — yield
+forecasting and lead scoring are deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Admissions, Marketing, Enrollment & Growth Platform (ADR-0042):** two pure engines plus eight aggregates in
+  one `@knowget/admissions` package. **Two engines:** the funnel engine (`computeAdmissionFunnel` — the stage
+  counts leads → applications → offers → enrollments and the conversion rate between each adjacent pair + the
+  overall lead → enrollment rate, each capped at 100 so no stage exceeds the one before it, empty-safe;
+  `summarizeApplicationStages` — the per-status application tally) and the intake engine (`computeIntakeCapacity`
+  — a grade's confirmed places vs capacity into remaining / over-subscribed / fill percent, capacity 0 =
+  untracked; `summarizeIntake` — the cycle-wide rollup). The aggregates: **MarketingCampaign** (a growth drive
+  over a channel; draft → active → completed | cancelled, code unique per tenant), **Lead** (an inbound inquiry;
+  new → contacted → qualified → converted, lost from any open state, contact name + optional phone/email held on
+  the aggregate never on an event, an optional attributed campaign validated), **AdmissionCycle** (an intake
+  season with a per-grade **JSONB** seat plan; planning → open → closed → archived, applications open-only),
+  **Application** (the admissions-process record; submitted → under_review → interview → offered with waitlisted
+  | rejected | withdrawn branches, the applicant a validated **Person**, org from the cycle, an optional
+  attributed lead validated), **AdmissionEvaluation** (an **immutable** entrance evaluation — type, a 0–100
+  score, a recommendation — recordable only while under_review/interview), **Offer** (a seat offer for an
+  `offered` application; extended → accepted | declined | expired | withdrawn, **one offer per application**),
+  **EnrollmentConfirmation** (an **immutable** close of the funnel — confirmed only from an accepted offer,
+  **one per offer**, the Student-Lifecycle hand-off) and **AdmissionsFunnelProfile** (the descriptive per-cycle
+  funnel + intake read model, refreshed from the two engines). The **AdmissionsFunnelProfileService**
+  integration spine rolls the organization's leads and the cycle's applications/offers/enrollments through the
+  funnel engine and the seat plan vs confirmed enrollments through the intake engine.
+- **Student-Lifecycle hand-off:** a confirmed enrollment publishes `admissions.enrollment.confirmed` (applicant
+  person, grade, cycle, and `student_id` once known) — the signal **Student Lifecycle (P2-D03)** consumes to
+  enrol the student. This domain confirms the seat; P2-D03 owns the enrolled student and is never re-modelled.
+- **No money & no free-text/PII events:** the domain defines no monetary field (fees → Finance, P2-D14), and no
+  domain event carries a campaign name, a lead's contact name/phone/email, or an applicant identity beyond an id
+  — only ids, codes, channels, sources, statuses, grades, scores and counts, on the `admissions.*` namespace.
+- **Boundaries:** **fees** stay in Finance (P2-D14); the prospect/applicant/student records stay in Student
+  Lifecycle (P2-D03); **marketing message delivery** stays in notifications (P1-M05) / engagement (P2-D22).
+  Scholarship/aid modelling and prediction (yield forecasting, lead scoring, P2-D28) are out of scope.
+- **Persistence (ADR-0010):** eight tables + migration `20261224000000_add_admissions`, each **FORCE RLS** +
+  `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL (INTEGER score/counts/
+  percents, **JSONB** seat plan, **TEXT** codes/names/grades/contact details round-tripping exactly;
+  cross-tenant INSERT rejected 42501; the three business uniques — one offer per application, one enrollment per
+  offer, one profile per cycle — rejecting duplicates 23505). **All uniqueness is DB-backed** (campaign/lead/
+  cycle/application code per tenant; one offer per application; one enrollment per offer; one profile per cycle)
+  — no status-scoped TOCTOU guard, like P2-D21/P2-D22 and unlike D16–D20.
+- **API:** eight permission-gated, tenant-scoped REST controllers — `marketing/*` (campaigns, leads) under
+  `marketing:read`/`:write` and `admissions/*` (cycles, applications, evaluations, offers, enrollments, the
+  funnel profile) under `admissions:read`/`:write`; zod DTOs; eight Prisma/RLS adapters (the two immutable ones
+  omit `remove`) + two directory adapters (Organization, Person); `AdmissionsModule` importing the Organization
+  and Person modules and exporting every service token, registered in `app.module`.
+- **Seat capacity** is advisory, an opt-in hard cap deferred (**TD-43**); both independent adversarial audits
+  (domain; persistence/API) were resolved clean, the domain audit's one confirmed low defect (an empty
+  application grade threw the code error) and two integrity/consistency refinements (validating an application's
+  optional attributed lead; de-duplicating the open-status source of truth) fixed before merge with regression
+  tests.
+
+## P2-D22 · Program: Campus & Engagement · Unified Communication, Engagement & Collaboration Platform
 
 The fourth contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
 Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **engagement
