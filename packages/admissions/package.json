@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/admissions",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Admissions, Marketing, Enrollment & Growth Platform (P2-D23) — the institution's admissions-funnel and growth system of record: the marketing campaigns that attract families, the inbound leads they generate, the admission cycles with their seat capacity, the applications and their review workflow, the immutable entrance evaluations, the seat offers and their responses, and the immutable enrollment-confirmation that hands a converted applicant off to the Student Lifecycle (P2-D03). A pure funnel engine derives the conversion rates across lead → application → offer → enrollment; a pure intake engine derives per-grade seat fill against capacity. The prospect/applicant/student records and enrollment belong to Student Lifecycle (P2-D03); money (application/admission fees) is out of scope (Finance P2-D14) and domain events carry no money and no free text.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

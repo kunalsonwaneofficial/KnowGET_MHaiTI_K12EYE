@@ -4529,3 +4529,225 @@ model EngagementProfile {
   @@index([tenantId, organizationId])
   @@map("engagement_profile")
 }
+
+// ---------------------------------------------------------------------------------
+// P2-D23 — Admissions, Marketing, Enrollment & Growth Platform
+// ---------------------------------------------------------------------------------
+
+/// MarketingCampaign (P2-D23) — a drive to attract prospective families through a channel over an optional
+/// period (code unique per tenant); draft -> active -> completed | cancelled. Marketing message delivery is
+/// the notifications (P1-M05) / engagement (P2-D22) concern; leads may be attributed to a campaign. No money.
+/// Tenant-owned: FORCE RLS.
+model MarketingCampaign {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  channel        String
+  startOn        String?   @map("start_on")
+  endOn          String?   @map("end_on")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("marketing_campaign")
+}
+
+/// Lead (P2-D23) — an inbound inquiry from a prospective family, the top of the funnel (code unique per
+/// tenant); a contact name + optional phone/email held here (never on an event), an acquisition source and an
+/// optional attributed campaign; new -> contacted -> qualified -> converted, lost from any open state.
+/// Tenant-owned: FORCE RLS.
+model Lead {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  contactName    String    @map("contact_name")
+  phone          String?
+  email          String?
+  source         String
+  campaignId     String?   @map("campaign_id") @db.Uuid
+  status         String    @default("new")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, campaignId])
+  @@map("lead")
+}
+
+/// AdmissionCycle (P2-D23) — an intake season with a per-grade seat plan (JSONB) and an application window
+/// (code unique per tenant); planning -> open -> closed -> archived. The seat plan feeds the intake engine
+/// against confirmed enrolments. Tenant-owned: FORCE RLS.
+model AdmissionCycle {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  code            String
+  name            String
+  academicYear    String    @map("academic_year")
+  gradeCapacities Json      @default("[]") @map("grade_capacities")
+  opensOn         String?   @map("opens_on")
+  closesOn        String?   @map("closes_on")
+  status          String    @default("planning")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("admission_cycle")
+}
+
+/// Application (P2-D23) — the admissions record for one applicant (a Person, P2-D01-M02) in one cycle for a
+/// grade (code unique per tenant), optionally from a lead; submitted -> under_review -> interview -> offered,
+/// with waitlisted | rejected | withdrawn branches. The prospect/student record is Student Lifecycle's
+/// (P2-D03), referenced by id. Tenant-owned: FORCE RLS.
+model Application {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  cycleId           String    @map("cycle_id") @db.Uuid
+  applicantPersonId String    @map("applicant_person_id") @db.Uuid
+  leadId            String?   @map("lead_id") @db.Uuid
+  code              String
+  gradeApplyingFor  String    @map("grade_applying_for")
+  status            String    @default("submitted")
+  submittedOn       String    @map("submitted_on")
+  decidedOn         String?   @map("decided_on")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, cycleId])
+  @@index([tenantId, organizationId])
+  @@map("application")
+}
+
+/// AdmissionEvaluation (P2-D23) — an immutable, append-only entrance evaluation for an application (type, a
+/// 0-100 score, a recommendation). No lifecycle. An admissions screening, distinct from an academic assessment
+/// (P2-D10). Tenant-owned: FORCE RLS.
+model AdmissionEvaluation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  applicationId  String    @map("application_id") @db.Uuid
+  type           String
+  score          Int
+  recommendation String
+  evaluatedOn    String    @map("evaluated_on")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, applicationId])
+  @@map("admission_evaluation")
+}
+
+/// Offer (P2-D23) — a seat offer for an application that reached `offered`, for a grade, with an optional
+/// response deadline (one offer per application, DB-backed); extended -> accepted | declined | expired |
+/// withdrawn. Accepting bridges to an enrollment confirmation. Tenant-owned: FORCE RLS.
+model Offer {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  applicationId  String    @map("application_id") @db.Uuid
+  cycleId        String    @map("cycle_id") @db.Uuid
+  gradeOffered   String    @map("grade_offered")
+  extendedOn     String    @map("extended_on")
+  respondBy      String?   @map("respond_by")
+  status         String    @default("extended")
+  respondedOn    String?   @map("responded_on")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, applicationId])
+  @@index([tenantId])
+  @@index([tenantId, cycleId])
+  @@map("offer")
+}
+
+/// EnrollmentConfirmation (P2-D23) — the immutable close of the funnel: an accepted offer turned into a
+/// confirmed seat (one per offer, DB-backed). The hand-off to Student Lifecycle (P2-D03) is the
+/// admissions.enrollment.confirmed event; `student_id` records the resulting student reference once known.
+/// No lifecycle. Tenant-owned: FORCE RLS.
+model EnrollmentConfirmation {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  offerId           String    @map("offer_id") @db.Uuid
+  applicationId     String    @map("application_id") @db.Uuid
+  cycleId           String    @map("cycle_id") @db.Uuid
+  applicantPersonId String    @map("applicant_person_id") @db.Uuid
+  gradeConfirmed    String    @map("grade_confirmed")
+  studentId         String?   @map("student_id") @db.Uuid
+  confirmedOn       String    @map("confirmed_on")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, offerId])
+  @@index([tenantId])
+  @@index([tenantId, cycleId])
+  @@map("enrollment_confirmation")
+}
+
+/// AdmissionsFunnelProfile (P2-D23) — a descriptive, re-derivable per-cycle read model snapshotting the two
+/// pure engines (funnel stage counts + conversion rates; cycle-wide intake fill). One per cycle. Tenant-owned:
+/// FORCE RLS.
+model AdmissionsFunnelProfile {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String    @map("tenant_id") @db.Uuid
+  organizationId            String    @map("organization_id") @db.Uuid
+  cycleId                   String    @map("cycle_id") @db.Uuid
+  leadCount                 Int       @default(0) @map("lead_count")
+  applicationCount          Int       @default(0) @map("application_count")
+  offerCount                Int       @default(0) @map("offer_count")
+  enrollmentCount           Int       @default(0) @map("enrollment_count")
+  leadToApplicationPercent  Int       @default(0) @map("lead_to_application_percent")
+  applicationToOfferPercent Int       @default(0) @map("application_to_offer_percent")
+  offerToEnrollmentPercent  Int       @default(0) @map("offer_to_enrollment_percent")
+  overallConversionPercent  Int       @default(0) @map("overall_conversion_percent")
+  gradeCount                Int       @default(0) @map("grade_count")
+  totalCapacity             Int       @default(0) @map("total_capacity")
+  totalConfirmed            Int       @default(0) @map("total_confirmed")
+  fillPercent               Int       @default(0) @map("fill_percent")
+  refreshedAt               String    @map("refreshed_at")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  createdBy                 String?   @map("created_by") @db.Uuid
+  updatedBy                 String?   @map("updated_by") @db.Uuid
+  deletedAt                 DateTime? @map("deleted_at")
+
+  @@unique([tenantId, cycleId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("admissions_funnel_profile")
+}
