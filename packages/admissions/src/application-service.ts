@@ -26,9 +26,15 @@ import {
   CycleNotFoundError,
   CycleNotOpenError,
   DuplicateApplicationCodeError,
+  LeadNotFoundForApplicationError,
   PersonNotFoundForAdmissionsError,
 } from "./errors";
-import type { AdmissionCycleRepository, ApplicationRepository, PersonDirectory } from "./ports";
+import type {
+  AdmissionCycleRepository,
+  ApplicationRepository,
+  LeadRepository,
+  PersonDirectory,
+} from "./ports";
 
 /** The submit input — the organization is derived from the target cycle, not supplied. */
 export type SubmitApplicationInput = Omit<CreateApplicationParams, "organizationId">;
@@ -36,6 +42,7 @@ export type SubmitApplicationInput = Omit<CreateApplicationParams, "organization
 export interface ApplicationServiceDeps {
   readonly repository: ApplicationRepository;
   readonly cycles: AdmissionCycleRepository;
+  readonly leads: LeadRepository;
   readonly persons: PersonDirectory;
   readonly events?: Pick<EventBus, "publish">;
 }
@@ -50,12 +57,14 @@ export interface ApplicationServiceDeps {
 export class ApplicationService {
   private readonly repository: ApplicationRepository;
   private readonly cycles: AdmissionCycleRepository;
+  private readonly leads: LeadRepository;
   private readonly persons: PersonDirectory;
   private readonly events: Pick<EventBus, "publish"> | undefined;
 
   constructor(deps: ApplicationServiceDeps) {
     this.repository = deps.repository;
     this.cycles = deps.cycles;
+    this.leads = deps.leads;
     this.persons = deps.persons;
     this.events = deps.events;
   }
@@ -70,6 +79,9 @@ export class ApplicationService {
     }
     if (!(await this.persons.exists(input.tenantId, input.applicantPersonId))) {
       throw new PersonNotFoundForAdmissionsError(input.applicantPersonId);
+    }
+    if (input.leadId && !(await this.leads.findById(input.tenantId, input.leadId))) {
+      throw new LeadNotFoundForApplicationError(input.leadId);
     }
     if (await this.repository.findByCode(input.tenantId, input.code.trim())) {
       throw new DuplicateApplicationCodeError(input.code.trim());

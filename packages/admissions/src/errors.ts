@@ -255,6 +255,29 @@ export class EmptyApplicationCodeError extends PlatformError {
   }
 }
 
+/** An application must carry a non-empty grade. */
+export class EmptyApplicationGradeError extends PlatformError {
+  constructor() {
+    super("An application must have a non-empty grade", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The lead an application references does not exist in the current tenant. */
+export class LeadNotFoundForApplicationError extends PlatformError {
+  constructor(leadId: string) {
+    super(`Lead "${leadId}" not found; an application cannot reference it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { leadId },
+    });
+  }
+}
+
 /** The application code is already in use within the tenant. */
 export class DuplicateApplicationCodeError extends PlatformError {
   constructor(code: string) {
@@ -296,12 +319,15 @@ export class InvalidEvaluationScoreError extends PlatformError {
 /** The application is not in a state that accepts an entrance evaluation. */
 export class ApplicationNotEvaluableError extends PlatformError {
   constructor(id: string) {
-    super(`Application "${id}" is not under review; an evaluation cannot be recorded for it`, {
-      code: "CONFLICT",
-      httpStatus: 409,
-      isOperational: true,
-      details: { id },
-    });
+    super(
+      `Application "${id}" is not under review or at interview; an evaluation cannot be recorded for it`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id },
+      },
+    );
   }
 }
 

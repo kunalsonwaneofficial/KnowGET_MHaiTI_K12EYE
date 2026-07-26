@@ -158,10 +158,17 @@ const services: Provider[] = [
     useFactory: (
       repository: ApplicationRepository,
       cycles: AdmissionCycleRepository,
+      leads: LeadRepository,
       persons: PersonDirectory,
       events: EventBus,
-    ) => new ApplicationService({ repository, cycles, persons, events }),
-    inject: [AD_APPLICATION_REPOSITORY, AD_CYCLE_REPOSITORY, AD_PERSON_DIRECTORY, EVENT_BUS],
+    ) => new ApplicationService({ repository, cycles, leads, persons, events }),
+    inject: [
+      AD_APPLICATION_REPOSITORY,
+      AD_CYCLE_REPOSITORY,
+      AD_LEAD_REPOSITORY,
+      AD_PERSON_DIRECTORY,
+      EVENT_BUS,
+    ],
   },
   {
     provide: AD_EVALUATION_SERVICE,

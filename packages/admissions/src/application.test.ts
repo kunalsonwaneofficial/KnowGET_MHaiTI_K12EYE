@@ -44,7 +44,7 @@ describe("Application", () => {
     expect(() => withdrawApplication(rejected, "d")).toThrow(/cannot move/);
   });
 
-  it("rejects an empty code or grade", () => {
+  it("rejects an empty code or grade, each blaming the right field", () => {
     expect(() =>
       createApplication({
         tenantId,
@@ -55,7 +55,7 @@ describe("Application", () => {
         gradeApplyingFor: "G1",
         submittedOn: "d",
       }),
-    ).toThrow();
+    ).toThrow(/non-empty code/);
     expect(() =>
       createApplication({
         tenantId,
@@ -66,6 +66,6 @@ describe("Application", () => {
         gradeApplyingFor: " ",
         submittedOn: "d",
       }),
-    ).toThrow();
+    ).toThrow(/non-empty grade/);
   });
 });

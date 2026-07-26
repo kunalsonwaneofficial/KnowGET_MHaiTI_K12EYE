@@ -5,9 +5,9 @@ import {
   EmptyLeadContactNameError,
   InvalidLeadTransitionError,
 } from "./errors";
-import type { CampaignChannel, LeadStatus } from "./admissions-value";
+import { type CampaignChannel, type LeadStatus, OPEN_LEAD_STATUSES } from "./admissions-value";
 
-const OPEN_LEAD = new Set<string>(["new", "contacted", "qualified"]);
+const OPEN_LEAD = new Set<string>(OPEN_LEAD_STATUSES);
 
 /**
  * A lead — an inbound inquiry from a prospective family, the top of the admissions funnel. It carries a

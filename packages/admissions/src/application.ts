@@ -1,9 +1,13 @@
 import { newUuid, nowIso } from "@knowget/shared";
 import type { ISODateString, TenantId, Uuid } from "@knowget/types";
-import { EmptyApplicationCodeError, InvalidApplicationTransitionError } from "./errors";
-import type { ApplicationStatus } from "./admissions-value";
+import {
+  EmptyApplicationCodeError,
+  EmptyApplicationGradeError,
+  InvalidApplicationTransitionError,
+} from "./errors";
+import { type ApplicationStatus, OPEN_APPLICATION_STATUSES } from "./admissions-value";
 
-const OPEN_APPLICATION = new Set<string>(["submitted", "under_review", "interview"]);
+const OPEN_APPLICATION = new Set<string>(OPEN_APPLICATION_STATUSES);
 
 /**
  * An application — the admissions process record for one applicant in one cycle, for a grade. It references
@@ -47,7 +51,7 @@ export function createApplication(params: CreateApplicationParams): Application 
   }
   const gradeApplyingFor = params.gradeApplyingFor.trim();
   if (gradeApplyingFor.length === 0) {
-    throw new EmptyApplicationCodeError();
+    throw new EmptyApplicationGradeError();
   }
   const now = nowIso();
   return {
