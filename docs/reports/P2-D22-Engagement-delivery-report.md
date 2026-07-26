@@ -2,13 +2,13 @@
 
 **Unified Communication, Engagement & Collaboration Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Campus & Engagement
 
-|                |                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D22 — Unified Communication, Engagement & Collaboration Platform                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Status**     | 🟡 In progress — feature branch `feat/p2-d22-engagement` pushed; awaiting CI green + merge. In-sandbox: `@knowget/engagement` typecheck/lint/format/build clean, **54 tests** (17 files); `apps/api` typecheck/lint/build clean + engagement DI-graph spec in the **212-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**253** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
-| **Depends on** | P2-D01-M01 (Organization — the audience/announcement owner), P2-D01-M02 (Person — the authors, participants and respondents), P1-M05 (`@knowget/notifications`, the channel-delivery service the published announcement is handed to; `@knowget/documents`), P2-D04 (Family & Guardian, ADR-0023 — where the communication profile / contact preferences live), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                               |
-| **Date**       | 23 December 2026                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Next**       | P2-D23 — next Program D (Campus & Engagement) contract                                                                                                                                                                                                                                                                                                                                                                                              |
+|                |                                                                                                                                                                                                                                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D22 — Unified Communication, Engagement & Collaboration Platform                                                                                                                                                                                                                                                                                                                                           |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`51af994`). In-sandbox: `@knowget/engagement` typecheck/lint/format/build clean, **54 tests** (17 files); `apps/api` typecheck/lint/build clean + engagement DI-graph spec in the **212-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**253** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
+| **Depends on** | P2-D01-M01 (Organization — the audience/announcement owner), P2-D01-M02 (Person — the authors, participants and respondents), P1-M05 (`@knowget/notifications`, the channel-delivery service the published announcement is handed to; `@knowget/documents`), P2-D04 (Family & Guardian, ADR-0023 — where the communication profile / contact preferences live), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)         |
+| **Date**       | 23 December 2026                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Next**       | P2-D23 — next Program D (Campus & Engagement) contract                                                                                                                                                                                                                                                                                                                                                        |
 
 ---
 
@@ -131,7 +131,7 @@ unlike D16–D20; the ack/response dedup guards are DB-backed, NULL-distinct for
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the engagement events ride the
   same bus.
 
-## 7. Outcome — awaiting CI green and merge
+## 7. Outcome — merged to `main`, proceed to P2-D23
 
 The Unified Communication, Engagement & Collaboration Platform is complete behind its gates: announcement
 reach and survey response rates are derived consistently by pure engines (the rollup capped per item, draft
@@ -139,7 +139,7 @@ surveys excluded), three of the eight aggregates are immutable append-only logs,
 delivery (notifications, P1-M05) and preferences (Family & Guardian, P2-D04) boundaries are held structurally,
 and all eight tables are FORCE-RLS tenant-isolated (verified live, JSONB/BOOLEAN/INTEGER round-tripping
 exactly, cross-tenant insert rejected 42501, anonymous responses unbounded); both independent audits were
-resolved clean (one medium + several low domain findings fixed before merge). The feature branch
-`feat/p2-d22-engagement` is pushed and awaiting CI; on green it will be **merged to `main`**, the fourth
-contract of Program D (Campus & Engagement); next is **P2-D23**. **Reminder: rotate the GitHub PAT** used for
-pushes at this milestone boundary — it has not yet been rotated across the P2-D18/D19/D20/D21/D22 boundaries.
+resolved clean (one medium + several low domain findings fixed before merge). CI is green and the milestone is
+**merged to `main` (`51af994`)**, the fourth contract of Program D (Campus & Engagement); next is **P2-D23**.
+**Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary — it has not yet been rotated
+across the P2-D18/D19/D20/D21/D22 boundaries.
