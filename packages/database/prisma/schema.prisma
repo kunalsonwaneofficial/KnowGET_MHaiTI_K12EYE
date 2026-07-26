@@ -4332,3 +4332,200 @@ model SafetyProfile {
   @@index([tenantId, organizationId])
   @@map("safety_profile")
 }
+
+// ---------------------------------------------------------------------------------
+// P2-D22 — Unified Communication, Engagement & Collaboration Platform
+// ---------------------------------------------------------------------------------
+
+/// Audience (P2-D22) — a reusable recipient group (code unique per tenant) holding an opaque JSONB set of
+/// member Person ids and an optional criteria label; active -> archived. Member ids are not per-item
+/// validated (the organization is the anchor). Tenant-owned: FORCE RLS.
+model Audience {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  code            String
+  name            String
+  description     String?
+  criteriaLabel   String?   @map("criteria_label")
+  memberPersonIds Json      @default("[]") @map("member_person_ids")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("audience")
+}
+
+/// Announcement (P2-D22) — an institution->audience broadcast (title/body/category/priority);
+/// draft -> scheduled -> published -> archived | cancelled, pinned while published. Delivery to channels is
+/// the platform notifications service's (P1-M05). Tenant-owned: FORCE RLS.
+model Announcement {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  audienceId     String    @map("audience_id") @db.Uuid
+  authorPersonId String    @map("author_person_id") @db.Uuid
+  title          String
+  body           String
+  category       String
+  priority       String    @default("normal")
+  status         String    @default("draft")
+  pinned         Boolean   @default(false)
+  scheduledFor   String?   @map("scheduled_for")
+  publishedAt    String?   @map("published_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, audienceId])
+  @@index([tenantId, organizationId])
+  @@map("announcement")
+}
+
+/// AcknowledgementReceipt (P2-D22) — an immutable, append-only record that a person acknowledged a published
+/// announcement. One per (announcement, person), DB-backed. No lifecycle. Tenant-owned: FORCE RLS.
+model AcknowledgementReceipt {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  announcementId String    @map("announcement_id") @db.Uuid
+  personId       String    @map("person_id") @db.Uuid
+  acknowledgedAt String    @map("acknowledged_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, announcementId, personId])
+  @@index([tenantId])
+  @@index([tenantId, announcementId])
+  @@map("acknowledgement_receipt")
+}
+
+/// MessageThread (P2-D22) — a two-way / group conversation on a subject among a JSONB set of participant
+/// Person ids; open <-> closed -> archived. Messages are the separate immutable log. Tenant-owned: FORCE RLS.
+model MessageThread {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  subject              String
+  participantPersonIds Json      @default("[]") @map("participant_person_ids")
+  status               String    @default("open")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("message_thread")
+}
+
+/// Message (P2-D22) — an immutable, append-only entry in a thread (author, body, sentAt). No lifecycle. The
+/// body is held here, never on an event. Tenant-owned: FORCE RLS.
+model Message {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  threadId       String    @map("thread_id") @db.Uuid
+  authorPersonId String    @map("author_person_id") @db.Uuid
+  body           String
+  sentAt         String    @map("sent_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, threadId])
+  @@map("message")
+}
+
+/// Survey (P2-D22) — a feedback / poll / consent-check instrument targeting an audience, carrying a validated
+/// JSONB question set; draft -> open -> closed -> archived. Tenant-owned: FORCE RLS.
+model Survey {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  audienceId     String    @map("audience_id") @db.Uuid
+  title          String
+  type           String
+  questions      Json      @default("[]")
+  status         String    @default("draft")
+  opensAt        String?   @map("opens_at")
+  closesAt       String?   @map("closes_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, audienceId])
+  @@index([tenantId, organizationId])
+  @@map("survey")
+}
+
+/// SurveyResponse (P2-D22) — an immutable, append-only submission (optional respondent for anonymity; JSONB
+/// answers). One identified response per (survey, respondent) is DB-backed; NULL respondents (anonymous) are
+/// distinct, so anonymous responses are unbounded. No lifecycle. Tenant-owned: FORCE RLS.
+model SurveyResponse {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  surveyId           String    @map("survey_id") @db.Uuid
+  respondentPersonId String?   @map("respondent_person_id") @db.Uuid
+  answers            Json      @default("[]")
+  submittedAt        String    @map("submitted_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, surveyId, respondentPersonId])
+  @@index([tenantId])
+  @@index([tenantId, surveyId])
+  @@map("survey_response")
+}
+
+/// EngagementProfile (P2-D22) — a descriptive, re-derivable per-audience read model (reach + response
+/// metrics), refreshed from the two engines. One per audience. Tenant-owned: FORCE RLS.
+model EngagementProfile {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  audienceId             String    @map("audience_id") @db.Uuid
+  audienceCode           String    @map("audience_code")
+  audienceName           String    @map("audience_name")
+  audienceSize           Int       @default(0) @map("audience_size")
+  announcementCount      Int       @default(0) @map("announcement_count")
+  totalAcknowledged      Int       @default(0) @map("total_acknowledged")
+  acknowledgementPercent Int       @default(0) @map("acknowledgement_percent")
+  surveyCount            Int       @default(0) @map("survey_count")
+  totalResponses         Int       @default(0) @map("total_responses")
+  responsePercent        Int       @default(0) @map("response_percent")
+  refreshedAt            String    @map("refreshed_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@unique([tenantId, audienceId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("engagement_profile")
+}
