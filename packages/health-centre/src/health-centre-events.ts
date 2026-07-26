@@ -150,6 +150,7 @@ export const clinicianRelieved = (clinician: Clinician): ClinicianRelievedEvent 
 // --- Appointment -----------------------------------------------------------------
 export const APPOINTMENT_REQUESTED = "clinical.appointment.requested";
 export const APPOINTMENT_SCHEDULED = "clinical.appointment.scheduled";
+export const APPOINTMENT_RESCHEDULED = "clinical.appointment.rescheduled";
 export const APPOINTMENT_CHECKED_IN = "clinical.appointment.checked_in";
 export const APPOINTMENT_COMPLETED = "clinical.appointment.completed";
 export const APPOINTMENT_CANCELLED = "clinical.appointment.cancelled";
@@ -171,6 +172,10 @@ export type AppointmentRequestedEvent = DomainEvent<
 >;
 export type AppointmentScheduledEvent = DomainEvent<
   typeof APPOINTMENT_SCHEDULED,
+  AppointmentEventPayload
+>;
+export type AppointmentRescheduledEvent = DomainEvent<
+  typeof APPOINTMENT_RESCHEDULED,
   AppointmentEventPayload
 >;
 export type AppointmentCheckedInEvent = DomainEvent<
@@ -204,6 +209,8 @@ export const appointmentRequested = (appt: Appointment): AppointmentRequestedEve
   createEvent(APPOINTMENT_REQUESTED, appointmentPayload(appt), { tenantId: appt.tenantId });
 export const appointmentScheduled = (appt: Appointment): AppointmentScheduledEvent =>
   createEvent(APPOINTMENT_SCHEDULED, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentRescheduled = (appt: Appointment): AppointmentRescheduledEvent =>
+  createEvent(APPOINTMENT_RESCHEDULED, appointmentPayload(appt), { tenantId: appt.tenantId });
 export const appointmentCheckedIn = (appt: Appointment): AppointmentCheckedInEvent =>
   createEvent(APPOINTMENT_CHECKED_IN, appointmentPayload(appt), { tenantId: appt.tenantId });
 export const appointmentCompleted = (appt: Appointment): AppointmentCompletedEvent =>

@@ -26,6 +26,7 @@ import {
   appointmentCompleted,
   appointmentNoShow,
   appointmentRequested,
+  appointmentRescheduled,
   appointmentScheduled,
 } from "./health-centre-events";
 import { isHealthCentreActive } from "./health-centre";
@@ -93,7 +94,7 @@ export class AppointmentService {
   async reschedule(tenantId: TenantId, id: Uuid, scheduledFor: string): Promise<Appointment> {
     const updated = rescheduleAppointment(await this.require(tenantId, id), scheduledFor);
     await this.repository.save(updated);
-    await this.emit(appointmentScheduled(updated));
+    await this.emit(appointmentRescheduled(updated));
     return updated;
   }
 

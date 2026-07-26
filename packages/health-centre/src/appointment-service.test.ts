@@ -66,6 +66,22 @@ describe("AppointmentService", () => {
     expect(types.has("clinical.appointment.completed")).toBe(true);
   });
 
+  it("emits a distinct rescheduled event (not scheduled) for a still-requested appointment", async () => {
+    const { service, centre, events } = await setup();
+    const a = await service.request({
+      tenantId,
+      centreId: centre.id,
+      patientId,
+      scheduledFor: "2026-02-01",
+    });
+    const moved = await service.reschedule(tenantId, a.id, "2026-02-05");
+    expect(moved.status).toBe("requested"); // reschedule does not confirm the slot
+    expect(moved.scheduledFor).toBe("2026-02-05");
+    const types = events.map((e) => e.type);
+    expect(types).toContain("clinical.appointment.rescheduled");
+    expect(types).not.toContain("clinical.appointment.scheduled"); // never confirmed
+  });
+
   it("rejects an unknown centre and an unknown patient", async () => {
     const { service, centre } = await setup(false);
     await expect(
