@@ -3,7 +3,69 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D21 · Program: Campus & Engagement · Campus Security, Safety & Visitor Platform
+## [Unreleased] — P2-D22 · Program: Campus & Engagement · Unified Communication, Engagement & Collaboration Platform
+
+The fourth contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **engagement
+system of record**, delivered as one `@knowget/engagement` package (ADR-0041): the audiences it addresses, the
+announcements it broadcasts and the immutable acknowledgement receipts they draw, the message threads and their
+immutable messages, the surveys it runs and the immutable responses they collect, and the descriptive
+per-audience engagement profile. It is named `@knowget/engagement` — **not** the platform
+`@knowget/notifications` delivery service (P1-M05) — an institution-facing domain on a distinct `engagement.*`
+event namespace; notifications performs channel delivery, this domain composes and records the message.
+Several quantities are **derived, not stored** — an announcement's reach and a survey's distribution +
+response rate — so the design begins with **two pure engines**. Distinctively, **three of the eight aggregates
+are immutable append-only logs** (acknowledgement receipt, message, survey response), and **this domain carries
+no money**. **Channel delivery** stays in the notifications service (P1-M05) and **contact/communication
+preferences** in Family & Guardian (P2-D04). Descriptive, not predictive — sentiment analysis and send-time
+optimization are deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Unified Communication, Engagement & Collaboration Platform (ADR-0041):** two pure engines plus eight
+  aggregates in one `@knowget/engagement` package. **Two engines:** the engagement engine
+  (`computeAnnouncementReach` — an announcement's audience size vs acknowledgements into acknowledged/pending +
+  an acknowledgement percent, capped/empty-safe; `summarizeEngagement` — the campaign rollup, capping each item
+  at its own audience size so no >100% rollup) and the survey-tally engine (`tallySurveyResponses` — the
+  per-question distribution, per-declared-option counts for choice types; `computeResponseRate` — responses vs
+  audience size). The aggregates: **Audience** (a reusable recipient group with a de-duplicated opaque set of
+  member Person ids; active → archived, code unique per tenant, members not per-item validated),
+  **Announcement** (an institution→audience broadcast; draft → scheduled → published → archived | cancelled,
+  content frozen once published, pinned only while published), **AcknowledgementReceipt** (an **immutable**
+  read/confirm of a published announcement, one per (announcement, person)), **MessageThread** (a conversation
+  among ≥2 validated participants; open ↔ closed → archived), **Message** (an **immutable** entry posted to an
+  open thread by a participant), **Survey** (a feedback/poll/consent-check instrument with a validated JSONB
+  question set; draft → open → closed → archived, frozen once open), **SurveyResponse** (an **immutable**
+  submission; one identified response per (survey, respondent), anonymous null respondent unbounded, answers
+  validated + de-duplicated + single-value for choice types) and **EngagementProfile** (the descriptive
+  per-audience reach + response read model, refreshed from the engines, draft surveys excluded). The
+  **EngagementProfileService** integration spine rolls an audience's announcements + receipts and surveys +
+  responses through the two engines.
+- **No money & no free-text/PII events:** the domain defines no monetary field, and no domain event carries an
+  audience name, an announcement title/body, a message body, a survey title/question, or a response's answers —
+  only ids, codes, categories, priorities, types, statuses and counts, on the `engagement.*` namespace.
+- **Boundaries:** **channel delivery** (email/SMS/push/in-app) stays in the notifications service (P1-M05),
+  invoked when an announcement publishes; **contact/communication preferences** stay in Family & Guardian
+  (P2-D04). Real-time chat transport, content moderation, document rendering and prediction (P2-D28) are out of
+  scope.
+- **Persistence (ADR-0010):** eight tables + migration `20261223000000_add_engagement`, each **FORCE RLS** +
+  `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL (INTEGER counts/percents,
+  **JSONB** member/participant/question/answer sets, **BOOLEAN** pinned flag, **TEXT** codes/names/titles/bodies
+  round-tripping exactly; cross-tenant INSERT rejected 42501; two anonymous NULL-respondent responses both
+  persist). **All uniqueness is DB-backed** (audience code; one ack per (announcement, person); one identified
+  response per (survey, respondent), NULL-distinct so anonymous is unbounded; one profile per audience) — no
+  status-scoped TOCTOU guard, like P2-D21 and unlike D16–D20.
+- **API:** eight permission-gated, tenant-scoped REST controllers — `communication/*` (audiences,
+  announcements, acknowledgements, threads, messages) under `communication:read`/`:write` and `engagement/*`
+  (surveys, responses, the engagement profile) under `engagement:read`/`:write`; zod DTOs; eight Prisma/RLS
+  adapters (the three immutable ones omit `remove`) + two directory adapters (Organization, Person);
+  `EngagementModule` importing the Organization and Person modules and exporting every service token, registered
+  in `app.module`.
+- **Audience membership** is stored without per-item validation (**TD-42**); both independent adversarial audits
+  (domain; persistence/API) were resolved clean, the domain audit's one medium (the survey-tally
+  value-cardinality over-count) and several low findings fixed before merge.
+
+## P2-D21 · Program: Campus & Engagement · Campus Security, Safety & Visitor Platform
 
 The third contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
 Phase-1 core, and the P2-D01-M01 organization, P2-D01-M02 person and P2-D12 workforce bases. The institution's

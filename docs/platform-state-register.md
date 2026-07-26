@@ -1114,3 +1114,58 @@ existence enter through injected directory ports. Both independent adversarial a
 organization validation — fixed before merge); zone occupancy capacity is advisory, a hard cap left opt-in
 behind the service (**TD-41**). All nine service tokens are exported for **in-process cross-domain use**. The
 operational campus-security base the engagement and intelligence-core domains build on.
+
+## Unified Communication, Engagement & Collaboration Platform (P2-D22, Program: Campus & Engagement · ADR-0041)
+
+The **engagement system of record for the institution** — the audiences it addresses, the announcements it
+broadcasts and the immutable acknowledgement receipts they draw, the message threads and their immutable
+messages, the surveys it runs and the immutable responses they collect, and the descriptive per-audience
+engagement profile — built on the organization (P2-D01-M01) and person (P2-D01-M02) bases, delivered as one
+`@knowget/engagement` package on the certified `v0.2.0` baseline. The **fourth contract of Program D (Campus &
+Engagement)**. It is named `@knowget/engagement` — **not** the platform `@knowget/notifications` delivery
+service (P1-M05) — an institution-facing domain on a distinct `engagement.*` event namespace; notifications
+performs channel delivery (email/SMS/push/in-app), this domain composes and records the message. Several
+quantities are **derived, not stored**, so the design begins with **two pure engines** built and tested first:
+the **engagement engine** (`computeAnnouncementReach` values an announcement's audience size against its
+acknowledgements — acknowledged/pending and an acknowledgement percent; `summarizeEngagement` rolls
+announcements into a campaign picture, **capping each item at its own audience size** so no rollup exceeds
+100%) and the **survey-tally engine** (`tallySurveyResponses` reduces a survey's questions + responses into a
+per-question distribution — per-declared-option counts for the choice types, unknown values ignored;
+`computeResponseRate` values responses against audience size). Distinctively, **three of the eight aggregates
+are immutable append-only logs** (an acknowledgement receipt, a message and a survey response are written once,
+never edited — their repositories omit `remove`), and **this domain carries no money**. It models eight
+aggregates: **Audience** (a reusable recipient group with a de-duplicated opaque JSONB set of member Person
+ids; active → archived, code unique per tenant, its size feeds the engines, members **not** per-item
+validated), **Announcement** (an institution→audience broadcast — title/body/category/priority; draft →
+scheduled → published → archived | cancelled, content frozen once published, pinned only while published, org
+from the audience; **channel delivery is notifications' P1-M05**), **AcknowledgementReceipt** (an **immutable**
+record that a person acknowledged a published announcement — one per (announcement, person)),
+**MessageThread** (a conversation among ≥2 validated participant Persons; open ↔ closed → archived, only an
+open thread accepts messages), **Message** (an **immutable** entry posted to an open thread by a participant),
+**Survey** (a feedback/poll/consent-check instrument with a validated **JSONB** question set; draft → open →
+closed → archived, questions/title frozen once open), **SurveyResponse** (an **immutable** submission — one
+identified response per (survey, respondent), an anonymous null respondent unbounded, answers validated against
+the questions + de-duplicated + single-value for choice types) and **EngagementProfile** (the descriptive
+per-audience reach + response read model, **refreshed** from the engines, draft surveys excluded, never posted
+to directly). The **engagement-profile service** is the integration spine — it rolls an audience's published
+announcements against acknowledgement receipts and its issued surveys against responses through the two
+engines and refreshes the one profile per audience. It is **descriptive, not predictive** (sentiment / send-
+time optimization are P2-D28). **Channel delivery** stays in the **notifications service (P1-M05)** and
+**contact/communication preferences** in **Family & Guardian (P2-D04)**; this domain composes and records the
+message. An audience/announcement's org is an **Organization**, and an author, participant and respondent a
+**Person**, referenced via directory ports and never duplicated. Money-free, free-text-free, **PII-free**
+engagement events (no audience name, no announcement title/body, no message body, no survey title/questions,
+no response answers) publish onto the shared bus. Eight tables carry **FORCE RLS** tenant isolation, verified
+on live PostgreSQL (INTEGER counts/percents, **JSONB** member/participant/question/answer sets, **BOOLEAN**
+pinned flag and **TEXT** codes/names/titles/bodies round-tripping exactly, cross-tenant INSERT rejected 42501,
+two anonymous NULL-respondent responses both persisting), with **all uniqueness absolute and DB-backed**
+(audience code; one ack per (announcement, person); one identified response per (survey, respondent),
+NULL-distinct; one profile per audience) — no status-scoped TOCTOU guard, like P2-D21 and unlike D16–D20.
+**Two permission scope pairs** split the platform — `communication:*` for the messaging surface (audiences,
+announcements, acknowledgements, threads, messages) and `engagement:*` for the feedback surface (surveys,
+responses, the engagement profile). Organization and Person existence enter through injected directory ports.
+Both independent adversarial audits were resolved clean (the persistence/API audit clean across all
+categories; the domain audit's one medium — the survey-tally value-cardinality over-count — and several low
+findings fixed before merge); audience membership is stored without per-item validation (**TD-42**). All eight
+service tokens are exported for **in-process cross-domain use**. The operational engagement base the remaining
+campus and intelligence-core domains build on.
