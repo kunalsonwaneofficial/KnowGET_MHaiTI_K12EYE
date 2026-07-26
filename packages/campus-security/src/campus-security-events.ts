@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { AccessCredential } from "./access-credential";
 import type { AccessZone } from "./access-zone";
+import type { Visit } from "./visit";
 import type { Visitor } from "./visitor";
 
 /**
@@ -109,3 +111,134 @@ export const visitorUnblocked = (visitor: Visitor): VisitorUnblockedEvent =>
   createEvent(VISITOR_UNBLOCKED, visitorPayload(visitor), { tenantId: visitor.tenantId });
 export const visitorArchived = (visitor: Visitor): VisitorArchivedEvent =>
   createEvent(VISITOR_ARCHIVED, visitorPayload(visitor), { tenantId: visitor.tenantId });
+
+// --- Visit -----------------------------------------------------------------------
+export const VISIT_REQUESTED = "campus-security.visit.requested";
+export const VISIT_ZONE_SET = "campus-security.visit.zone_set";
+export const VISIT_APPROVED = "campus-security.visit.approved";
+export const VISIT_DENIED = "campus-security.visit.denied";
+export const VISIT_CHECKED_IN = "campus-security.visit.checked_in";
+export const VISIT_CHECKED_OUT = "campus-security.visit.checked_out";
+export const VISIT_CANCELLED = "campus-security.visit.cancelled";
+export const VISIT_EXPIRED = "campus-security.visit.expired";
+
+export interface VisitEventPayload {
+  readonly visitId: Uuid;
+  readonly organizationId: Uuid;
+  readonly visitorId: Uuid;
+  readonly hostPersonId: Uuid;
+  readonly zoneId: Uuid | null;
+  readonly status: string;
+}
+
+export type VisitRequestedEvent = DomainEvent<typeof VISIT_REQUESTED, VisitEventPayload>;
+export type VisitZoneSetEvent = DomainEvent<typeof VISIT_ZONE_SET, VisitEventPayload>;
+export type VisitApprovedEvent = DomainEvent<typeof VISIT_APPROVED, VisitEventPayload>;
+export type VisitDeniedEvent = DomainEvent<typeof VISIT_DENIED, VisitEventPayload>;
+export type VisitCheckedInEvent = DomainEvent<typeof VISIT_CHECKED_IN, VisitEventPayload>;
+export type VisitCheckedOutEvent = DomainEvent<typeof VISIT_CHECKED_OUT, VisitEventPayload>;
+export type VisitCancelledEvent = DomainEvent<typeof VISIT_CANCELLED, VisitEventPayload>;
+export type VisitExpiredEvent = DomainEvent<typeof VISIT_EXPIRED, VisitEventPayload>;
+
+const visitPayload = (visit: Visit): VisitEventPayload => ({
+  visitId: visit.id,
+  organizationId: visit.organizationId,
+  visitorId: visit.visitorId,
+  hostPersonId: visit.hostPersonId,
+  zoneId: visit.zoneId,
+  status: visit.status,
+});
+
+export const visitRequested = (visit: Visit): VisitRequestedEvent =>
+  createEvent(VISIT_REQUESTED, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitZoneSet = (visit: Visit): VisitZoneSetEvent =>
+  createEvent(VISIT_ZONE_SET, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitApproved = (visit: Visit): VisitApprovedEvent =>
+  createEvent(VISIT_APPROVED, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitDenied = (visit: Visit): VisitDeniedEvent =>
+  createEvent(VISIT_DENIED, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitCheckedIn = (visit: Visit): VisitCheckedInEvent =>
+  createEvent(VISIT_CHECKED_IN, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitCheckedOut = (visit: Visit): VisitCheckedOutEvent =>
+  createEvent(VISIT_CHECKED_OUT, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitCancelled = (visit: Visit): VisitCancelledEvent =>
+  createEvent(VISIT_CANCELLED, visitPayload(visit), { tenantId: visit.tenantId });
+export const visitExpired = (visit: Visit): VisitExpiredEvent =>
+  createEvent(VISIT_EXPIRED, visitPayload(visit), { tenantId: visit.tenantId });
+
+// --- Access credential -----------------------------------------------------------
+export const CREDENTIAL_ISSUED = "campus-security.credential.issued";
+export const CREDENTIAL_ZONE_GRANTED = "campus-security.credential.zone_granted";
+export const CREDENTIAL_ZONE_REVOKED = "campus-security.credential.zone_revoked";
+export const CREDENTIAL_EXPIRY_SET = "campus-security.credential.expiry_set";
+export const CREDENTIAL_SUSPENDED = "campus-security.credential.suspended";
+export const CREDENTIAL_REINSTATED = "campus-security.credential.reinstated";
+export const CREDENTIAL_REVOKED = "campus-security.credential.revoked";
+
+export interface CredentialEventPayload {
+  readonly credentialId: Uuid;
+  readonly organizationId: Uuid;
+  readonly holderType: string;
+  readonly holderId: Uuid;
+  readonly status: string;
+  readonly zoneCount: number;
+}
+
+export type CredentialIssuedEvent = DomainEvent<typeof CREDENTIAL_ISSUED, CredentialEventPayload>;
+export type CredentialZoneGrantedEvent = DomainEvent<
+  typeof CREDENTIAL_ZONE_GRANTED,
+  CredentialEventPayload
+>;
+export type CredentialZoneRevokedEvent = DomainEvent<
+  typeof CREDENTIAL_ZONE_REVOKED,
+  CredentialEventPayload
+>;
+export type CredentialExpirySetEvent = DomainEvent<
+  typeof CREDENTIAL_EXPIRY_SET,
+  CredentialEventPayload
+>;
+export type CredentialSuspendedEvent = DomainEvent<
+  typeof CREDENTIAL_SUSPENDED,
+  CredentialEventPayload
+>;
+export type CredentialReinstatedEvent = DomainEvent<
+  typeof CREDENTIAL_REINSTATED,
+  CredentialEventPayload
+>;
+export type CredentialRevokedEvent = DomainEvent<typeof CREDENTIAL_REVOKED, CredentialEventPayload>;
+
+const credentialPayload = (credential: AccessCredential): CredentialEventPayload => ({
+  credentialId: credential.id,
+  organizationId: credential.organizationId,
+  holderType: credential.holderType,
+  holderId: credential.holderId,
+  status: credential.status,
+  zoneCount: credential.grantedZoneIds.length,
+});
+
+export const credentialIssued = (credential: AccessCredential): CredentialIssuedEvent =>
+  createEvent(CREDENTIAL_ISSUED, credentialPayload(credential), { tenantId: credential.tenantId });
+export const credentialZoneGranted = (credential: AccessCredential): CredentialZoneGrantedEvent =>
+  createEvent(CREDENTIAL_ZONE_GRANTED, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });
+export const credentialZoneRevoked = (credential: AccessCredential): CredentialZoneRevokedEvent =>
+  createEvent(CREDENTIAL_ZONE_REVOKED, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });
+export const credentialExpirySet = (credential: AccessCredential): CredentialExpirySetEvent =>
+  createEvent(CREDENTIAL_EXPIRY_SET, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });
+export const credentialSuspended = (credential: AccessCredential): CredentialSuspendedEvent =>
+  createEvent(CREDENTIAL_SUSPENDED, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });
+export const credentialReinstated = (credential: AccessCredential): CredentialReinstatedEvent =>
+  createEvent(CREDENTIAL_REINSTATED, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });
+export const credentialRevoked = (credential: AccessCredential): CredentialRevokedEvent =>
+  createEvent(CREDENTIAL_REVOKED, credentialPayload(credential), {
+    tenantId: credential.tenantId,
+  });

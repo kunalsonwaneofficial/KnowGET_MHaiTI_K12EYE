@@ -169,3 +169,90 @@ export class InvalidVisitorTransitionError extends PlatformError {
     });
   }
 }
+
+/** The visitor is not active (blocked or archived) and cannot have a visit requested or approved. */
+export class VisitorNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Visitor "${id}" is not active; a visit cannot be requested or approved for them`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Visit -----------------------------------------------------------------------
+
+/** The requested visit does not exist in the current tenant. */
+export class VisitNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Visit "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An invalid visit status transition was attempted. */
+export class InvalidVisitTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A visit cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Access credential -----------------------------------------------------------
+
+/** The requested access credential does not exist in the current tenant. */
+export class AccessCredentialNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Access credential "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An access credential must carry a non-empty credential number. */
+export class EmptyCredentialNumberError extends PlatformError {
+  constructor() {
+    super("An access credential must have a non-empty credential number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The credential number is already in use within the tenant. */
+export class DuplicateCredentialNumberError extends PlatformError {
+  constructor(credentialNumber: string) {
+    super(`Credential number "${credentialNumber}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { credentialNumber },
+    });
+  }
+}
+
+/** An invalid access-credential status transition was attempted. */
+export class InvalidCredentialTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An access credential cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

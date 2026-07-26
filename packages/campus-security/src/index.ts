@@ -4,6 +4,8 @@ export * from "./campus-security-view";
 // aggregates
 export * from "./access-zone";
 export * from "./visitor";
+export * from "./visit";
+export * from "./access-credential";
 // pure engines (zone presence + site rollup + drill muster; access decision + activity)
 export * from "./presence";
 export * from "./access";
@@ -12,6 +14,8 @@ export * from "./campus-security-events";
 // application services
 export * from "./access-zone-service";
 export * from "./visitor-service";
+export * from "./visit-service";
+export * from "./access-credential-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors
