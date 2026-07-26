@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Building } from "./building";
+import type { EnvironmentReading } from "./environment-reading";
 import type { FacilitySystem } from "./facility-system";
+import type { MaintenanceOrder } from "./maintenance-order";
 import type { Sensor } from "./sensor";
 import type { Space } from "./space";
 
@@ -223,3 +225,112 @@ export const sensorReactivated = (sensor: Sensor): SensorReactivatedEvent =>
   createEvent(SENSOR_REACTIVATED, sensorPayload(sensor), { tenantId: sensor.tenantId });
 export const sensorRetired = (sensor: Sensor): SensorRetiredEvent =>
   createEvent(SENSOR_RETIRED, sensorPayload(sensor), { tenantId: sensor.tenantId });
+
+// --- Environment reading ---------------------------------------------------------
+export const READING_RECORDED = "facilities.reading.recorded";
+
+export interface ReadingEventPayload {
+  readonly readingId: Uuid;
+  readonly sensorId: Uuid;
+  readonly spaceId: Uuid;
+  readonly buildingId: Uuid;
+  readonly organizationId: Uuid;
+  readonly metric: string;
+  readonly value: number;
+  readonly recordedAt: string;
+}
+
+export type ReadingRecordedEvent = DomainEvent<typeof READING_RECORDED, ReadingEventPayload>;
+
+const readingPayload = (reading: EnvironmentReading): ReadingEventPayload => ({
+  readingId: reading.id,
+  sensorId: reading.sensorId,
+  spaceId: reading.spaceId,
+  buildingId: reading.buildingId,
+  organizationId: reading.organizationId,
+  metric: reading.metric,
+  value: reading.value,
+  recordedAt: reading.recordedAt,
+});
+
+export const readingRecorded = (reading: EnvironmentReading): ReadingRecordedEvent =>
+  createEvent(READING_RECORDED, readingPayload(reading), { tenantId: reading.tenantId });
+
+// --- Maintenance order -----------------------------------------------------------
+export const MAINTENANCE_REPORTED = "facilities.maintenance.reported";
+export const MAINTENANCE_ASSIGNED = "facilities.maintenance.assigned";
+export const MAINTENANCE_REASSIGNED = "facilities.maintenance.reassigned";
+export const MAINTENANCE_REPRIORITIZED = "facilities.maintenance.reprioritized";
+export const MAINTENANCE_STARTED = "facilities.maintenance.started";
+export const MAINTENANCE_COMPLETED = "facilities.maintenance.completed";
+export const MAINTENANCE_CANCELLED = "facilities.maintenance.cancelled";
+
+export interface MaintenanceEventPayload {
+  readonly orderId: Uuid;
+  readonly buildingId: Uuid;
+  readonly organizationId: Uuid;
+  readonly spaceId: Uuid | null;
+  readonly systemId: Uuid | null;
+  readonly code: string;
+  readonly category: string;
+  readonly priority: string;
+  readonly status: string;
+  readonly assigneeId: Uuid | null;
+}
+
+export type MaintenanceReportedEvent = DomainEvent<
+  typeof MAINTENANCE_REPORTED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceAssignedEvent = DomainEvent<
+  typeof MAINTENANCE_ASSIGNED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceReassignedEvent = DomainEvent<
+  typeof MAINTENANCE_REASSIGNED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceReprioritizedEvent = DomainEvent<
+  typeof MAINTENANCE_REPRIORITIZED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceStartedEvent = DomainEvent<
+  typeof MAINTENANCE_STARTED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceCompletedEvent = DomainEvent<
+  typeof MAINTENANCE_COMPLETED,
+  MaintenanceEventPayload
+>;
+export type MaintenanceCancelledEvent = DomainEvent<
+  typeof MAINTENANCE_CANCELLED,
+  MaintenanceEventPayload
+>;
+
+const maintenancePayload = (order: MaintenanceOrder): MaintenanceEventPayload => ({
+  orderId: order.id,
+  buildingId: order.buildingId,
+  organizationId: order.organizationId,
+  spaceId: order.spaceId,
+  systemId: order.systemId,
+  code: order.code,
+  category: order.category,
+  priority: order.priority,
+  status: order.status,
+  assigneeId: order.assigneeId,
+});
+
+export const maintenanceReported = (order: MaintenanceOrder): MaintenanceReportedEvent =>
+  createEvent(MAINTENANCE_REPORTED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceAssigned = (order: MaintenanceOrder): MaintenanceAssignedEvent =>
+  createEvent(MAINTENANCE_ASSIGNED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceReassigned = (order: MaintenanceOrder): MaintenanceReassignedEvent =>
+  createEvent(MAINTENANCE_REASSIGNED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceReprioritized = (order: MaintenanceOrder): MaintenanceReprioritizedEvent =>
+  createEvent(MAINTENANCE_REPRIORITIZED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceStarted = (order: MaintenanceOrder): MaintenanceStartedEvent =>
+  createEvent(MAINTENANCE_STARTED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceCompleted = (order: MaintenanceOrder): MaintenanceCompletedEvent =>
+  createEvent(MAINTENANCE_COMPLETED, maintenancePayload(order), { tenantId: order.tenantId });
+export const maintenanceCancelled = (order: MaintenanceOrder): MaintenanceCancelledEvent =>
+  createEvent(MAINTENANCE_CANCELLED, maintenancePayload(order), { tenantId: order.tenantId });

@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Building } from "./building";
+import type { EnvironmentReading } from "./environment-reading";
 import type { FacilitySystem } from "./facility-system";
+import type { MaintenanceOrder } from "./maintenance-order";
 import type { Sensor } from "./sensor";
 import type { Space } from "./space";
 
@@ -265,6 +267,127 @@ export class InMemorySensorRepository implements SensorRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const sensor = this.byId.get(id);
     if (sensor && sensor.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for environment readings — an append-only telemetry log. Tenant-scoped (explicit
+ * argument + RLS). There is no `remove`: readings are immutable facts. `latestBySpace` returns the most
+ * recent reading per metric in a space — exactly what the comfort engine consumes.
+ */
+export interface EnvironmentReadingRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EnvironmentReading | null>;
+  listBySpace(tenantId: TenantId, spaceId: Uuid): Promise<EnvironmentReading[]>;
+  listBySensor(tenantId: TenantId, sensorId: Uuid): Promise<EnvironmentReading[]>;
+  latestBySpace(tenantId: TenantId, spaceId: Uuid): Promise<EnvironmentReading[]>;
+  listByTenant(tenantId: TenantId): Promise<EnvironmentReading[]>;
+  save(reading: EnvironmentReading): Promise<void>;
+}
+
+/** In-memory {@link EnvironmentReadingRepository} — the default for tests and bootstrap. */
+export class InMemoryEnvironmentReadingRepository implements EnvironmentReadingRepository {
+  private readonly byId = new Map<string, EnvironmentReading>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EnvironmentReading | null> {
+    const reading = this.byId.get(id);
+    return reading && reading.tenantId === tenantId ? reading : null;
+  }
+
+  async listBySpace(tenantId: TenantId, spaceId: Uuid): Promise<EnvironmentReading[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId && r.spaceId === spaceId);
+  }
+
+  async listBySensor(tenantId: TenantId, sensorId: Uuid): Promise<EnvironmentReading[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.sensorId === sensorId,
+    );
+  }
+
+  async latestBySpace(tenantId: TenantId, spaceId: Uuid): Promise<EnvironmentReading[]> {
+    const latest = new Map<string, EnvironmentReading>();
+    for (const reading of await this.listBySpace(tenantId, spaceId)) {
+      const held = latest.get(reading.metric);
+      if (!held || reading.recordedAt > held.recordedAt) {
+        latest.set(reading.metric, reading);
+      }
+    }
+    return [...latest.values()];
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EnvironmentReading[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(reading: EnvironmentReading): Promise<void> {
+    this.byId.set(reading.id, reading);
+  }
+}
+
+/** Storage contract for maintenance orders. Tenant-scoped (explicit argument + RLS). */
+export interface MaintenanceOrderRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<MaintenanceOrder | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<MaintenanceOrder | null>;
+  listByBuilding(tenantId: TenantId, buildingId: Uuid): Promise<MaintenanceOrder[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<MaintenanceOrder[]>;
+  listByAssignee(tenantId: TenantId, assigneeId: Uuid): Promise<MaintenanceOrder[]>;
+  listOpen(tenantId: TenantId): Promise<MaintenanceOrder[]>;
+  listByTenant(tenantId: TenantId): Promise<MaintenanceOrder[]>;
+  save(order: MaintenanceOrder): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+const OPEN_MAINTENANCE = new Set<string>(["reported", "assigned", "in_progress"]);
+
+/** In-memory {@link MaintenanceOrderRepository} — the default for tests and bootstrap. */
+export class InMemoryMaintenanceOrderRepository implements MaintenanceOrderRepository {
+  private readonly byId = new Map<string, MaintenanceOrder>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<MaintenanceOrder | null> {
+    const order = this.byId.get(id);
+    return order && order.tenantId === tenantId ? order : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<MaintenanceOrder | null> {
+    return [...this.byId.values()].find((o) => o.tenantId === tenantId && o.code === code) ?? null;
+  }
+
+  async listByBuilding(tenantId: TenantId, buildingId: Uuid): Promise<MaintenanceOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && o.buildingId === buildingId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<MaintenanceOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && o.organizationId === organizationId,
+    );
+  }
+
+  async listByAssignee(tenantId: TenantId, assigneeId: Uuid): Promise<MaintenanceOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && o.assigneeId === assigneeId,
+    );
+  }
+
+  async listOpen(tenantId: TenantId): Promise<MaintenanceOrder[]> {
+    return [...this.byId.values()].filter(
+      (o) => o.tenantId === tenantId && OPEN_MAINTENANCE.has(o.status),
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<MaintenanceOrder[]> {
+    return [...this.byId.values()].filter((o) => o.tenantId === tenantId);
+  }
+
+  async save(order: MaintenanceOrder): Promise<void> {
+    this.byId.set(order.id, order);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const order = this.byId.get(id);
+    if (order && order.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

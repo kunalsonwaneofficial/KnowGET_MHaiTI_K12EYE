@@ -296,3 +296,89 @@ export class InvalidSensorTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Environment reading ---------------------------------------------------------
+
+/** A sensor reading's value must be a finite number. */
+export class InvalidReadingValueError extends PlatformError {
+  constructor(value: number) {
+    super(`Reading value "${value}" must be a finite number`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { value },
+    });
+  }
+}
+
+/** Readings may only be recorded against an active sensor. */
+export class SensorNotActiveError extends PlatformError {
+  constructor(id: string) {
+    super(`Sensor "${id}" is not active; it cannot record readings`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Maintenance order -----------------------------------------------------------
+
+/** The requested maintenance order does not exist in the current tenant. */
+export class MaintenanceOrderNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Maintenance order "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A maintenance order must carry a non-empty code. */
+export class EmptyMaintenanceCodeError extends PlatformError {
+  constructor() {
+    super("A maintenance order must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A maintenance order must carry a non-empty summary. */
+export class EmptyMaintenanceSummaryError extends PlatformError {
+  constructor() {
+    super("A maintenance order must have a non-empty summary", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The maintenance-order code is already in use within the tenant. */
+export class DuplicateMaintenanceCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Maintenance-order code "${code}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** An invalid maintenance-order status transition was attempted. */
+export class InvalidMaintenanceTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A maintenance order cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
