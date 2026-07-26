@@ -1,6 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { EntityType } from "./entity-type";
+import type { KnowledgeEntity } from "./knowledge-entity";
 import type { RelationshipType } from "./relationship-type";
 
 /**
@@ -116,3 +117,53 @@ export const relationshipTypeActivated = (t: RelationshipType): RelationshipType
   createEvent(RELATIONSHIP_TYPE_ACTIVATED, relationshipTypePayload(t), { tenantId: t.tenantId });
 export const relationshipTypeDeprecated = (t: RelationshipType): RelationshipTypeDeprecatedEvent =>
   createEvent(RELATIONSHIP_TYPE_DEPRECATED, relationshipTypePayload(t), { tenantId: t.tenantId });
+
+// --- Knowledge entity (node) -----------------------------------------------------
+export const ENTITY_CREATED = "knowledge.entity.created";
+export const ENTITY_RELABELED = "knowledge.entity.relabeled";
+export const ENTITY_MERGED = "knowledge.entity.merged";
+export const ENTITY_ARCHIVED = "knowledge.entity.archived";
+
+export interface KnowledgeEntityEventPayload {
+  readonly entityId: Uuid;
+  readonly organizationId: Uuid;
+  readonly entityTypeKey: string;
+  readonly sourceDomain: string;
+  readonly status: string;
+  readonly mergedIntoId: Uuid | null;
+}
+
+export type KnowledgeEntityCreatedEvent = DomainEvent<
+  typeof ENTITY_CREATED,
+  KnowledgeEntityEventPayload
+>;
+export type KnowledgeEntityRelabeledEvent = DomainEvent<
+  typeof ENTITY_RELABELED,
+  KnowledgeEntityEventPayload
+>;
+export type KnowledgeEntityMergedEvent = DomainEvent<
+  typeof ENTITY_MERGED,
+  KnowledgeEntityEventPayload
+>;
+export type KnowledgeEntityArchivedEvent = DomainEvent<
+  typeof ENTITY_ARCHIVED,
+  KnowledgeEntityEventPayload
+>;
+
+const entityPayload = (entity: KnowledgeEntity): KnowledgeEntityEventPayload => ({
+  entityId: entity.id,
+  organizationId: entity.organizationId,
+  entityTypeKey: entity.entityTypeKey,
+  sourceDomain: entity.sourceDomain,
+  status: entity.status,
+  mergedIntoId: entity.mergedIntoId,
+});
+
+export const knowledgeEntityCreated = (e: KnowledgeEntity): KnowledgeEntityCreatedEvent =>
+  createEvent(ENTITY_CREATED, entityPayload(e), { tenantId: e.tenantId });
+export const knowledgeEntityRelabeled = (e: KnowledgeEntity): KnowledgeEntityRelabeledEvent =>
+  createEvent(ENTITY_RELABELED, entityPayload(e), { tenantId: e.tenantId });
+export const knowledgeEntityMerged = (e: KnowledgeEntity): KnowledgeEntityMergedEvent =>
+  createEvent(ENTITY_MERGED, entityPayload(e), { tenantId: e.tenantId });
+export const knowledgeEntityArchived = (e: KnowledgeEntity): KnowledgeEntityArchivedEvent =>
+  createEvent(ENTITY_ARCHIVED, entityPayload(e), { tenantId: e.tenantId });

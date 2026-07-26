@@ -145,3 +145,88 @@ export class InvalidRelationshipTypeTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Knowledge entity (node) -----------------------------------------------------
+
+/** The requested knowledge entity does not exist in the current tenant. */
+export class KnowledgeEntityNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Knowledge entity "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A knowledge entity must name the domain record it represents (entity type + source domain + source ref). */
+export class EmptyEntitySourceError extends PlatformError {
+  constructor() {
+    super("A knowledge entity must have an entity type, a source domain and a source ref", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The entity type a node or relationship references is not registered (or not usable) in the tenant. */
+export class UnknownEntityTypeError extends PlatformError {
+  constructor(entityTypeKey: string) {
+    super(`Entity type "${entityTypeKey}" is not a registered, usable type in this tenant`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { entityTypeKey },
+    });
+  }
+}
+
+/** A node already represents this domain record — one entity per (tenant, source domain, source ref). */
+export class DuplicateKnowledgeEntityError extends PlatformError {
+  constructor(sourceDomain: string, sourceRef: string) {
+    super(`A knowledge entity already represents ${sourceDomain}:${sourceRef} in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { sourceDomain, sourceRef },
+    });
+  }
+}
+
+/** The attempted knowledge-entity lifecycle transition is not allowed from its current status. */
+export class InvalidKnowledgeEntityTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A knowledge entity cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A node cannot be merged into itself. */
+export class SelfMergeError extends PlatformError {
+  constructor(id: string) {
+    super(`A knowledge entity cannot be merged into itself ("${id}")`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The canonical target of a merge does not exist (or is not an active node) in the tenant. */
+export class MergeTargetNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Merge target "${id}" not found or not active`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
