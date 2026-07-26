@@ -5,7 +5,7 @@
 |                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Contract**   | P2-D21 — Campus Security, Safety & Visitor Platform                                                                                                                                                                                                                                                                                                                                                                                                                |
-| **Status**     | 🟡 In progress — feature branch `feat/p2-d21-campus-security` pushed; awaiting CI green + merge. In-sandbox: `@knowget/campus-security` typecheck/lint/format/build clean, **60 tests** (19 files); `apps/api` typecheck/lint/build clean + campus-security DI-graph spec in the **210-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**249** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`c793327`). In-sandbox: `@knowget/campus-security` typecheck/lint/format/build clean, **60 tests** (19 files); `apps/api` typecheck/lint/build clean + campus-security DI-graph spec in the **210-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**249** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
 | **Depends on** | P2-D01-M01 (Organization — the campus-node base), P2-D01-M02 (Person — the visit hosts and incident reporters), P2-D12 (Workforce, ADR-0031 — the Employee base for incident assignees, drill conductors and employee credential-holders), P2-D05 (Learner Wellbeing, ADR-0024 — where the standing safeguarding record lives), P2-D19 (Health Centre, ADR-0038 — where clinical incidents live), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                            |
 | **Date**       | 22 December 2026                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Next**       | P2-D22 — Unified Communication, Engagement & Collaboration (next Program D contract)                                                                                                                                                                                                                                                                                                                                                                               |
@@ -137,7 +137,7 @@ opt-in behind the service (**TD-41**).
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the campus-security events ride
   the same bus.
 
-## 7. Outcome — awaiting CI green and merge
+## 7. Outcome — merged to `main`, proceed to P2-D22
 
 The Campus Security, Safety & Visitor Platform is complete behind its gates: zone presence, drill muster and
 access decisions are derived consistently by pure engines (only checked-in visits count, a credential is
@@ -145,8 +145,7 @@ honoured through its whole expiry day), the access log is immutable, the no-mone
 safeguarding (Learner Wellbeing, P2-D05) and clinical (Health Centre, P2-D19) boundaries are held
 structurally, and all eight tables are FORCE-RLS tenant-isolated (verified live, JSONB/BOOLEAN/INTEGER
 round-tripping exactly, cross-tenant insert rejected 42501); both independent audits were resolved clean
-(two domain consistency findings fixed before merge). The feature branch `feat/p2-d21-campus-security` is
-pushed and awaiting CI; on green it will be **merged to `main`**, the third contract of Program D (Campus &
-Engagement); next is **P2-D22 — Unified Communication, Engagement & Collaboration**. **Reminder: rotate the
-GitHub PAT** used for pushes at this milestone boundary — it has not yet been rotated across the
-P2-D18/D19/D20/D21 boundaries.
+(two domain consistency findings fixed before merge). CI is green and the milestone is **merged to `main`
+(`c793327`)**, the third contract of Program D (Campus & Engagement); next is **P2-D22 — Unified
+Communication, Engagement & Collaboration**. **Reminder: rotate the GitHub PAT** used for pushes at this
+milestone boundary — it has not yet been rotated across the P2-D18/D19/D20/D21 boundaries.
