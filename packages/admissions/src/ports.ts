@@ -1,4 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { AdmissionCycle } from "./admission-cycle";
+import type { Application } from "./application";
 import type { Lead } from "./lead";
 import type { MarketingCampaign } from "./marketing-campaign";
 
@@ -120,6 +122,109 @@ export class InMemoryLeadRepository implements LeadRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const lead = this.byId.get(id);
     if (lead && lead.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for admission cycles. Tenant-scoped (explicit argument + RLS). */
+export interface AdmissionCycleRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AdmissionCycle | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<AdmissionCycle | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AdmissionCycle[]>;
+  listByTenant(tenantId: TenantId): Promise<AdmissionCycle[]>;
+  save(cycle: AdmissionCycle): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AdmissionCycleRepository} — the default for tests and bootstrap. */
+export class InMemoryAdmissionCycleRepository implements AdmissionCycleRepository {
+  private readonly byId = new Map<string, AdmissionCycle>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AdmissionCycle | null> {
+    const cycle = this.byId.get(id);
+    return cycle && cycle.tenantId === tenantId ? cycle : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<AdmissionCycle | null> {
+    return [...this.byId.values()].find((c) => c.tenantId === tenantId && c.code === code) ?? null;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<AdmissionCycle[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AdmissionCycle[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(cycle: AdmissionCycle): Promise<void> {
+    this.byId.set(cycle.id, cycle);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const cycle = this.byId.get(id);
+    if (cycle && cycle.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for applications. Tenant-scoped (explicit argument + RLS). `listByCycle` and
+ * `countByCycle` feed the application-stage tally and the funnel's application count for a cycle.
+ */
+export interface ApplicationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Application | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<Application | null>;
+  listByCycle(tenantId: TenantId, cycleId: Uuid): Promise<Application[]>;
+  countByCycle(tenantId: TenantId, cycleId: Uuid): Promise<number>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Application[]>;
+  listByTenant(tenantId: TenantId): Promise<Application[]>;
+  save(application: Application): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ApplicationRepository} — the default for tests and bootstrap. */
+export class InMemoryApplicationRepository implements ApplicationRepository {
+  private readonly byId = new Map<string, Application>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Application | null> {
+    const application = this.byId.get(id);
+    return application && application.tenantId === tenantId ? application : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<Application | null> {
+    return [...this.byId.values()].find((a) => a.tenantId === tenantId && a.code === code) ?? null;
+  }
+
+  async listByCycle(tenantId: TenantId, cycleId: Uuid): Promise<Application[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId && a.cycleId === cycleId);
+  }
+
+  async countByCycle(tenantId: TenantId, cycleId: Uuid): Promise<number> {
+    return (await this.listByCycle(tenantId, cycleId)).length;
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Application[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Application[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(application: Application): Promise<void> {
+    this.byId.set(application.id, application);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const application = this.byId.get(id);
+    if (application && application.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

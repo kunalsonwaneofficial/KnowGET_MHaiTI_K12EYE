@@ -1,5 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { AdmissionCycle } from "./admission-cycle";
+import type { Application } from "./application";
 import type { Lead } from "./lead";
 import type { MarketingCampaign } from "./marketing-campaign";
 
@@ -106,3 +108,124 @@ export const leadConverted = (l: Lead): LeadConvertedEvent =>
   createEvent(LEAD_CONVERTED, leadPayload(l), { tenantId: l.tenantId });
 export const leadLost = (l: Lead): LeadLostEvent =>
   createEvent(LEAD_LOST, leadPayload(l), { tenantId: l.tenantId });
+
+// --- Admission cycle -------------------------------------------------------------
+export const CYCLE_CREATED = "admissions.cycle.created";
+export const CYCLE_RENAMED = "admissions.cycle.renamed";
+export const CYCLE_SEAT_PLAN_SET = "admissions.cycle.seat_plan_set";
+export const CYCLE_WINDOW_SET = "admissions.cycle.window_set";
+export const CYCLE_OPENED = "admissions.cycle.opened";
+export const CYCLE_CLOSED = "admissions.cycle.closed";
+export const CYCLE_ARCHIVED = "admissions.cycle.archived";
+
+export interface CycleEventPayload {
+  readonly cycleId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly gradeCount: number;
+  readonly seatTotal: number;
+  readonly status: string;
+}
+
+export type CycleCreatedEvent = DomainEvent<typeof CYCLE_CREATED, CycleEventPayload>;
+export type CycleRenamedEvent = DomainEvent<typeof CYCLE_RENAMED, CycleEventPayload>;
+export type CycleSeatPlanSetEvent = DomainEvent<typeof CYCLE_SEAT_PLAN_SET, CycleEventPayload>;
+export type CycleWindowSetEvent = DomainEvent<typeof CYCLE_WINDOW_SET, CycleEventPayload>;
+export type CycleOpenedEvent = DomainEvent<typeof CYCLE_OPENED, CycleEventPayload>;
+export type CycleClosedEvent = DomainEvent<typeof CYCLE_CLOSED, CycleEventPayload>;
+export type CycleArchivedEvent = DomainEvent<typeof CYCLE_ARCHIVED, CycleEventPayload>;
+
+const cyclePayload = (cycle: AdmissionCycle): CycleEventPayload => ({
+  cycleId: cycle.id,
+  organizationId: cycle.organizationId,
+  code: cycle.code,
+  gradeCount: cycle.gradeCapacities.length,
+  seatTotal: cycle.gradeCapacities.reduce((sum, gc) => sum + gc.capacity, 0),
+  status: cycle.status,
+});
+
+export const cycleCreated = (c: AdmissionCycle): CycleCreatedEvent =>
+  createEvent(CYCLE_CREATED, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleRenamed = (c: AdmissionCycle): CycleRenamedEvent =>
+  createEvent(CYCLE_RENAMED, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleSeatPlanSet = (c: AdmissionCycle): CycleSeatPlanSetEvent =>
+  createEvent(CYCLE_SEAT_PLAN_SET, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleWindowSet = (c: AdmissionCycle): CycleWindowSetEvent =>
+  createEvent(CYCLE_WINDOW_SET, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleOpened = (c: AdmissionCycle): CycleOpenedEvent =>
+  createEvent(CYCLE_OPENED, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleClosed = (c: AdmissionCycle): CycleClosedEvent =>
+  createEvent(CYCLE_CLOSED, cyclePayload(c), { tenantId: c.tenantId });
+export const cycleArchived = (c: AdmissionCycle): CycleArchivedEvent =>
+  createEvent(CYCLE_ARCHIVED, cyclePayload(c), { tenantId: c.tenantId });
+
+// --- Application -----------------------------------------------------------------
+export const APPLICATION_SUBMITTED = "admissions.application.submitted";
+export const APPLICATION_REVIEW_STARTED = "admissions.application.review_started";
+export const APPLICATION_INTERVIEW_SCHEDULED = "admissions.application.interview_scheduled";
+export const APPLICATION_OFFERED = "admissions.application.offered";
+export const APPLICATION_WAITLISTED = "admissions.application.waitlisted";
+export const APPLICATION_REJECTED = "admissions.application.rejected";
+export const APPLICATION_WITHDRAWN = "admissions.application.withdrawn";
+
+export interface ApplicationEventPayload {
+  readonly applicationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly cycleId: Uuid;
+  readonly applicantPersonId: Uuid;
+  readonly gradeApplyingFor: string;
+  readonly status: string;
+}
+
+export type ApplicationSubmittedEvent = DomainEvent<
+  typeof APPLICATION_SUBMITTED,
+  ApplicationEventPayload
+>;
+export type ApplicationReviewStartedEvent = DomainEvent<
+  typeof APPLICATION_REVIEW_STARTED,
+  ApplicationEventPayload
+>;
+export type ApplicationInterviewScheduledEvent = DomainEvent<
+  typeof APPLICATION_INTERVIEW_SCHEDULED,
+  ApplicationEventPayload
+>;
+export type ApplicationOfferedEvent = DomainEvent<
+  typeof APPLICATION_OFFERED,
+  ApplicationEventPayload
+>;
+export type ApplicationWaitlistedEvent = DomainEvent<
+  typeof APPLICATION_WAITLISTED,
+  ApplicationEventPayload
+>;
+export type ApplicationRejectedEvent = DomainEvent<
+  typeof APPLICATION_REJECTED,
+  ApplicationEventPayload
+>;
+export type ApplicationWithdrawnEvent = DomainEvent<
+  typeof APPLICATION_WITHDRAWN,
+  ApplicationEventPayload
+>;
+
+const applicationPayload = (application: Application): ApplicationEventPayload => ({
+  applicationId: application.id,
+  organizationId: application.organizationId,
+  cycleId: application.cycleId,
+  applicantPersonId: application.applicantPersonId,
+  gradeApplyingFor: application.gradeApplyingFor,
+  status: application.status,
+});
+
+export const applicationSubmitted = (a: Application): ApplicationSubmittedEvent =>
+  createEvent(APPLICATION_SUBMITTED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationReviewStarted = (a: Application): ApplicationReviewStartedEvent =>
+  createEvent(APPLICATION_REVIEW_STARTED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationInterviewScheduled = (a: Application): ApplicationInterviewScheduledEvent =>
+  createEvent(APPLICATION_INTERVIEW_SCHEDULED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationOffered = (a: Application): ApplicationOfferedEvent =>
+  createEvent(APPLICATION_OFFERED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationWaitlisted = (a: Application): ApplicationWaitlistedEvent =>
+  createEvent(APPLICATION_WAITLISTED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationRejected = (a: Application): ApplicationRejectedEvent =>
+  createEvent(APPLICATION_REJECTED, applicationPayload(a), { tenantId: a.tenantId });
+export const applicationWithdrawn = (a: Application): ApplicationWithdrawnEvent =>
+  createEvent(APPLICATION_WITHDRAWN, applicationPayload(a), { tenantId: a.tenantId });
