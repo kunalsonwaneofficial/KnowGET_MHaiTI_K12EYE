@@ -2,13 +2,13 @@
 
 **Residential Life, Hostel & Boarding Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Workforce & Operations
 
-|                |                                                                                                                                                                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Contract**   | P2-D17 — Residential Life, Hostel & Boarding Platform                                                                                                                                                                                                                                      |
-| **Status**     | 🟡 Awaiting CI green + merge. In-sandbox: `@knowget/residential` typecheck/lint/format/build clean, **82 tests** (20 files); `apps/api` typecheck clean + residential DI-graph spec (2 tests); RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on build). |
-| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base for wardens), P2-D03 (Student Lifecycle — the resident base), P2-D01-M01 (Organization), P2-D16 (Transport, ADR-0035 — the operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                            |
-| **Date**       | 18 December 2026                                                                                                                                                                                                                                                                           |
-| **Next**       | P2-D18 — Knowledge Resource, Library & Digital Learning Asset (next Program C contract)                                                                                                                                                                                                    |
+|                |                                                                                                                                                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Contract**   | P2-D17 — Residential Life, Hostel & Boarding Platform                                                                                                                                                                                                                                                              |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`49143fc`). In-sandbox: `@knowget/residential` typecheck/lint/format/build clean, **82 tests** (20 files); `apps/api` typecheck clean + residential DI-graph spec (2 tests); RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on build). |
+| **Depends on** | P2-D12 (Workforce, ADR-0031 — the Employee base for wardens), P2-D03 (Student Lifecycle — the resident base), P2-D01-M01 (Organization), P2-D16 (Transport, ADR-0035 — the operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                    |
+| **Date**       | 18 December 2026                                                                                                                                                                                                                                                                                                   |
+| **Next**       | P2-D18 — Knowledge Resource, Library & Digital Learning Asset (next Program C contract)                                                                                                                                                                                                                            |
 
 ---
 
@@ -119,12 +119,12 @@ two status-scoped uniqueness invariants service-enforced (**TD-37**).
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the residential events ride
   the same bus.
 
-## 7. Recommendation — merge on green, proceed to P2-D18
+## 7. Outcome — merged to `main`, proceed to P2-D18
 
 The Residential Life, Hostel & Boarding Platform is complete behind its gates: occupancy and presence are
 derived consistently by pure engines, a bed and a student each hold one active allocation, a resident
 holds one open outpass, the fee/valuation boundary is held structurally (no money in the domain), and all
 eight tables are FORCE-RLS tenant-isolated (verified live, JSONB/INTEGER/BOOLEAN round-tripping exactly);
-both independent audits were resolved clean. Recommend merging on CI green and proceeding to **P2-D18 —
-Knowledge Resource, Library & Digital Learning Asset**. **Reminder: rotate the GitHub PAT** used for
-pushes at this milestone boundary.
+both independent audits were resolved clean. CI is green and the milestone is **merged to `main`
+(`49143fc`)**; next is **P2-D18 — Knowledge Resource, Library & Digital Learning Asset**. **Reminder:
+rotate the GitHub PAT** used for pushes at this milestone boundary.
