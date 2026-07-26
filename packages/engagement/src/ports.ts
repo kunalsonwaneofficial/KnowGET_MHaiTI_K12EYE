@@ -2,9 +2,11 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { EngagementProfile } from "./engagement-profile";
 import type { Message } from "./message";
 import type { MessageThread } from "./message-thread";
 import type { Survey } from "./survey";
+import type { SurveyResponse } from "./survey-response";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the tenant?
@@ -320,6 +322,115 @@ export class InMemorySurveyRepository implements SurveyRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const survey = this.byId.get(id);
     if (survey && survey.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for survey responses — an append-only log. Tenant-scoped (explicit argument + RLS). There
+ * is no `remove`: responses are immutable facts. `findBySurveyAndRespondent` backs the one-identified-response
+ * -per-(survey, respondent) guard; `countBySurvey` is the survey's response count.
+ */
+export interface SurveyResponseRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SurveyResponse | null>;
+  findBySurveyAndRespondent(
+    tenantId: TenantId,
+    surveyId: Uuid,
+    respondentPersonId: Uuid,
+  ): Promise<SurveyResponse | null>;
+  listBySurvey(tenantId: TenantId, surveyId: Uuid): Promise<SurveyResponse[]>;
+  countBySurvey(tenantId: TenantId, surveyId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<SurveyResponse[]>;
+  save(response: SurveyResponse): Promise<void>;
+}
+
+/** In-memory {@link SurveyResponseRepository} — the default for tests and bootstrap. */
+export class InMemorySurveyResponseRepository implements SurveyResponseRepository {
+  private readonly byId = new Map<string, SurveyResponse>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SurveyResponse | null> {
+    const response = this.byId.get(id);
+    return response && response.tenantId === tenantId ? response : null;
+  }
+
+  async findBySurveyAndRespondent(
+    tenantId: TenantId,
+    surveyId: Uuid,
+    respondentPersonId: Uuid,
+  ): Promise<SurveyResponse | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId &&
+          r.surveyId === surveyId &&
+          r.respondentPersonId === respondentPersonId,
+      ) ?? null
+    );
+  }
+
+  async listBySurvey(tenantId: TenantId, surveyId: Uuid): Promise<SurveyResponse[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.surveyId === surveyId,
+    );
+  }
+
+  async countBySurvey(tenantId: TenantId, surveyId: Uuid): Promise<number> {
+    return (await this.listBySurvey(tenantId, surveyId)).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SurveyResponse[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(response: SurveyResponse): Promise<void> {
+    this.byId.set(response.id, response);
+  }
+}
+
+/** Storage contract for engagement profiles — one per audience. Tenant-scoped (explicit argument + RLS). */
+export interface EngagementProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EngagementProfile | null>;
+  findByAudience(tenantId: TenantId, audienceId: Uuid): Promise<EngagementProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EngagementProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<EngagementProfile[]>;
+  save(profile: EngagementProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EngagementProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryEngagementProfileRepository implements EngagementProfileRepository {
+  private readonly byId = new Map<string, EngagementProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EngagementProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByAudience(tenantId: TenantId, audienceId: Uuid): Promise<EngagementProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.audienceId === audienceId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EngagementProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EngagementProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: EngagementProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

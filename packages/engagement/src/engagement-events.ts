@@ -3,9 +3,11 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { EngagementProfile } from "./engagement-profile";
 import type { Message } from "./message";
 import type { MessageThread } from "./message-thread";
 import type { Survey } from "./survey";
+import type { SurveyResponse } from "./survey-response";
 
 /**
  * Domain events for the Unified Communication, Engagement & Collaboration Platform (P2-D22), on the
@@ -316,3 +318,73 @@ export const surveyClosed = (s: Survey): SurveyClosedEvent =>
   createEvent(SURVEY_CLOSED, surveyPayload(s), { tenantId: s.tenantId });
 export const surveyArchived = (s: Survey): SurveyArchivedEvent =>
   createEvent(SURVEY_ARCHIVED, surveyPayload(s), { tenantId: s.tenantId });
+
+// --- Survey response -------------------------------------------------------------
+export const SURVEY_RESPONSE_SUBMITTED = "engagement.survey_response.submitted";
+
+export interface SurveyResponseEventPayload {
+  readonly responseId: Uuid;
+  readonly organizationId: Uuid;
+  readonly surveyId: Uuid;
+  readonly respondentPersonId: Uuid | null;
+  readonly answerCount: number;
+  readonly submittedAt: string;
+}
+
+export type SurveyResponseSubmittedEvent = DomainEvent<
+  typeof SURVEY_RESPONSE_SUBMITTED,
+  SurveyResponseEventPayload
+>;
+
+export const surveyResponseSubmitted = (response: SurveyResponse): SurveyResponseSubmittedEvent =>
+  createEvent(
+    SURVEY_RESPONSE_SUBMITTED,
+    {
+      responseId: response.id,
+      organizationId: response.organizationId,
+      surveyId: response.surveyId,
+      respondentPersonId: response.respondentPersonId,
+      answerCount: response.answers.length,
+      submittedAt: response.submittedAt,
+    },
+    { tenantId: response.tenantId },
+  );
+
+// --- Engagement profile ----------------------------------------------------------
+export const ENGAGEMENT_PROFILE_REFRESHED = "engagement.profile.refreshed";
+
+export interface EngagementProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly audienceId: Uuid;
+  readonly audienceSize: number;
+  readonly announcementCount: number;
+  readonly acknowledgementPercent: number;
+  readonly surveyCount: number;
+  readonly responsePercent: number;
+  readonly refreshedAt: string;
+}
+
+export type EngagementProfileRefreshedEvent = DomainEvent<
+  typeof ENGAGEMENT_PROFILE_REFRESHED,
+  EngagementProfileEventPayload
+>;
+
+export const engagementProfileRefreshed = (
+  profile: EngagementProfile,
+): EngagementProfileRefreshedEvent =>
+  createEvent(
+    ENGAGEMENT_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      audienceId: profile.audienceId,
+      audienceSize: profile.audienceSize,
+      announcementCount: profile.announcementCount,
+      acknowledgementPercent: profile.acknowledgementPercent,
+      surveyCount: profile.surveyCount,
+      responsePercent: profile.responsePercent,
+      refreshedAt: profile.refreshedAt,
+    },
+    { tenantId: profile.tenantId },
+  );

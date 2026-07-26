@@ -8,6 +8,8 @@ export * from "./acknowledgement";
 export * from "./message-thread";
 export * from "./message";
 export * from "./survey";
+export * from "./survey-response";
+export * from "./engagement-profile";
 // pure engines (announcement reach + engagement rollup; survey tally + response rate)
 export * from "./engagement";
 export * from "./survey-tally";
@@ -20,6 +22,8 @@ export * from "./acknowledgement-service";
 export * from "./message-thread-service";
 export * from "./message-service";
 export * from "./survey-service";
+export * from "./survey-response-service";
+export * from "./engagement-profile-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors
