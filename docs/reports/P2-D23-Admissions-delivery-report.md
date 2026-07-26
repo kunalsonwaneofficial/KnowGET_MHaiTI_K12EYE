@@ -5,7 +5,7 @@
 |                |                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Contract**   | P2-D23 — Admissions, Marketing, Enrollment & Growth Platform                                                                                                                                                                                                                                                                                                                                                                         |
-| **Status**     | 🟡 In progress — awaiting CI green + merge to `main`. In-sandbox: `@knowget/admissions` typecheck/lint/format/build clean, **46 tests** (18 files); `apps/api` typecheck/lint/build clean + admissions DI-graph spec (2 tests) in the **214-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**257** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox).              |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`1b28bf9`). In-sandbox: `@knowget/admissions` typecheck/lint/format/build clean, **46 tests** (18 files); `apps/api` typecheck/lint/build clean + admissions DI-graph spec (2 tests) in the **214-test** api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**257** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox).              |
 | **Depends on** | P2-D01-M01 (Organization — the admissions-record owner), P2-D01-M02 (Person — the applicant), P2-D03 (Student Lifecycle, ADR-0012 — the prospect/applicant/student records a confirmed enrollment hands off to via event), P2-D14 (Finance — where application/admission **fees** live), P1-M05 (`@knowget/notifications`) + P2-D22 (Engagement — where marketing message **delivery** lives), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`) |
 | **Date**       | 24 December 2026                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Next**       | P2-D24 — Alumni, Community & Relationship (last Program D contract)                                                                                                                                                                                                                                                                                                                                                                  |
@@ -137,7 +137,7 @@ debt, like P2-D21/P2-D22 and unlike D16–D20); and the advisory seat capacity (
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the admissions events ride the
   same bus.
 
-## 7. Outcome — pending CI green + merge to `main`
+## 7. Outcome — merged to `main`, proceed to P2-D24
 
 The Admissions, Marketing, Enrollment & Growth Platform is complete behind its gates: the funnel and seat
 intake are derived consistently by pure engines (each conversion rate capped per stage), two of the eight
@@ -146,7 +146,7 @@ Student-Lifecycle (P2-D03) hand-off boundary are held structurally (a confirmed 
 signal, never re-modelling the student), and all eight tables are FORCE-RLS tenant-isolated (verified live,
 JSONB/INTEGER round-tripping exactly, cross-tenant insert rejected 42501, the three business uniques rejecting
 duplicates 23505); both independent audits were resolved clean (one low domain defect + two integrity
-refinements fixed before merge). The branch is pushed and **awaiting CI green**; on green it merges to `main`
-as the fifth contract of Program D (Campus & Engagement), and next is **P2-D24 — Alumni, Community &
-Relationship** (the last Program D contract). **Reminder: rotate the GitHub PAT** used for pushes at this
-milestone boundary — it has not yet been rotated across the P2-D18/D19/D20/D21/D22 boundaries.
+refinements fixed before merge). CI is green and the milestone is **merged to `main` (`1b28bf9`)**, the fifth
+contract of Program D (Campus & Engagement); next is **P2-D24 — Alumni, Community & Relationship** (the last
+Program D contract). **Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary — it has
+not yet been rotated across the P2-D18/D19/D20/D21/D22 boundaries.
