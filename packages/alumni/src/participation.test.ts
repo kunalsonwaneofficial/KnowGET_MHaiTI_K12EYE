@@ -67,4 +67,16 @@ describe("summarizeParticipation", () => {
     expect(summary.overallFillPercent).toBe(60); // 120/200
     expect(summary.overallAttendanceRate).toBe(75); // 90/120
   });
+
+  it("counts only capacity-tracked events toward the overall fill (untracked don't inflate it)", () => {
+    const summary = summarizeParticipation([
+      { capacity: 100, registeredCount: 50, attendedCount: 40 },
+      { capacity: 0, registeredCount: 30, attendedCount: 20 }, // untracked — excluded from fill
+    ]);
+    expect(summary.totalCapacity).toBe(100);
+    expect(summary.totalRegistered).toBe(80); // both events' registrations reported
+    expect(summary.totalAttended).toBe(60);
+    expect(summary.overallFillPercent).toBe(50); // only the tracked 50/100, not 80/100
+    expect(summary.overallAttendanceRate).toBe(75); // 60/80 over all registrations
+  });
 });

@@ -38,7 +38,10 @@ export function computeEventParticipation(
 /**
  * The pure participation-rollup engine — summarizes a set of events' participation into a picture: the event
  * count, the total capacity / registered / attended, and the overall fill and attendance rates (capped,
- * empty-safe). Pure and deterministic.
+ * empty-safe). The overall fill counts only **capacity-tracked** events (capacity > 0) against the total
+ * capacity — mirroring the per-event engine, which reports 0% fill for an untracked event — so registrations
+ * for untracked events do not inflate the blended fill. The attendance rate is over all registrations. Pure
+ * and deterministic.
  */
 export function summarizeParticipation(
   events: readonly EventParticipationView[],
@@ -46,17 +49,23 @@ export function summarizeParticipation(
   let totalCapacity = 0;
   let totalRegistered = 0;
   let totalAttended = 0;
+  let trackedRegistered = 0;
   for (const event of events) {
-    totalCapacity += Math.max(0, event.capacity);
-    totalRegistered += Math.max(0, event.registeredCount);
+    const capacity = Math.max(0, event.capacity);
+    const registered = Math.max(0, event.registeredCount);
+    totalCapacity += capacity;
+    totalRegistered += registered;
     totalAttended += Math.max(0, event.attendedCount);
+    if (capacity > 0) {
+      trackedRegistered += registered;
+    }
   }
   return {
     eventCount: events.length,
     totalCapacity,
     totalRegistered,
     totalAttended,
-    overallFillPercent: rate(totalRegistered, totalCapacity),
+    overallFillPercent: rate(trackedRegistered, totalCapacity),
     overallAttendanceRate: rate(totalAttended, totalRegistered),
   };
 }

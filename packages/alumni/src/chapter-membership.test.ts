@@ -33,10 +33,17 @@ describe("ChapterMembership", () => {
     m = leaveChapterMembership(m, "2026-06-01");
     expect(m.status).toBe("left");
     expect(m.leftOn).toBe("2026-06-01");
-    m = reactivateMembership(m, "2026-09-01");
+    m = reactivateMembership(m, "2026-09-01", "lead");
     expect(m.status).toBe("active");
     expect(m.leftOn).toBeNull();
     expect(m.joinedOn).toBe("2026-09-01");
+    expect(m.role).toBe("lead"); // an optional role on rejoin is applied
+  });
+
+  it("keeps the prior role on reactivation when no new role is given", () => {
+    const officer = setMembershipRole(make(), "officer");
+    const left = leaveChapterMembership(officer, "2026-06-01");
+    expect(reactivateMembership(left, "2026-09-01").role).toBe("officer");
   });
 
   it("guards transitions", () => {

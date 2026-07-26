@@ -82,15 +82,24 @@ export function leaveChapterMembership(
   return touch(membership, { status: "left", leftOn });
 }
 
-/** Reactivate a left membership (`left → active`), clearing the leave date and restamping the join date. */
+/**
+ * Reactivate a left membership (`left → active`), clearing the leave date and restamping the join date. An
+ * optional role updates the member's role on return (keeping the prior role when omitted).
+ */
 export function reactivateMembership(
   membership: ChapterMembership,
   joinedOn: string,
+  role?: MembershipRole,
 ): ChapterMembership {
   if (membership.status !== "left") {
     throw new InvalidMembershipTransitionError(membership.status, "active");
   }
-  return touch(membership, { status: "active", joinedOn, leftOn: null });
+  return touch(membership, {
+    status: "active",
+    joinedOn,
+    leftOn: null,
+    role: role ?? membership.role,
+  });
 }
 
 /** Whether the membership is active. */

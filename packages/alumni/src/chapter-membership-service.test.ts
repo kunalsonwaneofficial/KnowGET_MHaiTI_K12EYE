@@ -69,9 +69,11 @@ describe("ChapterMembershipService", () => {
       chapterId: chapter.id,
       alumniProfileId: profile.id,
       joinedOn: "2026-09-01",
+      role: "officer",
     });
     expect(rejoined.id).toBe(m.id); // reactivated the same row, not a duplicate
     expect(rejoined.status).toBe("active");
+    expect(rejoined.role).toBe("officer"); // the requested role on rejoin is applied
     expect((await repository.listByChapter(tenantId, chapter.id)).length).toBe(1);
     expect(events.map((e) => e.type)).toContain("alumni.membership.reactivated");
   });

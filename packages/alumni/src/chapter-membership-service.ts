@@ -83,7 +83,7 @@ export class ChapterMembershipService {
       if (isMembershipActive(existing)) {
         throw new DuplicateChapterMembershipError(input.chapterId, input.alumniProfileId);
       }
-      const reactivated = reactivateMembership(existing, input.joinedOn);
+      const reactivated = reactivateMembership(existing, input.joinedOn, input.role);
       await this.repository.save(reactivated);
       await this.emit(membershipReactivated(reactivated));
       return reactivated;
