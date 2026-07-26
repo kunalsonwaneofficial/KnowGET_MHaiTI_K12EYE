@@ -3882,3 +3882,225 @@ model CentreProfile {
   @@index([tenantId])
   @@map("centre_profile")
 }
+
+/// Building (P2-D20) — an immovable structure on the campus (academic/administrative/laboratory/sports/
+/// library/utility/multipurpose) with a floor count; active <-> under_renovation -> decommissioned, code
+/// unique per tenant. The built environment, not the capitalized asset (P2-D15). Tenant-owned: FORCE RLS.
+model Building {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  type           String
+  floors         Int       @default(0)
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("building")
+}
+
+/// Space (P2-D20) — a room or area within a building (classroom/laboratory/office/hall/storage/restroom/
+/// common) with a floor and a usable capacity; draft -> available <-> out_of_service -> decommissioned,
+/// code unique per building. Available capacity feeds the condition engine. Tenant-owned: FORCE RLS.
+model Space {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  buildingId     String    @map("building_id") @db.Uuid
+  code           String
+  type           String
+  floor          Int       @default(0)
+  capacity       Int       @default(0)
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, buildingId, code])
+  @@index([tenantId])
+  @@index([tenantId, buildingId])
+  @@index([tenantId, organizationId])
+  @@map("space")
+}
+
+/// FacilitySystem (P2-D20) — a building's fixed infrastructure system (hvac/electrical/plumbing/elevator/
+/// fire_safety/network/water) with a service interval and last-serviced date; operational <->
+/// under_maintenance -> decommissioned, code unique per building. Service status is derived. No money
+/// (capital value -> P2-D15). Tenant-owned: FORCE RLS.
+model FacilitySystem {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  buildingId          String    @map("building_id") @db.Uuid
+  code                String
+  type                String
+  commissionedOn      String    @map("commissioned_on")
+  serviceIntervalDays Int       @map("service_interval_days")
+  lastServicedOn      String?   @map("last_serviced_on")
+  status              String    @default("operational")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, buildingId, code])
+  @@index([tenantId])
+  @@index([tenantId, buildingId])
+  @@index([tenantId, organizationId])
+  @@map("facility_system")
+}
+
+/// Sensor (P2-D20) — a smart-environment device in a space reading one metric (temperature/humidity/co2/
+/// occupancy/energy/water); active <-> inactive -> retired, code unique per tenant, one active per
+/// (space, metric) service-enforced (TD-40). Org/building derived from the space. Tenant-owned: FORCE RLS.
+model Sensor {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  buildingId     String    @map("building_id") @db.Uuid
+  spaceId        String    @map("space_id") @db.Uuid
+  code           String
+  metric         String
+  unit           String?
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, buildingId])
+  @@index([tenantId, organizationId])
+  @@map("sensor")
+}
+
+/// EnvironmentReading (P2-D20) — an immutable telemetry fact: one numeric sample of a metric by a sensor in
+/// a space at a moment. `value` is FLOAT (a physical measurement, never money). The latest per (space,
+/// metric) feeds the comfort engine. Append-only. Tenant-owned: FORCE RLS.
+model EnvironmentReading {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  buildingId     String    @map("building_id") @db.Uuid
+  spaceId        String    @map("space_id") @db.Uuid
+  sensorId       String    @map("sensor_id") @db.Uuid
+  metric         String
+  value          Float
+  unit           String?
+  recordedAt     String    @map("recorded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, spaceId])
+  @@index([tenantId, sensorId])
+  @@index([tenantId, organizationId])
+  @@map("environment_reading")
+}
+
+/// MaintenanceOrder (P2-D20) — an operational work order against a building (optionally a space and/or
+/// system): category, priority, optional Employee assignee (P2-D12); reported -> assigned -> in_progress ->
+/// completed | cancelled, code unique per tenant. No money (costed asset maintenance -> P2-D15).
+/// Tenant-owned: FORCE RLS.
+model MaintenanceOrder {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  buildingId     String    @map("building_id") @db.Uuid
+  spaceId        String?   @map("space_id") @db.Uuid
+  systemId       String?   @map("system_id") @db.Uuid
+  code           String
+  summary        String
+  category       String
+  priority       String
+  status         String    @default("reported")
+  assigneeId     String?   @map("assignee_id") @db.Uuid
+  reportedOn     String    @map("reported_on")
+  assignedOn     String?   @map("assigned_on")
+  completedOn    String?   @map("completed_on")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, buildingId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, assigneeId])
+  @@map("maintenance_order")
+}
+
+/// ComfortPolicy (P2-D20) — a named, versioned set of per-metric acceptable ranges (JSONB `thresholds`) the
+/// comfort engine measures a space against; draft -> active -> archived, at most one active per organization
+/// service-enforced (TD-40). Configuration, never money. Tenant-owned: FORCE RLS.
+model ComfortPolicy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  name           String
+  version        Int       @default(1)
+  thresholds     Json      @default("[]")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("comfort_policy")
+}
+
+/// FacilityProfile (P2-D20) — the descriptive read model per building: condition counts/capacities and
+/// readiness percent (from the condition engine) plus the open-maintenance count, refreshed; one per
+/// building. Holds no truth of its own. Tenant-owned: FORCE RLS.
+model FacilityProfile {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                String    @map("tenant_id") @db.Uuid
+  organizationId          String    @map("organization_id") @db.Uuid
+  buildingId              String    @map("building_id") @db.Uuid
+  buildingCode            String    @map("building_code")
+  buildingName            String    @map("building_name")
+  buildingStatus          String    @map("building_status")
+  spaceCount              Int       @default(0) @map("space_count")
+  availableSpaceCount     Int       @default(0) @map("available_space_count")
+  outOfServiceSpaceCount  Int       @default(0) @map("out_of_service_space_count")
+  totalCapacity           Int       @default(0) @map("total_capacity")
+  availableCapacity       Int       @default(0) @map("available_capacity")
+  systemCount             Int       @default(0) @map("system_count")
+  operationalSystemCount  Int       @default(0) @map("operational_system_count")
+  systemsUnderMaintenance Int       @default(0) @map("systems_under_maintenance")
+  readinessPercent        Int       @default(0) @map("readiness_percent")
+  openMaintenanceCount    Int       @default(0) @map("open_maintenance_count")
+  refreshedAt             String    @map("refreshed_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  createdBy               String?   @map("created_by") @db.Uuid
+  updatedBy               String?   @map("updated_by") @db.Uuid
+  deletedAt               DateTime? @map("deleted_at")
+
+  @@unique([tenantId, buildingId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("facility_profile")
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/facilities",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campus Infrastructure, Facilities & Smart Environment Platform (P2-D20) — the institution's built-environment system of record: the buildings, the spaces within them, the fixed infrastructure systems that serve them, the smart-environment sensors and their readings, the operational facilities work orders, and a configurable comfort policy, with a descriptive facility profile. A pure condition engine derives space readiness and system condition rolled building → campus; a pure comfort engine derives an air-quality/comfort assessment from sensor readings against the policy thresholds. Movable/capitalized assets and their costed maintenance are Procurement & Assets' (P2-D15); money (asset valuation, maintenance cost, utility billing) is out of scope, and domain events carry no money.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
