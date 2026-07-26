@@ -3,7 +3,59 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D17 · Program: Workforce & Operations · Residential Life, Hostel & Boarding Platform
+## [Unreleased] — P2-D18 · Program: Workforce & Operations · Knowledge Resource, Library & Digital Learning Asset Platform
+
+The seventh contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
+the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **library system of record**,
+delivered as one `@knowget/library` package (ADR-0037): the catalog of titles, the physical copies, the
+licensed digital assets, the members, and the loans, reservations and policy that circulate the
+collection. Two quantities are **derived, not stored** — a title's availability and a loan's due date /
+overdue state — so the design begins with **two pure engines**. Distinctively, as with residential, **this
+domain carries no money**: overdue and lost-item fines belong to Finance (P2-D14) and acquisition spend
+and asset valuation to Procurement & Assets (P2-D15), so the boundary is held structurally. Descriptive,
+not predictive — demand forecasting, recommendations and reading analytics are deferred to the
+intelligence core (P2-D28).
+
+### Added
+
+- **Knowledge Resource, Library & Digital Learning Asset Platform (ADR-0037):** two pure engines plus eight
+  aggregates in one `@knowget/library` package. **Two engines:** `computeTitleAvailability` /
+  `computeCollectionUtilization` (a title's loanable copies against those on loan/lost → available and
+  reservable, rolled into the collection's on-loan-vs-loanable utilization), and `computeLoanStatus` (due
+  date = issue + period × (1 + renewals used), overdue in **days never money**, renewals remaining). The
+  aggregates: **Title** (a catalogued work — book/journal/magazine/reference/media/thesis — with an
+  optional ISBN unique per tenant and author/subject lists; active ↔ withdrawn), **Copy** (a physical
+  holding tracked by a barcode unique per tenant, org derived from the title; available ↔ on_loan → lost |
+  withdrawn, lost-while-on-loan only through the loan so the loan and copy reconcile together),
+  **DigitalAsset** (a licensed digital resource — ebook/audiobook/video/e-journal/courseware/dataset,
+  open/licensed/subscription — that does not circulate; active ↔ retired), **LibraryMember** (a validated
+  Person linked to an org, membership number unique per tenant, one per person per org; active ↔ suspended
+  → expired), **Loan** (a copy issued to a member with its terms captured at issue from the org policy;
+  active → returned | lost, one active per copy, the borrowing limit enforced, the copy flipped in
+  lock-step, due/overdue derived), **Reservation** (a member's hold on a title with a collision-free queue
+  position; requested → ready → fulfilled | cancelled | expired, one open per member+title),
+  **CirculationPolicy** (version-controlled lending rules — a default rule + per-category rules; draft →
+  active → archived, rules frozen once active, one active per org, the single source of a member category's
+  terms via `resolveTermsForMember`) and **CollectionProfile** (the descriptive catalog/holdings/
+  circulation read model per org, refreshed from both engines, never posted to directly).
+- **No money:** overdue/lost fines and acquisition spend/asset valuation are deferred to Finance (P2-D14)
+  and Procurement & Assets (P2-D15); the domain defines no monetary field and imports no money core.
+- **Persistence (ADR-0010):** eight tables + migration `20261219000000_add_library`, each **FORCE RLS** +
+  `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; loan periods/limits/
+  queue positions/counts/percents/versions **INTEGER**, title authors/subjects & policy rules/default-rule
+  **JSONB**, date/ISO stamps & licence expiry **TEXT**; tenant-scoped DB unique indexes (ISBN nullable,
+  barcode, membership number, one membership per (person, org), one profile per org).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `library/*` (titles, copies, digital
+  assets, collection profile) under `library:read`/`:write` and `circulation/*` (members, loans,
+  reservations, policy) under `circulation:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + two
+  directory adapters (Organization, Person); `LibraryModule` importing the Organization and Person modules
+  and exporting every service token, registered in `app.module`. Loan **issue** resolves lending terms from
+  the member's org active policy at the composition point.
+- **Three status-scoped uniqueness invariants** (one active loan per copy, one open reservation per
+  member+title, one active policy per org) are service-enforced (**TD-38**); both independent adversarial
+  audits (domain; persistence/API) were resolved clean.
+
+## P2-D17 · Program: Workforce & Operations · Residential Life, Hostel & Boarding Platform
 
 The sixth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
 the P2-D01-M01 organization, P2-D12 workforce and P2-D03 student bases. The institution's **boarding
