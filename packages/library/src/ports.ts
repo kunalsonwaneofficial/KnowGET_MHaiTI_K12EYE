@@ -2,6 +2,8 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { Copy } from "./copy";
 import type { DigitalAsset } from "./digital-asset";
 import type { LibraryMember } from "./library-member";
+import type { Loan } from "./loan";
+import type { Reservation } from "./reservation";
 import type { Title } from "./title";
 
 /**
@@ -227,6 +229,157 @@ export class InMemoryLibraryMemberRepository implements LibraryMemberRepository 
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const member = this.byId.get(id);
     if (member && member.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for loans. Tenant-scoped (explicit argument + RLS). */
+export interface LoanRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Loan | null>;
+  findActiveByCopy(tenantId: TenantId, copyId: Uuid): Promise<Loan | null>;
+  listActiveByMember(tenantId: TenantId, memberId: Uuid): Promise<Loan[]>;
+  listByMember(tenantId: TenantId, memberId: Uuid): Promise<Loan[]>;
+  listByCopy(tenantId: TenantId, copyId: Uuid): Promise<Loan[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Loan[]>;
+  listByTenant(tenantId: TenantId): Promise<Loan[]>;
+  save(loan: Loan): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link LoanRepository} — the default for tests and bootstrap. */
+export class InMemoryLoanRepository implements LoanRepository {
+  private readonly byId = new Map<string, Loan>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Loan | null> {
+    const loan = this.byId.get(id);
+    return loan && loan.tenantId === tenantId ? loan : null;
+  }
+
+  async findActiveByCopy(tenantId: TenantId, copyId: Uuid): Promise<Loan | null> {
+    return (
+      [...this.byId.values()].find(
+        (l) => l.tenantId === tenantId && l.copyId === copyId && l.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listActiveByMember(tenantId: TenantId, memberId: Uuid): Promise<Loan[]> {
+    return [...this.byId.values()].filter(
+      (l) => l.tenantId === tenantId && l.memberId === memberId && l.status === "active",
+    );
+  }
+
+  async listByMember(tenantId: TenantId, memberId: Uuid): Promise<Loan[]> {
+    return [...this.byId.values()].filter(
+      (l) => l.tenantId === tenantId && l.memberId === memberId,
+    );
+  }
+
+  async listByCopy(tenantId: TenantId, copyId: Uuid): Promise<Loan[]> {
+    return [...this.byId.values()].filter((l) => l.tenantId === tenantId && l.copyId === copyId);
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Loan[]> {
+    return [...this.byId.values()].filter(
+      (l) => l.tenantId === tenantId && l.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Loan[]> {
+    return [...this.byId.values()].filter((l) => l.tenantId === tenantId);
+  }
+
+  async save(loan: Loan): Promise<void> {
+    this.byId.set(loan.id, loan);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const loan = this.byId.get(id);
+    if (loan && loan.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for reservations. Tenant-scoped (explicit argument + RLS). */
+export interface ReservationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Reservation | null>;
+  findOpenByMemberAndTitle(
+    tenantId: TenantId,
+    memberId: Uuid,
+    titleId: Uuid,
+  ): Promise<Reservation | null>;
+  listOpenByTitle(tenantId: TenantId, titleId: Uuid): Promise<Reservation[]>;
+  listByTitle(tenantId: TenantId, titleId: Uuid): Promise<Reservation[]>;
+  listByMember(tenantId: TenantId, memberId: Uuid): Promise<Reservation[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Reservation[]>;
+  listByTenant(tenantId: TenantId): Promise<Reservation[]>;
+  save(reservation: Reservation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+const OPEN_RESERVATION: readonly string[] = ["requested", "ready"];
+
+/** In-memory {@link ReservationRepository} — the default for tests and bootstrap. */
+export class InMemoryReservationRepository implements ReservationRepository {
+  private readonly byId = new Map<string, Reservation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Reservation | null> {
+    const reservation = this.byId.get(id);
+    return reservation && reservation.tenantId === tenantId ? reservation : null;
+  }
+
+  async findOpenByMemberAndTitle(
+    tenantId: TenantId,
+    memberId: Uuid,
+    titleId: Uuid,
+  ): Promise<Reservation | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId &&
+          r.memberId === memberId &&
+          r.titleId === titleId &&
+          OPEN_RESERVATION.includes(r.status),
+      ) ?? null
+    );
+  }
+
+  async listOpenByTitle(tenantId: TenantId, titleId: Uuid): Promise<Reservation[]> {
+    return [...this.byId.values()].filter(
+      (r) =>
+        r.tenantId === tenantId && r.titleId === titleId && OPEN_RESERVATION.includes(r.status),
+    );
+  }
+
+  async listByTitle(tenantId: TenantId, titleId: Uuid): Promise<Reservation[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId && r.titleId === titleId);
+  }
+
+  async listByMember(tenantId: TenantId, memberId: Uuid): Promise<Reservation[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.memberId === memberId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Reservation[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Reservation[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(reservation: Reservation): Promise<void> {
+    this.byId.set(reservation.id, reservation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const reservation = this.byId.get(id);
+    if (reservation && reservation.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

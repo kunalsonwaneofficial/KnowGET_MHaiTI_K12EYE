@@ -3,6 +3,8 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Copy } from "./copy";
 import type { DigitalAsset } from "./digital-asset";
 import type { LibraryMember } from "./library-member";
+import type { Loan } from "./loan";
+import type { Reservation } from "./reservation";
 import type { Title } from "./title";
 
 // --- Title -----------------------------------------------------------------------
@@ -161,3 +163,110 @@ export const memberReinstated = (member: LibraryMember): MemberReinstatedEvent =
 
 export const memberExpired = (member: LibraryMember): MemberExpiredEvent =>
   createEvent(MEMBER_EXPIRED, memberPayload(member), { tenantId: member.tenantId });
+
+// --- Loan ------------------------------------------------------------------------
+export const LOAN_ISSUED = "library.loan.issued";
+export const LOAN_RENEWED = "library.loan.renewed";
+export const LOAN_RETURNED = "library.loan.returned";
+export const LOAN_LOST = "library.loan.lost";
+
+export interface LoanEventPayload {
+  readonly loanId: Uuid;
+  readonly organizationId: Uuid;
+  readonly copyId: Uuid;
+  readonly titleId: Uuid;
+  readonly memberId: Uuid;
+  readonly status: string;
+}
+
+export type LoanIssuedEvent = DomainEvent<typeof LOAN_ISSUED, LoanEventPayload>;
+export type LoanRenewedEvent = DomainEvent<typeof LOAN_RENEWED, LoanEventPayload>;
+export type LoanReturnedEvent = DomainEvent<typeof LOAN_RETURNED, LoanEventPayload>;
+export type LoanLostEvent = DomainEvent<typeof LOAN_LOST, LoanEventPayload>;
+
+const loanPayload = (loan: Loan): LoanEventPayload => ({
+  loanId: loan.id,
+  organizationId: loan.organizationId,
+  copyId: loan.copyId,
+  titleId: loan.titleId,
+  memberId: loan.memberId,
+  status: loan.status,
+});
+
+export const loanIssued = (loan: Loan): LoanIssuedEvent =>
+  createEvent(LOAN_ISSUED, loanPayload(loan), { tenantId: loan.tenantId });
+
+export const loanRenewed = (loan: Loan): LoanRenewedEvent =>
+  createEvent(LOAN_RENEWED, loanPayload(loan), { tenantId: loan.tenantId });
+
+export const loanReturned = (loan: Loan): LoanReturnedEvent =>
+  createEvent(LOAN_RETURNED, loanPayload(loan), { tenantId: loan.tenantId });
+
+export const loanLost = (loan: Loan): LoanLostEvent =>
+  createEvent(LOAN_LOST, loanPayload(loan), { tenantId: loan.tenantId });
+
+// --- Reservation -----------------------------------------------------------------
+export const RESERVATION_PLACED = "library.reservation.placed";
+export const RESERVATION_READY = "library.reservation.ready";
+export const RESERVATION_FULFILLED = "library.reservation.fulfilled";
+export const RESERVATION_CANCELLED = "library.reservation.cancelled";
+export const RESERVATION_EXPIRED = "library.reservation.expired";
+
+export interface ReservationEventPayload {
+  readonly reservationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly titleId: Uuid;
+  readonly memberId: Uuid;
+  readonly status: string;
+}
+
+export type ReservationPlacedEvent = DomainEvent<
+  typeof RESERVATION_PLACED,
+  ReservationEventPayload
+>;
+export type ReservationReadyEvent = DomainEvent<typeof RESERVATION_READY, ReservationEventPayload>;
+export type ReservationFulfilledEvent = DomainEvent<
+  typeof RESERVATION_FULFILLED,
+  ReservationEventPayload
+>;
+export type ReservationCancelledEvent = DomainEvent<
+  typeof RESERVATION_CANCELLED,
+  ReservationEventPayload
+>;
+export type ReservationExpiredEvent = DomainEvent<
+  typeof RESERVATION_EXPIRED,
+  ReservationEventPayload
+>;
+
+const reservationPayload = (reservation: Reservation): ReservationEventPayload => ({
+  reservationId: reservation.id,
+  organizationId: reservation.organizationId,
+  titleId: reservation.titleId,
+  memberId: reservation.memberId,
+  status: reservation.status,
+});
+
+export const reservationPlaced = (reservation: Reservation): ReservationPlacedEvent =>
+  createEvent(RESERVATION_PLACED, reservationPayload(reservation), {
+    tenantId: reservation.tenantId,
+  });
+
+export const reservationReady = (reservation: Reservation): ReservationReadyEvent =>
+  createEvent(RESERVATION_READY, reservationPayload(reservation), {
+    tenantId: reservation.tenantId,
+  });
+
+export const reservationFulfilled = (reservation: Reservation): ReservationFulfilledEvent =>
+  createEvent(RESERVATION_FULFILLED, reservationPayload(reservation), {
+    tenantId: reservation.tenantId,
+  });
+
+export const reservationCancelled = (reservation: Reservation): ReservationCancelledEvent =>
+  createEvent(RESERVATION_CANCELLED, reservationPayload(reservation), {
+    tenantId: reservation.tenantId,
+  });
+
+export const reservationExpired = (reservation: Reservation): ReservationExpiredEvent =>
+  createEvent(RESERVATION_EXPIRED, reservationPayload(reservation), {
+    tenantId: reservation.tenantId,
+  });

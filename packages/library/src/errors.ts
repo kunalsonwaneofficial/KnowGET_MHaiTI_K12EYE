@@ -260,3 +260,91 @@ export class MemberNotActiveError extends PlatformError {
     });
   }
 }
+
+// --- Loan ------------------------------------------------------------------------
+
+/** The requested loan does not exist in the current tenant. */
+export class LoanNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Loan "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested loan lifecycle transition is not permitted. */
+export class InvalidLoanTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition loan from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The loan has no renewals remaining. */
+export class NoRenewalsRemainingError extends PlatformError {
+  constructor(id: string) {
+    super(`Loan "${id}" has no renewals remaining`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The member has reached the borrowing limit and cannot take another loan. */
+export class BorrowingLimitReachedError extends PlatformError {
+  constructor(memberId: string, limit: number) {
+    super(`Member "${memberId}" has reached the borrowing limit of ${limit}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { memberId, limit },
+    });
+  }
+}
+
+// --- Reservation -----------------------------------------------------------------
+
+/** The requested reservation does not exist in the current tenant. */
+export class ReservationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Reservation "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested reservation lifecycle transition is not permitted. */
+export class InvalidReservationTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition reservation from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The member already has an open reservation on this title. */
+export class DuplicateReservationError extends PlatformError {
+  constructor(memberId: string, titleId: string) {
+    super(`Member "${memberId}" already has an open reservation on title "${titleId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { memberId, titleId },
+    });
+  }
+}
