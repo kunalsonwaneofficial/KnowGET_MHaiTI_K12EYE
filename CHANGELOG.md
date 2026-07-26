@@ -3,7 +3,62 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D18 · Program: Workforce & Operations · Knowledge Resource, Library & Digital Learning Asset Platform
+## [Unreleased] — P2-D19 · Program: Campus & Engagement · Integrated Health Centre & Clinical Services Platform
+
+The first contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D01-M01 organization, P2-D01-M02 person and P2-D12 workforce bases. The
+institution's **operational clinical system of record**, delivered as one `@knowget/health-centre` package
+(ADR-0038): the health centres and clinicians, patient appointments, clinical encounters, medication
+prescriptions, sick-bay admissions and external referrals. Two quantities are **derived, not stored** — a
+centre's sick-bay occupancy and a prescription's due/overdue doses — so the design begins with **two pure
+engines**. Distinctively, **this domain carries no money** (clinical services are not billed here — Finance
+P2-D14; medical-supply cost is Procurement & Assets' — P2-D15) and **every domain event is content-free**
+(ids, status, coded metadata and counts — never a chief complaint, assessment, disposition, medication,
+dosage or referral/admission reason). The **standing health record** (history, allergies, chronic
+conditions, immunization history, standing medications, alerts) belongs to Learner Wellbeing (P2-D05);
+this domain holds the operational clinical services. Descriptive, not predictive — triage/diagnosis
+inference and demand forecasting are deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Integrated Health Centre & Clinical Services Platform (ADR-0038):** two pure engines plus eight
+  aggregates in one `@knowget/health-centre` package. **Two engines:** `computeBayOccupancy` /
+  `summarizeClinicalOccupancy` (active admissions against a centre's sick-bay capacity, rolled centre →
+  institution), and `computeMedicationSchedule` (a prescription's total/remaining/due/overdue doses as of a
+  date from its start, doses/day, duration and doses administered — days never money). The aggregates:
+  **HealthCentre** (an infirmary/clinic/dental/counselling/wellness facility with a sick-bay capacity and
+  optional lead clinician; active ↔ under_maintenance → decommissioned, code unique per tenant),
+  **Clinician** (a validated Employee with a clinical role + optional registration, one per employee, org
+  from the employee; active ↔ suspended → relieved), **Appointment** (pure scheduling; requested →
+  scheduled → checked_in → completed | cancelled | no_show), **ClinicalEncounter** (the consultation; draft
+  → in_progress → completed | cancelled, a clinician required before start, chief complaint + assessment
+  held off events), **Prescription** (a medication course feeding the schedule engine; active → completed |
+  discontinued, doses never past the total, medication + dosage held off events), **SickBayAdmission** (a
+  patient in a bed feeding the occupancy engine; active → discharged, one active per bed and one per
+  patient, never beyond capacity), **Referral** (onward external coordination; raised → accepted →
+  completed | cancelled) and **CentreProfile** (the descriptive sick-bay-occupancy + clinical-workload read
+  model per centre, refreshed from both engines, never posted to directly).
+- **No money & content-free events:** the domain defines no monetary field (billing → Finance P2-D14;
+  medical supplies → Procurement & Assets P2-D15), and no domain event carries clinical free-text or a
+  clinical outcome — only ids, status, coded metadata and counts.
+- **Boundary with Learner Wellbeing (P2-D05):** the standing health record (history, allergies, chronic
+  conditions, immunization history, standing medications, alerts) stays in P2-D05; this domain models only
+  the operational clinical services.
+- **Persistence (ADR-0010):** eight tables + migration `20261220000000_add_health_centre`, each **FORCE
+  RLS** + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; capacities/
+  dose regimens+counts/occupancy+workload counts/percents/versions **INTEGER**, over-capacity **BOOLEAN**,
+  date/ISO stamps **TEXT**, **no JSONB** (no list fields); tenant-scoped DB unique indexes (centre code, one
+  clinician per employee, one profile per centre).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `clinic/*` (centres, clinicians, centre
+  profile) under `clinic:read`/`:write` and `clinical/*` (appointments, encounters, prescriptions,
+  admissions, referrals) under `clinical:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + three
+  directory adapters (Organization, Person, Employee); `HealthCentreModule` importing the Organization,
+  Person and Workforce modules and exporting every service token, registered in `app.module`.
+- **Two status-scoped uniqueness invariants** (one active admission per bed, one active per patient) are
+  service-enforced alongside a sick-bay capacity guard (**TD-39**); both independent adversarial audits
+  (domain; persistence/API) were resolved clean.
+
+## P2-D18 · Program: Workforce & Operations · Knowledge Resource, Library & Digital Learning Asset Platform
 
 The seventh contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
 the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **library system of record**,
