@@ -1,5 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { Appointment } from "./appointment";
+import type { ClinicalEncounter } from "./clinical-encounter";
 import type { Clinician } from "./clinician";
 import type { HealthCentre } from "./health-centre";
 
@@ -140,3 +142,126 @@ export const clinicianReinstated = (clinician: Clinician): ClinicianReinstatedEv
   createEvent(CLINICIAN_REINSTATED, clinicianPayload(clinician), { tenantId: clinician.tenantId });
 export const clinicianRelieved = (clinician: Clinician): ClinicianRelievedEvent =>
   createEvent(CLINICIAN_RELIEVED, clinicianPayload(clinician), { tenantId: clinician.tenantId });
+
+// --- Appointment -----------------------------------------------------------------
+export const APPOINTMENT_REQUESTED = "clinical.appointment.requested";
+export const APPOINTMENT_SCHEDULED = "clinical.appointment.scheduled";
+export const APPOINTMENT_CHECKED_IN = "clinical.appointment.checked_in";
+export const APPOINTMENT_COMPLETED = "clinical.appointment.completed";
+export const APPOINTMENT_CANCELLED = "clinical.appointment.cancelled";
+export const APPOINTMENT_NO_SHOW = "clinical.appointment.no_show";
+
+export interface AppointmentEventPayload {
+  readonly appointmentId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly patientId: Uuid;
+  readonly clinicianId: Uuid | null;
+  readonly scheduledFor: string;
+  readonly status: string;
+}
+
+export type AppointmentRequestedEvent = DomainEvent<
+  typeof APPOINTMENT_REQUESTED,
+  AppointmentEventPayload
+>;
+export type AppointmentScheduledEvent = DomainEvent<
+  typeof APPOINTMENT_SCHEDULED,
+  AppointmentEventPayload
+>;
+export type AppointmentCheckedInEvent = DomainEvent<
+  typeof APPOINTMENT_CHECKED_IN,
+  AppointmentEventPayload
+>;
+export type AppointmentCompletedEvent = DomainEvent<
+  typeof APPOINTMENT_COMPLETED,
+  AppointmentEventPayload
+>;
+export type AppointmentCancelledEvent = DomainEvent<
+  typeof APPOINTMENT_CANCELLED,
+  AppointmentEventPayload
+>;
+export type AppointmentNoShowEvent = DomainEvent<
+  typeof APPOINTMENT_NO_SHOW,
+  AppointmentEventPayload
+>;
+
+const appointmentPayload = (appt: Appointment): AppointmentEventPayload => ({
+  appointmentId: appt.id,
+  centreId: appt.centreId,
+  organizationId: appt.organizationId,
+  patientId: appt.patientId,
+  clinicianId: appt.clinicianId,
+  scheduledFor: appt.scheduledFor,
+  status: appt.status,
+});
+
+export const appointmentRequested = (appt: Appointment): AppointmentRequestedEvent =>
+  createEvent(APPOINTMENT_REQUESTED, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentScheduled = (appt: Appointment): AppointmentScheduledEvent =>
+  createEvent(APPOINTMENT_SCHEDULED, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentCheckedIn = (appt: Appointment): AppointmentCheckedInEvent =>
+  createEvent(APPOINTMENT_CHECKED_IN, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentCompleted = (appt: Appointment): AppointmentCompletedEvent =>
+  createEvent(APPOINTMENT_COMPLETED, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentCancelled = (appt: Appointment): AppointmentCancelledEvent =>
+  createEvent(APPOINTMENT_CANCELLED, appointmentPayload(appt), { tenantId: appt.tenantId });
+export const appointmentNoShow = (appt: Appointment): AppointmentNoShowEvent =>
+  createEvent(APPOINTMENT_NO_SHOW, appointmentPayload(appt), { tenantId: appt.tenantId });
+
+// --- Clinical encounter ----------------------------------------------------------
+// Content-free: an encounter event carries ids and a status only — never the chief complaint, the
+// assessment, the triage acuity or the disposition. Downstream reactors query for detail under permission.
+export const ENCOUNTER_OPENED = "clinical.encounter.opened";
+export const ENCOUNTER_CLINICIAN_ASSIGNED = "clinical.encounter.clinician_assigned";
+export const ENCOUNTER_STARTED = "clinical.encounter.started";
+export const ENCOUNTER_COMPLETED = "clinical.encounter.completed";
+export const ENCOUNTER_CANCELLED = "clinical.encounter.cancelled";
+
+export interface EncounterEventPayload {
+  readonly encounterId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly patientId: Uuid;
+  readonly clinicianId: Uuid | null;
+  readonly status: string;
+}
+
+export type EncounterOpenedEvent = DomainEvent<typeof ENCOUNTER_OPENED, EncounterEventPayload>;
+export type EncounterClinicianAssignedEvent = DomainEvent<
+  typeof ENCOUNTER_CLINICIAN_ASSIGNED,
+  EncounterEventPayload
+>;
+export type EncounterStartedEvent = DomainEvent<typeof ENCOUNTER_STARTED, EncounterEventPayload>;
+export type EncounterCompletedEvent = DomainEvent<
+  typeof ENCOUNTER_COMPLETED,
+  EncounterEventPayload
+>;
+export type EncounterCancelledEvent = DomainEvent<
+  typeof ENCOUNTER_CANCELLED,
+  EncounterEventPayload
+>;
+
+const encounterPayload = (encounter: ClinicalEncounter): EncounterEventPayload => ({
+  encounterId: encounter.id,
+  centreId: encounter.centreId,
+  organizationId: encounter.organizationId,
+  patientId: encounter.patientId,
+  clinicianId: encounter.clinicianId,
+  status: encounter.status,
+});
+
+export const encounterOpened = (encounter: ClinicalEncounter): EncounterOpenedEvent =>
+  createEvent(ENCOUNTER_OPENED, encounterPayload(encounter), { tenantId: encounter.tenantId });
+export const encounterClinicianAssigned = (
+  encounter: ClinicalEncounter,
+): EncounterClinicianAssignedEvent =>
+  createEvent(ENCOUNTER_CLINICIAN_ASSIGNED, encounterPayload(encounter), {
+    tenantId: encounter.tenantId,
+  });
+export const encounterStarted = (encounter: ClinicalEncounter): EncounterStartedEvent =>
+  createEvent(ENCOUNTER_STARTED, encounterPayload(encounter), { tenantId: encounter.tenantId });
+export const encounterCompleted = (encounter: ClinicalEncounter): EncounterCompletedEvent =>
+  createEvent(ENCOUNTER_COMPLETED, encounterPayload(encounter), { tenantId: encounter.tenantId });
+export const encounterCancelled = (encounter: ClinicalEncounter): EncounterCancelledEvent =>
+  createEvent(ENCOUNTER_CANCELLED, encounterPayload(encounter), { tenantId: encounter.tenantId });

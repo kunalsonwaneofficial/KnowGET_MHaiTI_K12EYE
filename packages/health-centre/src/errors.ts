@@ -33,6 +33,18 @@ export class EmployeeNotFoundForHealthCentreError extends PlatformError {
   }
 }
 
+/** The person (P2-D01-M02) a patient record is for does not exist in the tenant. */
+export class PersonNotFoundForHealthCentreError extends PlatformError {
+  constructor(personId: string) {
+    super(`Person "${personId}" not found; cannot attach the patient record to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { personId },
+    });
+  }
+}
+
 // --- Health centre ---------------------------------------------------------------
 
 /** The requested health centre does not exist in the current tenant. */
@@ -159,6 +171,70 @@ export class InvalidClinicianTransitionError extends PlatformError {
 export class ClinicianNotActiveError extends PlatformError {
   constructor(id: string) {
     super(`Clinician "${id}" is not active`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Appointment -----------------------------------------------------------------
+
+/** The requested appointment does not exist in the current tenant. */
+export class AppointmentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Appointment "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An invalid appointment status transition was attempted. */
+export class InvalidAppointmentTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An appointment cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Clinical encounter ----------------------------------------------------------
+
+/** The requested clinical encounter does not exist in the current tenant. */
+export class EncounterNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Clinical encounter "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An invalid clinical-encounter status transition was attempted. */
+export class InvalidEncounterTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A clinical encounter cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A clinical encounter cannot start until a clinician is assigned to attend it. */
+export class EncounterClinicianRequiredError extends PlatformError {
+  constructor(id: string) {
+    super(`Clinical encounter "${id}" needs an assigned clinician before it can start`, {
       code: "CONFLICT",
       httpStatus: 409,
       isOperational: true,
