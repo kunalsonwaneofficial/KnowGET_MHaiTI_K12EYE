@@ -3664,3 +3664,221 @@ model CollectionProfile {
   @@index([tenantId])
   @@map("collection_profile")
 }
+
+/// HealthCentre (P2-D19) — a clinical facility (infirmary/clinic/dental/counselling/wellness) with a
+/// sick-bay bed capacity and an optional lead clinician; active <-> under_maintenance -> decommissioned,
+/// code unique per tenant. Tenant-owned: FORCE RLS.
+model HealthCentre {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  code            String
+  name            String
+  type            String
+  sickBayCapacity Int       @default(0) @map("sick_bay_capacity")
+  leadClinicianId String?   @map("lead_clinician_id") @db.Uuid
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("health_centre")
+}
+
+/// Clinician (P2-D19) — a validated Employee (P2-D12) who delivers care, with a clinical role and optional
+/// registration number; active <-> suspended -> relieved, one per employee. Org derived from the employee.
+/// Tenant-owned: FORCE RLS.
+model Clinician {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  employeeId         String    @map("employee_id") @db.Uuid
+  role               String
+  registrationNumber String?   @map("registration_number")
+  status             String    @default("active")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("clinician")
+}
+
+/// Appointment (P2-D19) — a scheduled visit for a patient (Person) at a centre, optionally with a
+/// clinician; requested -> scheduled -> checked_in -> completed | cancelled | no_show. Pure scheduling.
+/// Tenant-owned: FORCE RLS.
+model Appointment {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  centreId       String    @map("centre_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  clinicianId    String?   @map("clinician_id") @db.Uuid
+  scheduledFor   String    @map("scheduled_for")
+  status         String    @default("requested")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, centreId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, organizationId])
+  @@map("appointment")
+}
+
+/// ClinicalEncounter (P2-D19) — a patient consultation: triage acuity, chief complaint + assessment
+/// (free-text clinical content, never on an event), attending clinician and a disposition at completion;
+/// draft -> in_progress -> completed | cancelled. Tenant-owned: FORCE RLS.
+model ClinicalEncounter {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  centreId       String    @map("centre_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  clinicianId    String?   @map("clinician_id") @db.Uuid
+  triageAcuity   String    @map("triage_acuity")
+  chiefComplaint String?   @map("chief_complaint")
+  assessment     String?
+  disposition    String?
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, centreId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, organizationId])
+  @@map("clinical_encounter")
+}
+
+/// Prescription (P2-D19) — a medication course a clinician orders: medication + dosage (clinical content,
+/// never on an event) and a regimen (doses/day x duration from a start date) the medication-schedule engine
+/// reads; active -> completed | discontinued. No money (drug cost -> P2-D15). Tenant-owned: FORCE RLS.
+model Prescription {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  centreId          String    @map("centre_id") @db.Uuid
+  patientId         String    @map("patient_id") @db.Uuid
+  clinicianId       String    @map("clinician_id") @db.Uuid
+  medication        String
+  dosage            String?
+  frequencyPerDay   Int       @map("frequency_per_day")
+  durationDays      Int       @map("duration_days")
+  dosesAdministered Int       @default(0) @map("doses_administered")
+  startDate         String    @map("start_date")
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, centreId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, organizationId])
+  @@map("prescription")
+}
+
+/// SickBayAdmission (P2-D19) — a patient in a sick-bay bed for observation; active -> discharged. Active
+/// admissions are what the occupancy engine counts against capacity; one active per bed and one per patient
+/// are service-enforced (TD-39). Tenant-owned: FORCE RLS.
+model SickBayAdmission {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  centreId       String    @map("centre_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  bedLabel       String    @map("bed_label")
+  admittedOn     String    @map("admitted_on")
+  reason         String?
+  dischargedOn   String?   @map("discharged_on")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, centreId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, organizationId])
+  @@map("sick_bay_admission")
+}
+
+/// Referral (P2-D19) — a health centre's onward referral of a patient to an external provider (target,
+/// urgency, optional reason held off events); raised -> accepted -> completed | cancelled. Tenant-owned:
+/// FORCE RLS.
+model Referral {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  centreId       String    @map("centre_id") @db.Uuid
+  patientId      String    @map("patient_id") @db.Uuid
+  clinicianId    String?   @map("clinician_id") @db.Uuid
+  referredTo     String    @map("referred_to")
+  urgency        String
+  reason         String?
+  raisedOn       String    @map("raised_on")
+  status         String    @default("raised")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, centreId])
+  @@index([tenantId, patientId])
+  @@index([tenantId, organizationId])
+  @@map("referral")
+}
+
+/// CentreProfile (P2-D19) — the descriptive read model per centre (sick-bay occupancy via the occupancy
+/// engine; open appointment/encounter/referral, active + overdue prescription counts), refreshed
+/// (version-bumped); one per centre. Tenant-owned: FORCE RLS.
+model CentreProfile {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                 String    @map("tenant_id") @db.Uuid
+  organizationId           String    @map("organization_id") @db.Uuid
+  centreId                 String    @map("centre_id") @db.Uuid
+  centreCode               String    @map("centre_code")
+  sickBayCapacity          Int       @default(0) @map("sick_bay_capacity")
+  activeAdmissionCount     Int       @default(0) @map("active_admission_count")
+  bedsAvailable            Int       @default(0) @map("beds_available")
+  occupancyPercent         Int       @default(0) @map("occupancy_percent")
+  overCapacity             Boolean   @default(false) @map("over_capacity")
+  openAppointmentCount     Int       @default(0) @map("open_appointment_count")
+  openEncounterCount       Int       @default(0) @map("open_encounter_count")
+  activePrescriptionCount  Int       @default(0) @map("active_prescription_count")
+  overduePrescriptionCount Int       @default(0) @map("overdue_prescription_count")
+  openReferralCount        Int       @default(0) @map("open_referral_count")
+  version                  Int       @default(1)
+  refreshedAt              String?   @map("refreshed_at")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+  createdBy                String?   @map("created_by") @db.Uuid
+  updatedBy                String?   @map("updated_by") @db.Uuid
+  deletedAt                DateTime? @map("deleted_at")
+
+  @@unique([tenantId, centreId])
+  @@index([tenantId])
+  @@map("centre_profile")
+}
