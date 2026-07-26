@@ -415,3 +415,17 @@ export class InvalidAssertionTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Entity memory ---------------------------------------------------------------
+
+/** No digital-memory read model exists yet for this entity (it has not been refreshed). */
+export class EntityMemoryNotFoundError extends PlatformError {
+  constructor(entityId: string) {
+    super(`No entity memory for entity "${entityId}"; refresh it first`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { entityId },
+    });
+  }
+}

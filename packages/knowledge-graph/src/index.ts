@@ -13,12 +13,14 @@ export * from "./relationship-type";
 export * from "./knowledge-entity";
 export * from "./semantic-relationship";
 export * from "./assertion";
+export * from "./entity-memory";
 // application services
 export * from "./entity-type-service";
 export * from "./relationship-type-service";
 export * from "./knowledge-entity-service";
 export * from "./semantic-relationship-service";
 export * from "./assertion-service";
+export * from "./knowledge-memory-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain events

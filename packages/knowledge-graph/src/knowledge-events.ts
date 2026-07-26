@@ -3,6 +3,7 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
 import type { Assertion } from "./assertion";
+import type { EntityMemory } from "./entity-memory";
 import type { RelationshipType } from "./relationship-type";
 import type { SemanticRelationship } from "./semantic-relationship";
 
@@ -266,3 +267,34 @@ export const assertionMade = (a: Assertion): AssertionMadeEvent =>
   createEvent(ASSERTION_MADE, assertionPayload(a), { tenantId: a.tenantId });
 export const assertionRetracted = (a: Assertion): AssertionRetractedEvent =>
   createEvent(ASSERTION_RETRACTED, assertionPayload(a), { tenantId: a.tenantId });
+
+// --- Entity memory (digital memory read model) -----------------------------------
+export const ENTITY_MEMORY_REFRESHED = "knowledge.entity_memory.refreshed";
+
+export interface EntityMemoryEventPayload {
+  readonly entityMemoryId: Uuid;
+  readonly organizationId: Uuid;
+  readonly entityId: Uuid;
+  readonly degree: number;
+  readonly assertionCount: number;
+  readonly aggregateConfidence: number;
+}
+
+export type EntityMemoryRefreshedEvent = DomainEvent<
+  typeof ENTITY_MEMORY_REFRESHED,
+  EntityMemoryEventPayload
+>;
+
+export const entityMemoryRefreshed = (m: EntityMemory): EntityMemoryRefreshedEvent =>
+  createEvent(
+    ENTITY_MEMORY_REFRESHED,
+    {
+      entityMemoryId: m.id,
+      organizationId: m.organizationId,
+      entityId: m.entityId,
+      degree: m.degree,
+      assertionCount: m.assertionCount,
+      aggregateConfidence: m.aggregateConfidence,
+    },
+    { tenantId: m.tenantId },
+  );

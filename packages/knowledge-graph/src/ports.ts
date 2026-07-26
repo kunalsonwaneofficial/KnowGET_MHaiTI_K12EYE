@@ -1,5 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Assertion } from "./assertion";
+import type { EntityMemory } from "./entity-memory";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
 import type { RelationshipType } from "./relationship-type";
@@ -265,5 +266,42 @@ export class InMemoryAssertionRepository implements AssertionRepository {
 
   async save(assertion: Assertion): Promise<void> {
     this.byId.set(assertion.id, assertion);
+  }
+}
+
+/**
+ * Storage contract for entity memories (the per-entity digital-memory read model). Tenant-scoped (explicit
+ * argument + RLS). `findByEntity` backs the one-memory-per-entity rule and the refresh upsert. Re-derivable —
+ * never authored, so no `remove` (a stale memory is refreshed, not deleted).
+ */
+export interface EntityMemoryRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EntityMemory | null>;
+  findByEntity(tenantId: TenantId, entityId: Uuid): Promise<EntityMemory | null>;
+  listByTenant(tenantId: TenantId): Promise<EntityMemory[]>;
+  save(memory: EntityMemory): Promise<void>;
+}
+
+/** In-memory {@link EntityMemoryRepository} — the default for tests and bootstrap. */
+export class InMemoryEntityMemoryRepository implements EntityMemoryRepository {
+  private readonly byId = new Map<string, EntityMemory>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EntityMemory | null> {
+    const memory = this.byId.get(id);
+    return memory && memory.tenantId === tenantId ? memory : null;
+  }
+
+  async findByEntity(tenantId: TenantId, entityId: Uuid): Promise<EntityMemory | null> {
+    return (
+      [...this.byId.values()].find((m) => m.tenantId === tenantId && m.entityId === entityId) ??
+      null
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EntityMemory[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId);
+  }
+
+  async save(memory: EntityMemory): Promise<void> {
+    this.byId.set(memory.id, memory);
   }
 }
