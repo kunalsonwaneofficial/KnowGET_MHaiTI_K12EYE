@@ -957,3 +957,48 @@ Person existence enter through injected directory ports. Three status-scoped uni
 active loan per copy, one open reservation per member+title, one active policy per org) are
 service-enforced (**TD-38**); both independent audits were clean. All eight service tokens are exported for
 **in-process cross-domain use**. The library base the operational and intelligence-core domains build on.
+
+## Integrated Health Centre & Clinical Services Platform (P2-D19, Program: Campus & Engagement · ADR-0038)
+
+The **operational clinical system of record for the institution** — the health centres it runs and the
+clinicians who staff them, the patient appointments, the clinical encounters, the medication prescriptions,
+the sick-bay admissions and the external referrals — built on the organization (P2-D01-M01), person
+(P2-D01-M02) and workforce (P2-D12) bases, delivered as one `@knowget/health-centre` package on the
+certified `v0.2.0` baseline. The **first contract of Program D (Campus & Engagement)**. Two quantities are
+**derived, not stored**, so the design begins with **two pure engines** built and tested first:
+`computeBayOccupancy` / `summarizeClinicalOccupancy` value a centre's active admissions against its
+sick-bay capacity and roll centre → institution (beds available, occupancy percent, over-capacity); and
+`computeMedicationSchedule` derives a prescription's total/remaining/due/**overdue** doses as of a date
+from its start date, doses-per-day, duration and doses administered (**days, never money**). Distinctively,
+**this domain carries no money** (clinical services are not billed here — Finance P2-D14; medical-supply
+cost is Procurement & Assets' — P2-D15) and **every domain event is content-free** (ids, status, coded
+metadata and counts — never a chief complaint, assessment, disposition, medication, dosage or referral/
+admission reason), the confidentiality discipline Learner Wellbeing (P2-D05) applies to counselling and
+safeguarding. It models eight aggregates: **HealthCentre** (an infirmary/clinic/dental/counselling/wellness
+facility with a sick-bay capacity and optional lead clinician; active ↔ under_maintenance →
+decommissioned, code unique per tenant, active required for clinical ops), **Clinician** (a validated
+**Employee** with a clinical role + optional registration; active ↔ suspended → relieved, one per
+employee, org from the employee), **Appointment** (pure scheduling; requested → scheduled → checked_in →
+completed | cancelled | no_show, reschedule changes only the time), **ClinicalEncounter** (the
+consultation; draft → in_progress → completed | cancelled, a clinician required before start, chief
+complaint + assessment held **off events**), **Prescription** (a medication course feeding the schedule
+engine; active → completed | discontinued, doses tallied never past the total, medication + dosage held
+**off events**), **SickBayAdmission** (a patient in a bed feeding the occupancy engine; active →
+discharged, **one active per bed and one active per patient**, never beyond capacity), **Referral** (onward
+external coordination; raised → accepted → completed | cancelled) and **CentreProfile** (the descriptive
+sick-bay-occupancy + clinical-workload read model per centre, **refreshed** from both engines, never posted
+to directly). It is **descriptive, not predictive** (P2-D28). The **standing health record** (history,
+allergies, chronic conditions, immunization history, standing medications, medical alerts) belongs to
+**Learner Wellbeing (P2-D05)**; this domain holds the operational clinical services. A centre's org is an
+**Organization**, a patient a **Person**, a clinician an **Employee**, referenced via directory ports and
+never duplicated. Content-free clinical events publish onto the shared bus. Eight tables carry **FORCE RLS**
+tenant isolation, verified on live PostgreSQL (INTEGER capacities/counts/doses, BOOLEAN over-capacity and
+TEXT date stamps round-tripping exactly — **no JSONB**, this domain has no list-valued fields), with
+tenant-scoped DB unique indexes (centre code, one clinician per employee, one profile per centre). **Two
+permission scope pairs** split the platform along its operational boundary — `clinic:*` for the clinical
+estate and its people and oversight (centres, clinicians, the centre profile) and `clinical:*` for the
+patient-facing operations (appointments, encounters, prescriptions, admissions, referrals). Organization,
+Person and Employee existence enter through injected directory ports. Two status-scoped uniqueness
+invariants (one active admission per bed, one active per patient) are service-enforced (**TD-39**); both
+independent audits were clean. All eight service tokens are exported for **in-process cross-domain use**.
+The operational clinical base the campus and intelligence-core domains build on.
