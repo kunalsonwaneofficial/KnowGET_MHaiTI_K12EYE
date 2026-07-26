@@ -2,13 +2,13 @@
 
 **Integrated Health Centre & Clinical Services Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Campus & Engagement
 
-|                |                                                                                                                                                                                                                                                                                                                                                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D19 — Integrated Health Centre & Clinical Services Platform                                                                                                                                                                                                                                                                                                                                          |
-| **Status**     | 🟡 Awaiting CI + merge — feature branch `feat/p2-d19-health-centre` pushed. In-sandbox: `@knowget/health-centre` typecheck/lint/format/build clean, **70 tests** (18 files); `apps/api` typecheck/lint/build clean + health-centre DI-graph spec (2 tests) in the 215-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on the Prisma build in-sandbox). |
-| **Depends on** | P2-D01-M02 (Person — the patient base), P2-D12 (Workforce, ADR-0031 — the Employee base for clinicians), P2-D01-M01 (Organization), P2-D05 (Learner Wellbeing, ADR-0024 — where the standing health record lives), P2-D17 (Residential, ADR-0036 — the facility/staff/occupancy precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                       |
-| **Date**       | 20 December 2026                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Next**       | P2-D20 — Campus Infrastructure, Facilities & Smart Environment (next Program D contract)                                                                                                                                                                                                                                                                                                                |
+|                |                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D19 — Integrated Health Centre & Clinical Services Platform                                                                                                                                                                                                                                                                                                                    |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`b9bf4b8`). In-sandbox: `@knowget/health-centre` typecheck/lint/format/build clean, **70 tests** (18 files); `apps/api` typecheck/lint/build clean + health-centre DI-graph spec (2 tests) in the 215-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on the Prisma build in-sandbox). |
+| **Depends on** | P2-D01-M02 (Person — the patient base), P2-D12 (Workforce, ADR-0031 — the Employee base for clinicians), P2-D01-M01 (Organization), P2-D05 (Learner Wellbeing, ADR-0024 — where the standing health record lives), P2-D17 (Residential, ADR-0036 — the facility/staff/occupancy precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                 |
+| **Date**       | 20 December 2026                                                                                                                                                                                                                                                                                                                                                                  |
+| **Next**       | P2-D20 — Campus Infrastructure, Facilities & Smart Environment (next Program D contract)                                                                                                                                                                                                                                                                                          |
 
 ---
 
@@ -125,14 +125,13 @@ service-enforced (**TD-39**).
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the health-centre events ride
   the same bus.
 
-## 7. Outcome — feature branch pushed, awaiting CI + merge
+## 7. Outcome — merged to `main`, proceed to P2-D20
 
 The Integrated Health Centre & Clinical Services Platform is complete behind its gates: sick-bay occupancy
 and medication schedules are derived consistently by pure engines, a bed and a patient each hold one active
 admission, the sick bay never exceeds capacity, the no-money and confidential-events boundaries are held
 structurally, the standing health record is left to Learner Wellbeing, and all eight tables are FORCE-RLS
 tenant-isolated (verified live, INTEGER/BOOLEAN/TEXT round-tripping exactly); both independent audits were
-resolved clean. All in-sandbox gates are green on `feat/p2-d19-health-centre`; **awaiting CI green to merge
-to `main`**, after which this report flips to ✅ with the merge commit. Next is **P2-D20 — Campus
-Infrastructure, Facilities & Smart Environment**. **Reminder: rotate the GitHub PAT** used for pushes at
-this milestone boundary.
+resolved clean. CI is green and the milestone is **merged to `main` (`b9bf4b8`)**, opening Program D
+(Campus & Engagement); next is **P2-D20 — Campus Infrastructure, Facilities & Smart Environment**.
+**Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary.
