@@ -6,6 +6,7 @@ import { AlumniModule } from "./domains/alumni/alumni.module";
 import { AssessmentEvaluationModule } from "./domains/assessment-evaluation/assessment-evaluation.module";
 import { AttendancePresenceModule } from "./domains/attendance-presence/attendance-presence.module";
 import { GovernanceModule } from "./domains/governance/governance.module";
+import { KnowledgeGraphModule } from "./domains/knowledge-graph/knowledge-graph.module";
 import { CampusSecurityModule } from "./domains/campus-security/campus-security.module";
 import { EngagementModule } from "./domains/engagement/engagement.module";
 import { FacilitiesModule } from "./domains/facilities/facilities.module";
@@ -114,6 +115,7 @@ const persistedServices =
     EngagementModule,
     AdmissionsModule,
     AlumniModule,
+    KnowledgeGraphModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

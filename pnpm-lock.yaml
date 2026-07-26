@@ -183,6 +183,9 @@ importers:
       '@knowget/kernel':
         specifier: workspace:*
         version: link:../../packages/kernel
+      '@knowget/knowledge-graph':
+        specifier: workspace:*
+        version: link:../../packages/knowledge-graph
       '@knowget/learner-wellbeing':
         specifier: workspace:*
         version: link:../../packages/learner-wellbeing
