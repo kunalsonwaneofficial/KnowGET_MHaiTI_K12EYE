@@ -907,3 +907,53 @@ through injected directory ports. Two status-scoped uniqueness invariants (one a
 one active per student) are service-enforced (**TD-37**); both independent audits were clean. All eight
 service tokens are exported for **in-process cross-domain use**. The residential base the operational and
 intelligence-core domains build on.
+
+## Knowledge Resource, Library & Digital Learning Asset Platform (P2-D18, Program: Workforce & Operations · ADR-0037)
+
+The **library system of record for the institution** — the catalog it holds, the physical copies on its
+shelves, the digital assets it licenses, the members entitled to borrow, and the loans, reservations and
+policy that circulate the collection — built on the organization (P2-D01-M01) and person (P2-D01-M02)
+bases, delivered as one `@knowget/library` package on the certified `v0.2.0` baseline. The **seventh
+contract of Program C**. Two quantities are **derived, not stored**, so the design begins with **two pure
+engines** built and tested first: `computeTitleAvailability` / `computeCollectionUtilization` value a
+title's loanable copies against those on loan or lost (available, and **reservable** when no copy is free
+but a loanable one exists) and roll the title views into the collection's on-loan-vs-loanable utilization;
+and `computeLoanStatus` derives a loan's due date (`issue + period × (1 + renewals used)`), whether and by
+how many **days** it is overdue, and whether it can still be renewed — **never money**. Distinctively, as
+with residential, **this domain carries no money** — overdue and lost-item fines belong to Finance
+(P2-D14) and acquisition spend and asset valuation to Procurement & Assets (P2-D15) — so the boundary is
+held structurally and no money core is imported. It models eight aggregates: **Title** (a catalogued work
+— book/journal/magazine/reference/media/thesis — with an optional ISBN unique per tenant, author and
+subject lists; active ↔ withdrawn), **Copy** (a physical holding tracked by a barcode unique per tenant,
+org derived from the title; available ↔ on_loan → lost | withdrawn, lost-while-on-loan only through the
+loan), **DigitalAsset** (a licensed digital resource — ebook/audiobook/video/e-journal/courseware/dataset,
+open/licensed/subscription — that does not circulate; active ↔ retired), **LibraryMember** (a validated
+**Person** linked to an org with a membership number unique per tenant, **one per person per org**; active
+↔ suspended → expired), **Loan** (a copy issued to a member with its **terms captured at issue** from the
+org policy; active → returned | lost, **one active per copy**, the borrowing limit enforced, the copy
+flipped in lock-step, due/overdue derived), **Reservation** (a member's hold on a title with a queue
+position one past the highest open hold; requested → ready → fulfilled | cancelled | expired, **one open
+per member+title**), **CirculationPolicy** (the version-controlled lending rules — a default rule + per-
+category rules; draft → active → archived, **rules frozen once active**, **one active per org**, the
+single source of a member category's terms via `resolveTermsForMember`) and **CollectionProfile** (the
+descriptive catalog/holdings/circulation read model per org, **refreshed** from both engines, never posted
+to directly). It is **descriptive, not predictive** (P2-D28). A title's organization is an **Organization
+(P2-D01-M01)** and a member is a **Person (P2-D01-M02)**, referenced via directory ports and never
+duplicated; loan issue is composed at the API layer (read the member → resolve terms from the org active
+policy → issue with them captured). Library domain events (title cataloged/renamed/authors/subjects/
+metadata/withdrawn/restored; copy accessioned/located/condition/lost/withdrawn/issued/returned; digital
+cataloged/renamed/access/licence-renewed/retired/reactivated; member registered/category/expiry/suspended/
+reinstated/expired; loan issued/renewed/returned/lost; reservation placed/ready/fulfilled/cancelled/
+expired; policy drafted/rules/default/activated/archived; collection refreshed) publish onto the shared
+bus. Eight tables carry **FORCE RLS** tenant isolation, verified on live PostgreSQL (JSONB authors/subjects
+and policy rules, INTEGER counts/periods and the nullable-ISBN unique round-tripping exactly), with
+tenant-scoped DB unique indexes (ISBN, barcode, membership number, membership per (person, org), profile
+per org); loan periods/limits/queue positions/counts/percents/versions are **INTEGER**, authors/subjects
+and policy rules/default-rule are **JSONB**, and date/ISO stamps and licence expiry are **TEXT** — **no
+money**. **Two permission scope pairs** split the platform along its operational boundary — `library:*`
+for the knowledge collection (titles, copies, digital assets, the collection profile) and `circulation:*`
+for the lending relationship (members, loans, reservations, the circulation policy). Organization and
+Person existence enter through injected directory ports. Three status-scoped uniqueness invariants (one
+active loan per copy, one open reservation per member+title, one active policy per org) are
+service-enforced (**TD-38**); both independent audits were clean. All eight service tokens are exported for
+**in-process cross-domain use**. The library base the operational and intelligence-core domains build on.
