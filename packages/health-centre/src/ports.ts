@@ -1,10 +1,12 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Appointment } from "./appointment";
+import type { CentreProfile } from "./centre-profile";
 import type { ClinicalEncounter } from "./clinical-encounter";
 import type { Clinician } from "./clinician";
 import type { HealthCentre } from "./health-centre";
-import { OPEN_APPOINTMENT_STATUSES } from "./health-centre-value";
+import { OPEN_APPOINTMENT_STATUSES, OPEN_REFERRAL_STATUSES } from "./health-centre-value";
 import type { Prescription } from "./prescription";
+import type { Referral } from "./referral";
 import type { SickBayAdmission } from "./sick-bay-admission";
 
 const OPEN_ENCOUNTER: readonly string[] = ["draft", "in_progress"];
@@ -404,6 +406,111 @@ export class InMemoryAdmissionRepository implements AdmissionRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const admission = this.byId.get(id);
     if (admission && admission.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for referrals. Tenant-scoped (explicit argument + RLS). */
+export interface ReferralRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Referral | null>;
+  listByPatient(tenantId: TenantId, patientId: Uuid): Promise<Referral[]>;
+  listByCentre(tenantId: TenantId, centreId: Uuid): Promise<Referral[]>;
+  listOpenByCentre(tenantId: TenantId, centreId: Uuid): Promise<Referral[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Referral[]>;
+  listByTenant(tenantId: TenantId): Promise<Referral[]>;
+  save(referral: Referral): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ReferralRepository} — the default for tests and bootstrap. */
+export class InMemoryReferralRepository implements ReferralRepository {
+  private readonly byId = new Map<string, Referral>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Referral | null> {
+    const referral = this.byId.get(id);
+    return referral && referral.tenantId === tenantId ? referral : null;
+  }
+
+  async listByPatient(tenantId: TenantId, patientId: Uuid): Promise<Referral[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.patientId === patientId,
+    );
+  }
+
+  async listByCentre(tenantId: TenantId, centreId: Uuid): Promise<Referral[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.centreId === centreId,
+    );
+  }
+
+  async listOpenByCentre(tenantId: TenantId, centreId: Uuid): Promise<Referral[]> {
+    return [...this.byId.values()].filter(
+      (r) =>
+        r.tenantId === tenantId &&
+        r.centreId === centreId &&
+        OPEN_REFERRAL_STATUSES.includes(r.status as (typeof OPEN_REFERRAL_STATUSES)[number]),
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Referral[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Referral[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(referral: Referral): Promise<void> {
+    this.byId.set(referral.id, referral);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const referral = this.byId.get(id);
+    if (referral && referral.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for centre profiles (one per centre). Tenant-scoped (argument + RLS). */
+export interface CentreProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CentreProfile | null>;
+  findByCentre(tenantId: TenantId, centreId: Uuid): Promise<CentreProfile | null>;
+  listByTenant(tenantId: TenantId): Promise<CentreProfile[]>;
+  save(profile: CentreProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CentreProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryCentreProfileRepository implements CentreProfileRepository {
+  private readonly byId = new Map<string, CentreProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CentreProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByCentre(tenantId: TenantId, centreId: Uuid): Promise<CentreProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.centreId === centreId) ??
+      null
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CentreProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: CentreProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

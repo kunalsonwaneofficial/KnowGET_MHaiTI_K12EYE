@@ -3,8 +3,10 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Appointment } from "./appointment";
 import type { ClinicalEncounter } from "./clinical-encounter";
 import type { Clinician } from "./clinician";
+import type { CentreProfile } from "./centre-profile";
 import type { HealthCentre } from "./health-centre";
 import type { Prescription } from "./prescription";
+import type { Referral } from "./referral";
 import type { SickBayAdmission } from "./sick-bay-admission";
 
 /**
@@ -366,3 +368,76 @@ export const admissionOpened = (admission: SickBayAdmission): AdmissionOpenedEve
   createEvent(ADMISSION_OPENED, admissionPayload(admission), { tenantId: admission.tenantId });
 export const admissionDischarged = (admission: SickBayAdmission): AdmissionDischargedEvent =>
   createEvent(ADMISSION_DISCHARGED, admissionPayload(admission), { tenantId: admission.tenantId });
+
+// --- Referral --------------------------------------------------------------------
+// Content-free: a referral event carries ids, the referrer, an urgency and a status — never the reason or
+// the external target detail.
+export const REFERRAL_RAISED = "clinical.referral.raised";
+export const REFERRAL_ACCEPTED = "clinical.referral.accepted";
+export const REFERRAL_COMPLETED = "clinical.referral.completed";
+export const REFERRAL_CANCELLED = "clinical.referral.cancelled";
+
+export interface ReferralEventPayload {
+  readonly referralId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly patientId: Uuid;
+  readonly clinicianId: Uuid | null;
+  readonly urgency: string;
+  readonly status: string;
+}
+
+export type ReferralRaisedEvent = DomainEvent<typeof REFERRAL_RAISED, ReferralEventPayload>;
+export type ReferralAcceptedEvent = DomainEvent<typeof REFERRAL_ACCEPTED, ReferralEventPayload>;
+export type ReferralCompletedEvent = DomainEvent<typeof REFERRAL_COMPLETED, ReferralEventPayload>;
+export type ReferralCancelledEvent = DomainEvent<typeof REFERRAL_CANCELLED, ReferralEventPayload>;
+
+const referralPayload = (referral: Referral): ReferralEventPayload => ({
+  referralId: referral.id,
+  centreId: referral.centreId,
+  organizationId: referral.organizationId,
+  patientId: referral.patientId,
+  clinicianId: referral.clinicianId,
+  urgency: referral.urgency,
+  status: referral.status,
+});
+
+export const referralRaised = (referral: Referral): ReferralRaisedEvent =>
+  createEvent(REFERRAL_RAISED, referralPayload(referral), { tenantId: referral.tenantId });
+export const referralAccepted = (referral: Referral): ReferralAcceptedEvent =>
+  createEvent(REFERRAL_ACCEPTED, referralPayload(referral), { tenantId: referral.tenantId });
+export const referralCompleted = (referral: Referral): ReferralCompletedEvent =>
+  createEvent(REFERRAL_COMPLETED, referralPayload(referral), { tenantId: referral.tenantId });
+export const referralCancelled = (referral: Referral): ReferralCancelledEvent =>
+  createEvent(REFERRAL_CANCELLED, referralPayload(referral), { tenantId: referral.tenantId });
+
+// --- Centre profile --------------------------------------------------------------
+export const CENTRE_PROFILE_REFRESHED = "clinical.centre_profile.refreshed";
+
+export interface CentreProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly activeAdmissionCount: number;
+  readonly occupancyPercent: number;
+  readonly version: number;
+}
+
+export type CentreProfileRefreshedEvent = DomainEvent<
+  typeof CENTRE_PROFILE_REFRESHED,
+  CentreProfileEventPayload
+>;
+
+export const centreProfileRefreshed = (profile: CentreProfile): CentreProfileRefreshedEvent =>
+  createEvent(
+    CENTRE_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      centreId: profile.centreId,
+      organizationId: profile.organizationId,
+      activeAdmissionCount: profile.activeAdmissionCount,
+      occupancyPercent: profile.occupancyPercent,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );

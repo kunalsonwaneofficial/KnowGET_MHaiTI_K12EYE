@@ -376,3 +376,54 @@ export class SickBayFullError extends PlatformError {
     });
   }
 }
+
+// --- Referral --------------------------------------------------------------------
+
+/** The requested referral does not exist in the current tenant. */
+export class ReferralNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Referral "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A referral must name a non-empty external target. */
+export class EmptyReferralTargetError extends PlatformError {
+  constructor() {
+    super("A referral must name a non-empty external target", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** An invalid referral status transition was attempted. */
+export class InvalidReferralTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A referral cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Centre profile --------------------------------------------------------------
+
+/** The requested health-centre profile does not exist in the current tenant. */
+export class CentreProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Health-centre profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
