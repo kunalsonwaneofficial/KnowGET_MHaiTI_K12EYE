@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AlumniChapter } from "./alumni-chapter";
+import type { AlumniEvent } from "./alumni-event";
 import type { AlumniProfile } from "./alumni-profile";
+import type { ChapterMembership } from "./chapter-membership";
 
 /**
  * Domain events for the Alumni, Community & Relationship Platform (P2-D24), on the `alumni.*` namespace.
@@ -110,3 +112,109 @@ export const chapterDeactivated = (c: AlumniChapter): ChapterDeactivatedEvent =>
   createEvent(CHAPTER_DEACTIVATED, chapterPayload(c), { tenantId: c.tenantId });
 export const chapterArchived = (c: AlumniChapter): ChapterArchivedEvent =>
   createEvent(CHAPTER_ARCHIVED, chapterPayload(c), { tenantId: c.tenantId });
+
+// --- Chapter membership ----------------------------------------------------------
+export const MEMBERSHIP_JOINED = "alumni.membership.joined";
+export const MEMBERSHIP_ROLE_SET = "alumni.membership.role_set";
+export const MEMBERSHIP_LEFT = "alumni.membership.left";
+export const MEMBERSHIP_REACTIVATED = "alumni.membership.reactivated";
+
+export interface MembershipEventPayload {
+  readonly membershipId: Uuid;
+  readonly organizationId: Uuid;
+  readonly chapterId: Uuid;
+  readonly alumniProfileId: Uuid;
+  readonly role: string;
+  readonly status: string;
+}
+
+export type MembershipJoinedEvent = DomainEvent<typeof MEMBERSHIP_JOINED, MembershipEventPayload>;
+export type MembershipRoleSetEvent = DomainEvent<
+  typeof MEMBERSHIP_ROLE_SET,
+  MembershipEventPayload
+>;
+export type MembershipLeftEvent = DomainEvent<typeof MEMBERSHIP_LEFT, MembershipEventPayload>;
+export type MembershipReactivatedEvent = DomainEvent<
+  typeof MEMBERSHIP_REACTIVATED,
+  MembershipEventPayload
+>;
+
+const membershipPayload = (membership: ChapterMembership): MembershipEventPayload => ({
+  membershipId: membership.id,
+  organizationId: membership.organizationId,
+  chapterId: membership.chapterId,
+  alumniProfileId: membership.alumniProfileId,
+  role: membership.role,
+  status: membership.status,
+});
+
+export const membershipJoined = (m: ChapterMembership): MembershipJoinedEvent =>
+  createEvent(MEMBERSHIP_JOINED, membershipPayload(m), { tenantId: m.tenantId });
+export const membershipRoleSet = (m: ChapterMembership): MembershipRoleSetEvent =>
+  createEvent(MEMBERSHIP_ROLE_SET, membershipPayload(m), { tenantId: m.tenantId });
+export const membershipLeft = (m: ChapterMembership): MembershipLeftEvent =>
+  createEvent(MEMBERSHIP_LEFT, membershipPayload(m), { tenantId: m.tenantId });
+export const membershipReactivated = (m: ChapterMembership): MembershipReactivatedEvent =>
+  createEvent(MEMBERSHIP_REACTIVATED, membershipPayload(m), { tenantId: m.tenantId });
+
+// --- Alumni event ----------------------------------------------------------------
+export const EVENT_CREATED = "alumni.event.created";
+export const EVENT_RENAMED = "alumni.event.renamed";
+export const EVENT_TYPE_SET = "alumni.event.type_set";
+export const EVENT_CAPACITY_SET = "alumni.event.capacity_set";
+export const EVENT_WINDOW_SET = "alumni.event.window_set";
+export const EVENT_SCHEDULED = "alumni.event.scheduled";
+export const EVENT_OPENED = "alumni.event.opened";
+export const EVENT_CLOSED = "alumni.event.closed";
+export const EVENT_COMPLETED = "alumni.event.completed";
+export const EVENT_CANCELLED = "alumni.event.cancelled";
+
+export interface EventEventPayload {
+  readonly eventId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly type: string;
+  readonly capacity: number;
+  readonly status: string;
+}
+
+export type EventCreatedEvent = DomainEvent<typeof EVENT_CREATED, EventEventPayload>;
+export type EventRenamedEvent = DomainEvent<typeof EVENT_RENAMED, EventEventPayload>;
+export type EventTypeSetEvent = DomainEvent<typeof EVENT_TYPE_SET, EventEventPayload>;
+export type EventCapacitySetEvent = DomainEvent<typeof EVENT_CAPACITY_SET, EventEventPayload>;
+export type EventWindowSetEvent = DomainEvent<typeof EVENT_WINDOW_SET, EventEventPayload>;
+export type EventScheduledEvent = DomainEvent<typeof EVENT_SCHEDULED, EventEventPayload>;
+export type EventOpenedEvent = DomainEvent<typeof EVENT_OPENED, EventEventPayload>;
+export type EventClosedEvent = DomainEvent<typeof EVENT_CLOSED, EventEventPayload>;
+export type EventCompletedEvent = DomainEvent<typeof EVENT_COMPLETED, EventEventPayload>;
+export type EventCancelledEvent = DomainEvent<typeof EVENT_CANCELLED, EventEventPayload>;
+
+const eventPayload = (event: AlumniEvent): EventEventPayload => ({
+  eventId: event.id,
+  organizationId: event.organizationId,
+  code: event.code,
+  type: event.type,
+  capacity: event.capacity,
+  status: event.status,
+});
+
+export const eventCreated = (e: AlumniEvent): EventCreatedEvent =>
+  createEvent(EVENT_CREATED, eventPayload(e), { tenantId: e.tenantId });
+export const eventRenamed = (e: AlumniEvent): EventRenamedEvent =>
+  createEvent(EVENT_RENAMED, eventPayload(e), { tenantId: e.tenantId });
+export const eventTypeSet = (e: AlumniEvent): EventTypeSetEvent =>
+  createEvent(EVENT_TYPE_SET, eventPayload(e), { tenantId: e.tenantId });
+export const eventCapacitySet = (e: AlumniEvent): EventCapacitySetEvent =>
+  createEvent(EVENT_CAPACITY_SET, eventPayload(e), { tenantId: e.tenantId });
+export const eventWindowSet = (e: AlumniEvent): EventWindowSetEvent =>
+  createEvent(EVENT_WINDOW_SET, eventPayload(e), { tenantId: e.tenantId });
+export const eventScheduled = (e: AlumniEvent): EventScheduledEvent =>
+  createEvent(EVENT_SCHEDULED, eventPayload(e), { tenantId: e.tenantId });
+export const eventOpened = (e: AlumniEvent): EventOpenedEvent =>
+  createEvent(EVENT_OPENED, eventPayload(e), { tenantId: e.tenantId });
+export const eventClosed = (e: AlumniEvent): EventClosedEvent =>
+  createEvent(EVENT_CLOSED, eventPayload(e), { tenantId: e.tenantId });
+export const eventCompleted = (e: AlumniEvent): EventCompletedEvent =>
+  createEvent(EVENT_COMPLETED, eventPayload(e), { tenantId: e.tenantId });
+export const eventCancelled = (e: AlumniEvent): EventCancelledEvent =>
+  createEvent(EVENT_CANCELLED, eventPayload(e), { tenantId: e.tenantId });
