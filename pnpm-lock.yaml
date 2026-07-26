@@ -195,6 +195,9 @@ importers:
       '@knowget/relationship':
         specifier: workspace:*
         version: link:../../packages/relationship
+      '@knowget/residential':
+        specifier: workspace:*
+        version: link:../../packages/residential
       '@knowget/resource':
         specifier: workspace:*
         version: link:../../packages/resource
