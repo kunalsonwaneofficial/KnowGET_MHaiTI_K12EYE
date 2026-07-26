@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/health-centre",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Integrated Health Centre & Clinical Services Platform (P2-D19) — the institution's operational clinical services: the health centres and their clinical staff, patient appointments, clinical encounters, medication prescriptions, sick-bay admissions and external referrals, with a descriptive health-centre profile. A pure occupancy engine derives sick-bay bed usage and the institution rollup; a pure medication-schedule engine derives a prescription's due/overdue doses. The standing health record (medical history, allergies, chronic conditions, immunization history, standing medications, medical alerts) belongs to Learner Wellbeing (P2-D05); money (service billing, medical-supply procurement) is out of scope — Finance (P2-D14) and Procurement/Assets (P2-D15). Domain events carry no clinical content.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
