@@ -1,9 +1,11 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AlumniChapter } from "./alumni-chapter";
+import type { AlumniEngagementProfile } from "./alumni-engagement-profile";
 import type { AlumniEvent } from "./alumni-event";
 import type { AlumniProfile } from "./alumni-profile";
 import type { ChapterMembership } from "./chapter-membership";
+import type { Contribution } from "./contribution";
 import type { EventRegistration } from "./event-registration";
 import type { MentorshipConnection } from "./mentorship-connection";
 
@@ -320,3 +322,73 @@ export const mentorshipCompleted = (m: MentorshipConnection): MentorshipComplete
   createEvent(MENTORSHIP_COMPLETED, mentorshipPayload(m), { tenantId: m.tenantId });
 export const mentorshipEnded = (m: MentorshipConnection): MentorshipEndedEvent =>
   createEvent(MENTORSHIP_ENDED, mentorshipPayload(m), { tenantId: m.tenantId });
+
+// --- Contribution ----------------------------------------------------------------
+export const CONTRIBUTION_RECORDED = "alumni.contribution.recorded";
+
+export interface ContributionEventPayload {
+  readonly contributionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly alumniProfileId: Uuid;
+  readonly type: string;
+  readonly recognitionTier: string;
+}
+
+export type ContributionRecordedEvent = DomainEvent<
+  typeof CONTRIBUTION_RECORDED,
+  ContributionEventPayload
+>;
+
+/** A giving act was recorded — carries the type and recognition tier only, never the money amount (Finance, P2-D14). */
+export const contributionRecorded = (contribution: Contribution): ContributionRecordedEvent =>
+  createEvent(
+    CONTRIBUTION_RECORDED,
+    {
+      contributionId: contribution.id,
+      organizationId: contribution.organizationId,
+      alumniProfileId: contribution.alumniProfileId,
+      type: contribution.type,
+      recognitionTier: contribution.recognitionTier,
+    },
+    { tenantId: contribution.tenantId },
+  );
+
+// --- Alumni engagement profile ---------------------------------------------------
+export const ENGAGEMENT_PROFILE_REFRESHED = "alumni.engagement_profile.refreshed";
+
+export interface EngagementProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly alumniProfileId: Uuid;
+  readonly score: number;
+  readonly level: string;
+  readonly eventsAttended: number;
+  readonly activeChapters: number;
+  readonly activeMentorships: number;
+  readonly contributionsCount: number;
+}
+
+export type EngagementProfileRefreshedEvent = DomainEvent<
+  typeof ENGAGEMENT_PROFILE_REFRESHED,
+  EngagementProfileEventPayload
+>;
+
+/** The derived per-alumnus engagement projection has been recomputed. Carries counts and the score only — no PII. */
+export const engagementProfileRefreshed = (
+  profile: AlumniEngagementProfile,
+): EngagementProfileRefreshedEvent =>
+  createEvent(
+    ENGAGEMENT_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      alumniProfileId: profile.alumniProfileId,
+      score: profile.score,
+      level: profile.level,
+      eventsAttended: profile.eventsAttended,
+      activeChapters: profile.activeChapters,
+      activeMentorships: profile.activeMentorships,
+      contributionsCount: profile.contributionsCount,
+    },
+    { tenantId: profile.tenantId },
+  );

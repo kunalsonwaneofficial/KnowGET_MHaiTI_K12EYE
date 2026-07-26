@@ -1,8 +1,10 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AlumniChapter } from "./alumni-chapter";
+import type { AlumniEngagementProfile } from "./alumni-engagement-profile";
 import type { AlumniEvent } from "./alumni-event";
 import type { AlumniProfile } from "./alumni-profile";
 import type { ChapterMembership } from "./chapter-membership";
+import type { Contribution } from "./contribution";
 import type { EventRegistration } from "./event-registration";
 import type { MentorshipConnection } from "./mentorship-connection";
 
@@ -384,5 +386,81 @@ export class InMemoryMentorshipConnectionRepository implements MentorshipConnect
     if (connection && connection.tenantId === tenantId) {
       this.byId.delete(id);
     }
+  }
+}
+
+/**
+ * Storage contract for contributions — an append-only giving log per alumnus. Tenant-scoped (explicit argument
+ * + RLS). `countByAlumnus` is the contribution count the engagement engine reads. There is no `remove`:
+ * contributions are immutable facts.
+ */
+export interface ContributionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Contribution | null>;
+  listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<Contribution[]>;
+  countByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<Contribution[]>;
+  save(contribution: Contribution): Promise<void>;
+}
+
+/** In-memory {@link ContributionRepository} — the default for tests and bootstrap. */
+export class InMemoryContributionRepository implements ContributionRepository {
+  private readonly byId = new Map<string, Contribution>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Contribution | null> {
+    const contribution = this.byId.get(id);
+    return contribution && contribution.tenantId === tenantId ? contribution : null;
+  }
+
+  async listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<Contribution[]> {
+    return [...this.byId.values()].filter(
+      (c) => c.tenantId === tenantId && c.alumniProfileId === alumniProfileId,
+    );
+  }
+
+  async countByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number> {
+    return (await this.listByAlumnus(tenantId, alumniProfileId)).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Contribution[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(contribution: Contribution): Promise<void> {
+    this.byId.set(contribution.id, contribution);
+  }
+}
+
+/**
+ * Storage contract for alumni engagement profiles — the derived per-alumnus projection. Tenant-scoped
+ * (explicit argument + RLS). One profile per alumni profile (`findByAlumnus`); the refresh spine upserts
+ * through `save`.
+ */
+export interface AlumniEngagementProfileRepository {
+  findByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<AlumniEngagementProfile | null>;
+  listByTenant(tenantId: TenantId): Promise<AlumniEngagementProfile[]>;
+  save(profile: AlumniEngagementProfile): Promise<void>;
+}
+
+/** In-memory {@link AlumniEngagementProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryAlumniEngagementProfileRepository implements AlumniEngagementProfileRepository {
+  private readonly byAlumnus = new Map<string, AlumniEngagementProfile>();
+
+  private key(tenantId: TenantId, alumniProfileId: Uuid): string {
+    return `${tenantId}:${alumniProfileId}`;
+  }
+
+  async findByAlumnus(
+    tenantId: TenantId,
+    alumniProfileId: Uuid,
+  ): Promise<AlumniEngagementProfile | null> {
+    return this.byAlumnus.get(this.key(tenantId, alumniProfileId)) ?? null;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AlumniEngagementProfile[]> {
+    return [...this.byAlumnus.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: AlumniEngagementProfile): Promise<void> {
+    this.byAlumnus.set(this.key(profile.tenantId, profile.alumniProfileId), profile);
   }
 }
