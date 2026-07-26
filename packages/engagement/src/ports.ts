@@ -2,7 +2,9 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { Message } from "./message";
 import type { MessageThread } from "./message-thread";
+import type { Survey } from "./survey";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the tenant?
@@ -231,6 +233,93 @@ export class InMemoryMessageThreadRepository implements MessageThreadRepository 
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const thread = this.byId.get(id);
     if (thread && thread.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for messages — an append-only log within a thread. Tenant-scoped (explicit argument +
+ * RLS). There is no `remove`: messages are immutable facts.
+ */
+export interface MessageRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Message | null>;
+  listByThread(tenantId: TenantId, threadId: Uuid): Promise<Message[]>;
+  countByThread(tenantId: TenantId, threadId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<Message[]>;
+  save(message: Message): Promise<void>;
+}
+
+/** In-memory {@link MessageRepository} — the default for tests and bootstrap. */
+export class InMemoryMessageRepository implements MessageRepository {
+  private readonly byId = new Map<string, Message>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Message | null> {
+    const message = this.byId.get(id);
+    return message && message.tenantId === tenantId ? message : null;
+  }
+
+  async listByThread(tenantId: TenantId, threadId: Uuid): Promise<Message[]> {
+    return [...this.byId.values()].filter(
+      (m) => m.tenantId === tenantId && m.threadId === threadId,
+    );
+  }
+
+  async countByThread(tenantId: TenantId, threadId: Uuid): Promise<number> {
+    return (await this.listByThread(tenantId, threadId)).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Message[]> {
+    return [...this.byId.values()].filter((m) => m.tenantId === tenantId);
+  }
+
+  async save(message: Message): Promise<void> {
+    this.byId.set(message.id, message);
+  }
+}
+
+/** Storage contract for surveys. Tenant-scoped (explicit argument + RLS). */
+export interface SurveyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Survey | null>;
+  listByAudience(tenantId: TenantId, audienceId: Uuid): Promise<Survey[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Survey[]>;
+  listByTenant(tenantId: TenantId): Promise<Survey[]>;
+  save(survey: Survey): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SurveyRepository} — the default for tests and bootstrap. */
+export class InMemorySurveyRepository implements SurveyRepository {
+  private readonly byId = new Map<string, Survey>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Survey | null> {
+    const survey = this.byId.get(id);
+    return survey && survey.tenantId === tenantId ? survey : null;
+  }
+
+  async listByAudience(tenantId: TenantId, audienceId: Uuid): Promise<Survey[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.audienceId === audienceId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Survey[]> {
+    return [...this.byId.values()].filter(
+      (s) => s.tenantId === tenantId && s.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Survey[]> {
+    return [...this.byId.values()].filter((s) => s.tenantId === tenantId);
+  }
+
+  async save(survey: Survey): Promise<void> {
+    this.byId.set(survey.id, survey);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const survey = this.byId.get(id);
+    if (survey && survey.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

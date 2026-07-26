@@ -3,7 +3,9 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { Message } from "./message";
 import type { MessageThread } from "./message-thread";
+import type { Survey } from "./survey";
 
 /**
  * Domain events for the Unified Communication, Engagement & Collaboration Platform (P2-D22), on the
@@ -239,3 +241,78 @@ export const threadReopened = (t: MessageThread): ThreadReopenedEvent =>
   createEvent(THREAD_REOPENED, threadPayload(t), { tenantId: t.tenantId });
 export const threadArchived = (t: MessageThread): ThreadArchivedEvent =>
   createEvent(THREAD_ARCHIVED, threadPayload(t), { tenantId: t.tenantId });
+
+// --- Message ---------------------------------------------------------------------
+export const MESSAGE_POSTED = "engagement.message.posted";
+
+export interface MessageEventPayload {
+  readonly messageId: Uuid;
+  readonly organizationId: Uuid;
+  readonly threadId: Uuid;
+  readonly authorPersonId: Uuid;
+  readonly sentAt: string;
+}
+
+export type MessagePostedEvent = DomainEvent<typeof MESSAGE_POSTED, MessageEventPayload>;
+
+export const messagePosted = (message: Message): MessagePostedEvent =>
+  createEvent(
+    MESSAGE_POSTED,
+    {
+      messageId: message.id,
+      organizationId: message.organizationId,
+      threadId: message.threadId,
+      authorPersonId: message.authorPersonId,
+      sentAt: message.sentAt,
+    },
+    { tenantId: message.tenantId },
+  );
+
+// --- Survey ----------------------------------------------------------------------
+export const SURVEY_CREATED = "engagement.survey.created";
+export const SURVEY_QUESTIONS_EDITED = "engagement.survey.questions_edited";
+export const SURVEY_TITLE_SET = "engagement.survey.title_set";
+export const SURVEY_OPENED = "engagement.survey.opened";
+export const SURVEY_CLOSED = "engagement.survey.closed";
+export const SURVEY_ARCHIVED = "engagement.survey.archived";
+
+export interface SurveyEventPayload {
+  readonly surveyId: Uuid;
+  readonly organizationId: Uuid;
+  readonly audienceId: Uuid;
+  readonly type: string;
+  readonly questionCount: number;
+  readonly status: string;
+}
+
+export type SurveyCreatedEvent = DomainEvent<typeof SURVEY_CREATED, SurveyEventPayload>;
+export type SurveyQuestionsEditedEvent = DomainEvent<
+  typeof SURVEY_QUESTIONS_EDITED,
+  SurveyEventPayload
+>;
+export type SurveyTitleSetEvent = DomainEvent<typeof SURVEY_TITLE_SET, SurveyEventPayload>;
+export type SurveyOpenedEvent = DomainEvent<typeof SURVEY_OPENED, SurveyEventPayload>;
+export type SurveyClosedEvent = DomainEvent<typeof SURVEY_CLOSED, SurveyEventPayload>;
+export type SurveyArchivedEvent = DomainEvent<typeof SURVEY_ARCHIVED, SurveyEventPayload>;
+
+const surveyPayload = (survey: Survey): SurveyEventPayload => ({
+  surveyId: survey.id,
+  organizationId: survey.organizationId,
+  audienceId: survey.audienceId,
+  type: survey.type,
+  questionCount: survey.questions.length,
+  status: survey.status,
+});
+
+export const surveyCreated = (s: Survey): SurveyCreatedEvent =>
+  createEvent(SURVEY_CREATED, surveyPayload(s), { tenantId: s.tenantId });
+export const surveyQuestionsEdited = (s: Survey): SurveyQuestionsEditedEvent =>
+  createEvent(SURVEY_QUESTIONS_EDITED, surveyPayload(s), { tenantId: s.tenantId });
+export const surveyTitleSet = (s: Survey): SurveyTitleSetEvent =>
+  createEvent(SURVEY_TITLE_SET, surveyPayload(s), { tenantId: s.tenantId });
+export const surveyOpened = (s: Survey): SurveyOpenedEvent =>
+  createEvent(SURVEY_OPENED, surveyPayload(s), { tenantId: s.tenantId });
+export const surveyClosed = (s: Survey): SurveyClosedEvent =>
+  createEvent(SURVEY_CLOSED, surveyPayload(s), { tenantId: s.tenantId });
+export const surveyArchived = (s: Survey): SurveyArchivedEvent =>
+  createEvent(SURVEY_ARCHIVED, surveyPayload(s), { tenantId: s.tenantId });
