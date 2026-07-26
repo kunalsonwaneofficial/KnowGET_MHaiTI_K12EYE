@@ -3,6 +3,8 @@ import type { AlumniChapter } from "./alumni-chapter";
 import type { AlumniEvent } from "./alumni-event";
 import type { AlumniProfile } from "./alumni-profile";
 import type { ChapterMembership } from "./chapter-membership";
+import type { EventRegistration } from "./event-registration";
+import type { MentorshipConnection } from "./mentorship-connection";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the tenant?
@@ -240,6 +242,146 @@ export class InMemoryAlumniEventRepository implements AlumniEventRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const event = this.byId.get(id);
     if (event && event.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for event registrations. Tenant-scoped (explicit argument + RLS). `findByEventAndAlumnus`
+ * backs the one-registration-per-(event, alumnus) rule (reinstate on return); `countConfirmedByEvent` (not
+ * cancelled) and `countAttendedByEvent` feed the participation engine; `countAttendedByAlumnus` feeds the
+ * engagement engine.
+ */
+export interface EventRegistrationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EventRegistration | null>;
+  findByEventAndAlumnus(
+    tenantId: TenantId,
+    eventId: Uuid,
+    alumniProfileId: Uuid,
+  ): Promise<EventRegistration | null>;
+  listByEvent(tenantId: TenantId, eventId: Uuid): Promise<EventRegistration[]>;
+  listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<EventRegistration[]>;
+  countConfirmedByEvent(tenantId: TenantId, eventId: Uuid): Promise<number>;
+  countAttendedByEvent(tenantId: TenantId, eventId: Uuid): Promise<number>;
+  countAttendedByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<EventRegistration[]>;
+  save(registration: EventRegistration): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EventRegistrationRepository} — the default for tests and bootstrap. */
+export class InMemoryEventRegistrationRepository implements EventRegistrationRepository {
+  private readonly byId = new Map<string, EventRegistration>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EventRegistration | null> {
+    const registration = this.byId.get(id);
+    return registration && registration.tenantId === tenantId ? registration : null;
+  }
+
+  async findByEventAndAlumnus(
+    tenantId: TenantId,
+    eventId: Uuid,
+    alumniProfileId: Uuid,
+  ): Promise<EventRegistration | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId && r.eventId === eventId && r.alumniProfileId === alumniProfileId,
+      ) ?? null
+    );
+  }
+
+  async listByEvent(tenantId: TenantId, eventId: Uuid): Promise<EventRegistration[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId && r.eventId === eventId);
+  }
+
+  async listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<EventRegistration[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.alumniProfileId === alumniProfileId,
+    );
+  }
+
+  async countConfirmedByEvent(tenantId: TenantId, eventId: Uuid): Promise<number> {
+    return (await this.listByEvent(tenantId, eventId)).filter((r) => r.status !== "cancelled")
+      .length;
+  }
+
+  async countAttendedByEvent(tenantId: TenantId, eventId: Uuid): Promise<number> {
+    return (await this.listByEvent(tenantId, eventId)).filter((r) => r.status === "attended")
+      .length;
+  }
+
+  async countAttendedByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number> {
+    return (await this.listByAlumnus(tenantId, alumniProfileId)).filter(
+      (r) => r.status === "attended",
+    ).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EventRegistration[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(registration: EventRegistration): Promise<void> {
+    this.byId.set(registration.id, registration);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const registration = this.byId.get(id);
+    if (registration && registration.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for mentorship connections. Tenant-scoped (explicit argument + RLS). `listByAlumnus`
+ * returns the connections where the alumnus is mentor or mentee; `countActiveByAlumnus` is the active-mentorship
+ * count the engagement engine reads.
+ */
+export interface MentorshipConnectionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<MentorshipConnection | null>;
+  listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<MentorshipConnection[]>;
+  countActiveByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<MentorshipConnection[]>;
+  save(connection: MentorshipConnection): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link MentorshipConnectionRepository} — the default for tests and bootstrap. */
+export class InMemoryMentorshipConnectionRepository implements MentorshipConnectionRepository {
+  private readonly byId = new Map<string, MentorshipConnection>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<MentorshipConnection | null> {
+    const connection = this.byId.get(id);
+    return connection && connection.tenantId === tenantId ? connection : null;
+  }
+
+  async listByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<MentorshipConnection[]> {
+    return [...this.byId.values()].filter(
+      (c) =>
+        c.tenantId === tenantId &&
+        (c.mentorProfileId === alumniProfileId || c.menteeProfileId === alumniProfileId),
+    );
+  }
+
+  async countActiveByAlumnus(tenantId: TenantId, alumniProfileId: Uuid): Promise<number> {
+    return (await this.listByAlumnus(tenantId, alumniProfileId)).filter(
+      (c) => c.status === "active",
+    ).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<MentorshipConnection[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(connection: MentorshipConnection): Promise<void> {
+    this.byId.set(connection.id, connection);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const connection = this.byId.get(id);
+    if (connection && connection.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

@@ -4,6 +4,8 @@ import type { AlumniChapter } from "./alumni-chapter";
 import type { AlumniEvent } from "./alumni-event";
 import type { AlumniProfile } from "./alumni-profile";
 import type { ChapterMembership } from "./chapter-membership";
+import type { EventRegistration } from "./event-registration";
+import type { MentorshipConnection } from "./mentorship-connection";
 
 /**
  * Domain events for the Alumni, Community & Relationship Platform (P2-D24), on the `alumni.*` namespace.
@@ -218,3 +220,103 @@ export const eventCompleted = (e: AlumniEvent): EventCompletedEvent =>
   createEvent(EVENT_COMPLETED, eventPayload(e), { tenantId: e.tenantId });
 export const eventCancelled = (e: AlumniEvent): EventCancelledEvent =>
   createEvent(EVENT_CANCELLED, eventPayload(e), { tenantId: e.tenantId });
+
+// --- Event registration ----------------------------------------------------------
+export const REGISTRATION_REGISTERED = "alumni.registration.registered";
+export const REGISTRATION_ATTENDED = "alumni.registration.attended";
+export const REGISTRATION_NO_SHOW = "alumni.registration.no_show";
+export const REGISTRATION_CANCELLED = "alumni.registration.cancelled";
+export const REGISTRATION_REINSTATED = "alumni.registration.reinstated";
+
+export interface RegistrationEventPayload {
+  readonly registrationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly eventId: Uuid;
+  readonly alumniProfileId: Uuid;
+  readonly status: string;
+}
+
+export type RegistrationRegisteredEvent = DomainEvent<
+  typeof REGISTRATION_REGISTERED,
+  RegistrationEventPayload
+>;
+export type RegistrationAttendedEvent = DomainEvent<
+  typeof REGISTRATION_ATTENDED,
+  RegistrationEventPayload
+>;
+export type RegistrationNoShowEvent = DomainEvent<
+  typeof REGISTRATION_NO_SHOW,
+  RegistrationEventPayload
+>;
+export type RegistrationCancelledEvent = DomainEvent<
+  typeof REGISTRATION_CANCELLED,
+  RegistrationEventPayload
+>;
+export type RegistrationReinstatedEvent = DomainEvent<
+  typeof REGISTRATION_REINSTATED,
+  RegistrationEventPayload
+>;
+
+const registrationPayload = (registration: EventRegistration): RegistrationEventPayload => ({
+  registrationId: registration.id,
+  organizationId: registration.organizationId,
+  eventId: registration.eventId,
+  alumniProfileId: registration.alumniProfileId,
+  status: registration.status,
+});
+
+export const registrationRegistered = (r: EventRegistration): RegistrationRegisteredEvent =>
+  createEvent(REGISTRATION_REGISTERED, registrationPayload(r), { tenantId: r.tenantId });
+export const registrationAttended = (r: EventRegistration): RegistrationAttendedEvent =>
+  createEvent(REGISTRATION_ATTENDED, registrationPayload(r), { tenantId: r.tenantId });
+export const registrationNoShow = (r: EventRegistration): RegistrationNoShowEvent =>
+  createEvent(REGISTRATION_NO_SHOW, registrationPayload(r), { tenantId: r.tenantId });
+export const registrationCancelled = (r: EventRegistration): RegistrationCancelledEvent =>
+  createEvent(REGISTRATION_CANCELLED, registrationPayload(r), { tenantId: r.tenantId });
+export const registrationReinstated = (r: EventRegistration): RegistrationReinstatedEvent =>
+  createEvent(REGISTRATION_REINSTATED, registrationPayload(r), { tenantId: r.tenantId });
+
+// --- Mentorship connection -------------------------------------------------------
+export const MENTORSHIP_PROPOSED = "alumni.mentorship.proposed";
+export const MENTORSHIP_ACTIVATED = "alumni.mentorship.activated";
+export const MENTORSHIP_COMPLETED = "alumni.mentorship.completed";
+export const MENTORSHIP_ENDED = "alumni.mentorship.ended";
+
+export interface MentorshipEventPayload {
+  readonly connectionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly mentorProfileId: Uuid;
+  readonly menteeProfileId: Uuid;
+  readonly status: string;
+}
+
+export type MentorshipProposedEvent = DomainEvent<
+  typeof MENTORSHIP_PROPOSED,
+  MentorshipEventPayload
+>;
+export type MentorshipActivatedEvent = DomainEvent<
+  typeof MENTORSHIP_ACTIVATED,
+  MentorshipEventPayload
+>;
+export type MentorshipCompletedEvent = DomainEvent<
+  typeof MENTORSHIP_COMPLETED,
+  MentorshipEventPayload
+>;
+export type MentorshipEndedEvent = DomainEvent<typeof MENTORSHIP_ENDED, MentorshipEventPayload>;
+
+const mentorshipPayload = (connection: MentorshipConnection): MentorshipEventPayload => ({
+  connectionId: connection.id,
+  organizationId: connection.organizationId,
+  mentorProfileId: connection.mentorProfileId,
+  menteeProfileId: connection.menteeProfileId,
+  status: connection.status,
+});
+
+export const mentorshipProposed = (m: MentorshipConnection): MentorshipProposedEvent =>
+  createEvent(MENTORSHIP_PROPOSED, mentorshipPayload(m), { tenantId: m.tenantId });
+export const mentorshipActivated = (m: MentorshipConnection): MentorshipActivatedEvent =>
+  createEvent(MENTORSHIP_ACTIVATED, mentorshipPayload(m), { tenantId: m.tenantId });
+export const mentorshipCompleted = (m: MentorshipConnection): MentorshipCompletedEvent =>
+  createEvent(MENTORSHIP_COMPLETED, mentorshipPayload(m), { tenantId: m.tenantId });
+export const mentorshipEnded = (m: MentorshipConnection): MentorshipEndedEvent =>
+  createEvent(MENTORSHIP_ENDED, mentorshipPayload(m), { tenantId: m.tenantId });
