@@ -21,6 +21,7 @@
     "@knowget/academic-structure": "workspace:*",
     "@knowget/admissions": "workspace:*",
     "@knowget/alerting": "workspace:*",
+    "@knowget/alumni": "workspace:*",
     "@knowget/auth": "workspace:*",
     "@knowget/campus-security": "workspace:*",
     "@knowget/authentication": "workspace:*",

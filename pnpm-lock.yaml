@@ -96,6 +96,9 @@ importers:
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting
+      '@knowget/alumni':
+        specifier: workspace:*
+        version: link:../../packages/alumni
       '@knowget/assessment-evaluation':
         specifier: workspace:*
         version: link:../../packages/assessment-evaluation
