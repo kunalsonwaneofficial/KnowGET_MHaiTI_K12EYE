@@ -13,6 +13,7 @@ import type { Warden } from "./warden";
 // --- Hostel ----------------------------------------------------------------------
 export const HOSTEL_REGISTERED = "residential.hostel.registered";
 export const HOSTEL_WARDEN_ASSIGNED = "residential.hostel.warden_assigned";
+export const HOSTEL_WARDEN_UNASSIGNED = "residential.hostel.warden_unassigned";
 export const HOSTEL_SENT_TO_MAINTENANCE = "residential.hostel.sent_to_maintenance";
 export const HOSTEL_RETURNED_FROM_MAINTENANCE = "residential.hostel.returned_from_maintenance";
 export const HOSTEL_DECOMMISSIONED = "residential.hostel.decommissioned";
@@ -28,6 +29,10 @@ export interface HostelEventPayload {
 export type HostelRegisteredEvent = DomainEvent<typeof HOSTEL_REGISTERED, HostelEventPayload>;
 export type HostelWardenAssignedEvent = DomainEvent<
   typeof HOSTEL_WARDEN_ASSIGNED,
+  HostelEventPayload
+>;
+export type HostelWardenUnassignedEvent = DomainEvent<
+  typeof HOSTEL_WARDEN_UNASSIGNED,
   HostelEventPayload
 >;
 export type HostelSentToMaintenanceEvent = DomainEvent<
@@ -56,6 +61,9 @@ export const hostelRegistered = (hostel: Hostel): HostelRegisteredEvent =>
 
 export const hostelWardenAssigned = (hostel: Hostel): HostelWardenAssignedEvent =>
   createEvent(HOSTEL_WARDEN_ASSIGNED, hostelPayload(hostel), { tenantId: hostel.tenantId });
+
+export const hostelWardenUnassigned = (hostel: Hostel): HostelWardenUnassignedEvent =>
+  createEvent(HOSTEL_WARDEN_UNASSIGNED, hostelPayload(hostel), { tenantId: hostel.tenantId });
 
 export const hostelSentToMaintenance = (hostel: Hostel): HostelSentToMaintenanceEvent =>
   createEvent(HOSTEL_SENT_TO_MAINTENANCE, hostelPayload(hostel), { tenantId: hostel.tenantId });

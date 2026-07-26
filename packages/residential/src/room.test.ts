@@ -11,6 +11,7 @@ import {
   roomHasBed,
   roomOccupancy,
   sendRoomToMaintenance,
+  setRoomFloor,
 } from "./room";
 
 const tenantId = "11111111-1111-1111-1111-111111111111" as TenantId;
@@ -59,6 +60,11 @@ describe("room bed editing", () => {
   it("rejects a duplicate bed key and an unknown bed removal", () => {
     expect(() => addBed(draft(), { key: "b1", label: "dup" })).toThrow(/already in use/);
     expect(() => removeBed(draft(), "missing")).toThrow(/not found/);
+  });
+
+  it("edits the floor while draft but freezes it once available", () => {
+    expect(setRoomFloor(draft(), 3).floor).toBe(3);
+    expect(() => setRoomFloor(makeRoomAvailable(draft()), 3)).toThrow(/only be edited while draft/);
   });
 });
 

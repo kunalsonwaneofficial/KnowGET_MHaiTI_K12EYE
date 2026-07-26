@@ -78,8 +78,11 @@ const requireDraft = (room: Room): void => {
   }
 };
 
-/** Set (or clear) the room's floor. */
-export const setRoomFloor = (room: Room, floor: number | null): Room => touch(room, { floor });
+/** Set (or clear) the room's floor (draft only, like its beds). */
+export function setRoomFloor(room: Room, floor: number | null): Room {
+  requireDraft(room);
+  return touch(room, { floor });
+}
 
 /** Add a bed to a draft room (unique key). */
 export function addBed(room: Room, input: BedInput): Room {

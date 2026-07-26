@@ -25,6 +25,7 @@ import {
   hostelReturnedFromMaintenance,
   hostelSentToMaintenance,
   hostelWardenAssigned,
+  hostelWardenUnassigned,
 } from "./residential-events";
 import { isWardenActive } from "./warden";
 
@@ -88,7 +89,7 @@ export class HostelService {
   async unassignWarden(tenantId: TenantId, id: Uuid): Promise<Hostel> {
     const updated = unassignHostelWarden(await this.require(tenantId, id));
     await this.repository.save(updated);
-    await this.emit(hostelWardenAssigned(updated));
+    await this.emit(hostelWardenUnassigned(updated));
     return updated;
   }
 
