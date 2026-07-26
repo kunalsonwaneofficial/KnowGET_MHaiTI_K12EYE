@@ -2,6 +2,9 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { BedAllocation } from "./bed-allocation";
 import type { Hostel } from "./hostel";
+import type { Outpass } from "./outpass";
+import type { RollCall } from "./roll-call-session";
+import { rollCallSummary } from "./roll-call-session";
 import type { Room } from "./room";
 import type { Warden } from "./warden";
 
@@ -184,3 +187,102 @@ export const allocationCreated = (allocation: BedAllocation): AllocationCreatedE
 
 export const allocationEnded = (allocation: BedAllocation): AllocationEndedEvent =>
   createEvent(ALLOCATION_ENDED, allocationPayload(allocation), { tenantId: allocation.tenantId });
+
+// --- Outpass ---------------------------------------------------------------------
+export const OUTPASS_REQUESTED = "residential.outpass.requested";
+export const OUTPASS_APPROVED = "residential.outpass.approved";
+export const OUTPASS_REJECTED = "residential.outpass.rejected";
+export const OUTPASS_CHECKED_OUT = "residential.outpass.checked_out";
+export const OUTPASS_RETURNED = "residential.outpass.returned";
+export const OUTPASS_CANCELLED = "residential.outpass.cancelled";
+
+export interface OutpassEventPayload {
+  readonly outpassId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly studentId: Uuid;
+  readonly type: string;
+  readonly status: string;
+}
+
+export type OutpassRequestedEvent = DomainEvent<typeof OUTPASS_REQUESTED, OutpassEventPayload>;
+export type OutpassApprovedEvent = DomainEvent<typeof OUTPASS_APPROVED, OutpassEventPayload>;
+export type OutpassRejectedEvent = DomainEvent<typeof OUTPASS_REJECTED, OutpassEventPayload>;
+export type OutpassCheckedOutEvent = DomainEvent<typeof OUTPASS_CHECKED_OUT, OutpassEventPayload>;
+export type OutpassReturnedEvent = DomainEvent<typeof OUTPASS_RETURNED, OutpassEventPayload>;
+export type OutpassCancelledEvent = DomainEvent<typeof OUTPASS_CANCELLED, OutpassEventPayload>;
+
+const outpassPayload = (outpass: Outpass): OutpassEventPayload => ({
+  outpassId: outpass.id,
+  organizationId: outpass.organizationId,
+  hostelId: outpass.hostelId,
+  studentId: outpass.studentId,
+  type: outpass.type,
+  status: outpass.status,
+});
+
+export const outpassRequested = (outpass: Outpass): OutpassRequestedEvent =>
+  createEvent(OUTPASS_REQUESTED, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+export const outpassApproved = (outpass: Outpass): OutpassApprovedEvent =>
+  createEvent(OUTPASS_APPROVED, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+export const outpassRejected = (outpass: Outpass): OutpassRejectedEvent =>
+  createEvent(OUTPASS_REJECTED, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+export const outpassCheckedOut = (outpass: Outpass): OutpassCheckedOutEvent =>
+  createEvent(OUTPASS_CHECKED_OUT, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+export const outpassReturned = (outpass: Outpass): OutpassReturnedEvent =>
+  createEvent(OUTPASS_RETURNED, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+export const outpassCancelled = (outpass: Outpass): OutpassCancelledEvent =>
+  createEvent(OUTPASS_CANCELLED, outpassPayload(outpass), { tenantId: outpass.tenantId });
+
+// --- Roll call -------------------------------------------------------------------
+export const ROLL_CALL_SCHEDULED = "residential.roll_call.scheduled";
+export const ROLL_CALL_STARTED = "residential.roll_call.started";
+export const ROLL_CALL_COMPLETED = "residential.roll_call.completed";
+export const ROLL_CALL_CANCELLED = "residential.roll_call.cancelled";
+
+export interface RollCallEventPayload {
+  readonly rollCallId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly status: string;
+  readonly expectedCount: number;
+  readonly markedCount: number;
+  readonly unaccountedForCount: number;
+  readonly allAccountedFor: boolean;
+}
+
+export type RollCallScheduledEvent = DomainEvent<typeof ROLL_CALL_SCHEDULED, RollCallEventPayload>;
+export type RollCallStartedEvent = DomainEvent<typeof ROLL_CALL_STARTED, RollCallEventPayload>;
+export type RollCallCompletedEvent = DomainEvent<typeof ROLL_CALL_COMPLETED, RollCallEventPayload>;
+export type RollCallCancelledEvent = DomainEvent<typeof ROLL_CALL_CANCELLED, RollCallEventPayload>;
+
+const rollCallPayload = (rollCall: RollCall): RollCallEventPayload => {
+  const summary = rollCallSummary(rollCall);
+  return {
+    rollCallId: rollCall.id,
+    organizationId: rollCall.organizationId,
+    hostelId: rollCall.hostelId,
+    status: rollCall.status,
+    expectedCount: summary.expectedCount,
+    markedCount: summary.markedCount,
+    unaccountedForCount: summary.unaccountedForCount,
+    allAccountedFor: summary.allAccountedFor,
+  };
+};
+
+export const rollCallScheduled = (rollCall: RollCall): RollCallScheduledEvent =>
+  createEvent(ROLL_CALL_SCHEDULED, rollCallPayload(rollCall), { tenantId: rollCall.tenantId });
+
+export const rollCallStarted = (rollCall: RollCall): RollCallStartedEvent =>
+  createEvent(ROLL_CALL_STARTED, rollCallPayload(rollCall), { tenantId: rollCall.tenantId });
+
+export const rollCallCompleted = (rollCall: RollCall): RollCallCompletedEvent =>
+  createEvent(ROLL_CALL_COMPLETED, rollCallPayload(rollCall), { tenantId: rollCall.tenantId });
+
+export const rollCallCancelled = (rollCall: RollCall): RollCallCancelledEvent =>
+  createEvent(ROLL_CALL_CANCELLED, rollCallPayload(rollCall), { tenantId: rollCall.tenantId });

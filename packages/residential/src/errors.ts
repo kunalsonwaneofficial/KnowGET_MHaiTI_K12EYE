@@ -345,3 +345,139 @@ export class InvalidAllocationTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Outpass ---------------------------------------------------------------------
+
+/** The requested outpass does not exist in the current tenant. */
+export class OutpassNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Outpass "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested outpass lifecycle transition is not permitted. */
+export class InvalidOutpassTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition outpass from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** An outpass must have valid out/return times, with the expected return on or after the departure. */
+export class InvalidOutpassWindowError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid outpass window: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** The student is not a current resident (has no active bed allocation), so cannot be granted an outpass. */
+export class StudentNotResidentError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" is not a current resident`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** The resident already has an open outpass; close it before granting another. */
+export class ResidentHasOpenOutpassError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has an open outpass`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+// --- Roll call -------------------------------------------------------------------
+
+/** The requested roll call does not exist in the current tenant. */
+export class RollCallNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Roll call "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The requested roll-call lifecycle transition is not permitted. */
+export class InvalidRollCallTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition roll call from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Residents can only be marked while the roll call is in progress. */
+export class RollCallNotInProgressError extends PlatformError {
+  constructor(id: string) {
+    super(`Roll call "${id}" is not in progress; cannot mark residents`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The resident being marked is not on the roll call's roster. */
+export class ResidentNotOnRosterError extends PlatformError {
+  constructor(rollCallId: string, residentId: string) {
+    super(`Resident "${residentId}" is not on the roster of roll call "${rollCallId}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { rollCallId, residentId },
+    });
+  }
+}
+
+/** The resident has already been marked on this roll call. */
+export class DuplicateRollCallMarkError extends PlatformError {
+  constructor(rollCallId: string, residentId: string) {
+    super(`Resident "${residentId}" has already been marked on roll call "${rollCallId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { rollCallId, residentId },
+    });
+  }
+}
+
+/** A roll-call mark must carry a resident and a time. */
+export class InvalidRollCallMarkError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid roll-call mark: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
