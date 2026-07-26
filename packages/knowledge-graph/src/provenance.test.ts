@@ -92,4 +92,29 @@ describe("provenance engine — evidence chain + explainability", () => {
   it("effectiveConfidence is 0 for an unexplainable assertion", () => {
     expect(effectiveConfidence("bad", [a("bad", "derived", 100)])).toBe(0);
   });
+
+  it("treats a retracted antecedent as withdrawn evidence", () => {
+    const withRetracted = [
+      {
+        id: "o1",
+        method: "observed" as const,
+        confidence: 90,
+        derivedFrom: [],
+        status: "retracted",
+      },
+      {
+        id: "d1",
+        method: "derived" as const,
+        confidence: 100,
+        derivedFrom: ["o1"],
+        status: "asserted",
+      },
+    ];
+    // d1 rests only on a retracted fact → no longer explainable, no evidence, 0 effective confidence
+    expect(isExplainable("d1", withRetracted)).toBe(false);
+    expect(evidenceChain("d1", withRetracted)).toEqual([]);
+    expect(effectiveConfidence("d1", withRetracted)).toBe(0);
+    // explaining the retracted root itself still shows it (as a grounded leaf)
+    expect(explain("o1", withRetracted)?.grounded).toBe(true);
+  });
 });

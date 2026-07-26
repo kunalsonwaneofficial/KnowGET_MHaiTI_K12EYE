@@ -330,3 +330,88 @@ export class InvalidSemanticRelationshipTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Assertion (evidence chain) --------------------------------------------------
+
+/** The requested assertion does not exist in the current tenant. */
+export class AssertionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Assertion "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An assertion must carry a subject, a predicate and a value. */
+export class EmptyAssertionError extends PlatformError {
+  constructor() {
+    super("An assertion must have a subject, a predicate and a value", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A derived/inferred assertion must cite at least one antecedent — it may not stand on nothing. */
+export class UngroundedAssertionError extends PlatformError {
+  constructor(method: string) {
+    super(`A "${method}" assertion must cite the assertions it was derived from`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { method },
+    });
+  }
+}
+
+/** A grounded (observed/declared) assertion must name where it came from. */
+export class MissingEvidenceSourceError extends PlatformError {
+  constructor(method: string) {
+    super(`A "${method}" assertion must name its evidence source`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { method },
+    });
+  }
+}
+
+/** A cited antecedent (`derivedFrom`) is not a standing assertion in the tenant — the chain would dangle. */
+export class UnknownDerivedFromError extends PlatformError {
+  constructor(assertionId: string) {
+    super(`Cited antecedent "${assertionId}" is not a standing assertion`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { assertionId },
+    });
+  }
+}
+
+/** The subject an assertion is about (entity or relationship) does not exist in the tenant. */
+export class UnknownAssertionSubjectError extends PlatformError {
+  constructor(subjectKind: string, subjectId: string) {
+    super(`The ${subjectKind} subject "${subjectId}" does not exist`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { subjectKind, subjectId },
+    });
+  }
+}
+
+/** The attempted assertion lifecycle transition is not allowed from its current status. */
+export class InvalidAssertionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An assertion cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

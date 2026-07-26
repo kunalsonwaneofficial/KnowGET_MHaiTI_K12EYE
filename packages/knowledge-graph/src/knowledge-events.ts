@@ -2,6 +2,7 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
+import type { Assertion } from "./assertion";
 import type { RelationshipType } from "./relationship-type";
 import type { SemanticRelationship } from "./semantic-relationship";
 
@@ -226,3 +227,42 @@ export const relationshipRetracted = (
   r: SemanticRelationship,
 ): SemanticRelationshipRetractedEvent =>
   createEvent(RELATIONSHIP_RETRACTED, relationshipPayload(r), { tenantId: r.tenantId });
+
+// --- Assertion (evidence chain) --------------------------------------------------
+export const ASSERTION_MADE = "knowledge.assertion.made";
+export const ASSERTION_RETRACTED = "knowledge.assertion.retracted";
+
+export interface AssertionEventPayload {
+  readonly assertionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly subjectKind: string;
+  readonly subjectId: Uuid;
+  readonly predicate: string;
+  readonly method: string;
+  readonly confidence: number;
+  readonly derivedFromCount: number;
+  readonly status: string;
+}
+
+export type AssertionMadeEvent = DomainEvent<typeof ASSERTION_MADE, AssertionEventPayload>;
+export type AssertionRetractedEvent = DomainEvent<
+  typeof ASSERTION_RETRACTED,
+  AssertionEventPayload
+>;
+
+const assertionPayload = (a: Assertion): AssertionEventPayload => ({
+  assertionId: a.id,
+  organizationId: a.organizationId,
+  subjectKind: a.subjectKind,
+  subjectId: a.subjectId,
+  predicate: a.predicate,
+  method: a.method,
+  confidence: a.confidence,
+  derivedFromCount: a.derivedFrom.length,
+  status: a.status,
+});
+
+export const assertionMade = (a: Assertion): AssertionMadeEvent =>
+  createEvent(ASSERTION_MADE, assertionPayload(a), { tenantId: a.tenantId });
+export const assertionRetracted = (a: Assertion): AssertionRetractedEvent =>
+  createEvent(ASSERTION_RETRACTED, assertionPayload(a), { tenantId: a.tenantId });

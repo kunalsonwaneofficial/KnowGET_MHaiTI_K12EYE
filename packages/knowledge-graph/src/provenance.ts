@@ -33,10 +33,26 @@ export function explain(
   assertions: readonly AssertionView[],
 ): Explanation | null {
   const byId = indexById(assertions);
-  const build = (id: string, ancestry: ReadonlySet<string>): Explanation | null => {
+  const build = (
+    id: string,
+    ancestry: ReadonlySet<string>,
+    isRoot: boolean,
+  ): Explanation | null => {
     const a = byId.get(id);
     if (!a) {
       return null;
+    }
+    // A retracted antecedent is withdrawn evidence — a conclusion may not rest on it. (The root itself may be
+    // retracted and still be explained, to show what it once rested on.)
+    if (!isRoot && a.status === "retracted") {
+      return {
+        id: a.id,
+        method: a.method,
+        confidence: 0,
+        grounded: false,
+        derivedFrom: [],
+        unresolved: "missing",
+      };
     }
     const grounded = isGroundedMethod(a.method);
     if (grounded) {
@@ -62,7 +78,7 @@ export function explain(
         });
         continue;
       }
-      const child = build(parentId, nextAncestry);
+      const child = build(parentId, nextAncestry, false);
       if (child === null) {
         children.push({
           id: parentId,
@@ -84,7 +100,7 @@ export function explain(
       derivedFrom: children,
     };
   };
-  return build(assertionId, new Set());
+  return build(assertionId, new Set(), true);
 }
 
 /**

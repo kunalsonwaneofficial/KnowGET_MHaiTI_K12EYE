@@ -1,4 +1,5 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { Assertion } from "./assertion";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
 import type { RelationshipType } from "./relationship-type";
@@ -218,5 +219,51 @@ export class InMemoryRelationshipTypeRepository implements RelationshipTypeRepos
     if (type && type.tenantId === tenantId) {
       this.byId.delete(id);
     }
+  }
+}
+
+/**
+ * Storage contract for assertions (the evidence chain). Tenant-scoped (explicit argument + RLS). `findManyByIds`
+ * resolves an assertion's antecedents for the provenance engine; `listBySubject` gathers everything asserted
+ * about an entity or relationship. Append-only: assertions are created and retracted (via `save`), never removed.
+ */
+export interface AssertionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Assertion | null>;
+  findManyByIds(tenantId: TenantId, ids: readonly Uuid[]): Promise<Assertion[]>;
+  listBySubject(tenantId: TenantId, subjectKind: string, subjectId: Uuid): Promise<Assertion[]>;
+  listByTenant(tenantId: TenantId): Promise<Assertion[]>;
+  save(assertion: Assertion): Promise<void>;
+}
+
+/** In-memory {@link AssertionRepository} — the default for tests and bootstrap. */
+export class InMemoryAssertionRepository implements AssertionRepository {
+  private readonly byId = new Map<string, Assertion>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Assertion | null> {
+    const assertion = this.byId.get(id);
+    return assertion && assertion.tenantId === tenantId ? assertion : null;
+  }
+
+  async findManyByIds(tenantId: TenantId, ids: readonly Uuid[]): Promise<Assertion[]> {
+    const wanted = new Set(ids);
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId && wanted.has(a.id));
+  }
+
+  async listBySubject(
+    tenantId: TenantId,
+    subjectKind: string,
+    subjectId: Uuid,
+  ): Promise<Assertion[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.subjectKind === subjectKind && a.subjectId === subjectId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Assertion[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(assertion: Assertion): Promise<void> {
+    this.byId.set(assertion.id, assertion);
   }
 }
