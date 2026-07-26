@@ -153,6 +153,9 @@ importers:
       '@knowget/health':
         specifier: workspace:*
         version: link:../../packages/health
+      '@knowget/health-centre':
+        specifier: workspace:*
+        version: link:../../packages/health-centre
       '@knowget/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
