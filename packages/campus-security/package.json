@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/campus-security",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campus Security, Safety & Visitor Platform (P2-D21) — the institution's security-operations system of record: the visitors and their visits, the access-controlled zones, the credentials that open them and the immutable access-decision log, the security incidents raised on campus, and the emergency drills conducted, with a descriptive per-zone safety profile. A pure presence engine derives who is on-site (checked-in visits, rolled zone → campus) and reconciles a drill's expected roster against the accounted-for muster into the safety-critical unaccounted-for count; a pure access engine decides a credential's access to a zone. The standing safeguarding/disciplinary record is Learner Wellbeing's (P2-D05) and clinical incidents are the Health Centre's (P2-D19); money (security-service billing/procurement) is out of scope, and domain events carry no money.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
