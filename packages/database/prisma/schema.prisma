@@ -4104,3 +4104,231 @@ model FacilityProfile {
   @@index([tenantId, organizationId])
   @@map("facility_profile")
 }
+
+/// AccessZone (P2-D21) — a controlled area with a security level (public/restricted/secure/high_security)
+/// and an optional safe-occupancy capacity; active <-> locked_down -> decommissioned, code unique per
+/// tenant. A security abstraction scoped to an organization. Tenant-owned: FORCE RLS.
+model AccessZone {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  securityLevel  String    @map("security_level")
+  capacity       Int       @default(0)
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("access_zone")
+}
+
+/// Visitor (P2-D21) — a known campus visitor (guest/parent/vendor/contractor/official) with optional
+/// contact details; active <-> blocked -> archived, code unique per tenant. Contact is held here, never on
+/// an event. Tenant-owned: FORCE RLS.
+model Visitor {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  fullName       String    @map("full_name")
+  type           String
+  phone          String?
+  email          String?
+  company        String?
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("visitor")
+}
+
+/// Visit (P2-D21) — a visitor's trip to see a host (a Person) bound for a zone; requested -> approved ->
+/// checked_in -> checked_out | denied | cancelled | expired. A checked-in visit is what the presence engine
+/// counts as on-site; the purpose is held here, never on an event. Tenant-owned: FORCE RLS.
+model Visit {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  visitorId      String    @map("visitor_id") @db.Uuid
+  hostPersonId   String    @map("host_person_id") @db.Uuid
+  zoneId         String?   @map("zone_id") @db.Uuid
+  purpose        String?
+  scheduledFor   String    @map("scheduled_for")
+  status         String    @default("requested")
+  checkedInAt    String?   @map("checked_in_at")
+  checkedOutAt   String?   @map("checked_out_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, visitorId])
+  @@index([tenantId, zoneId])
+  @@index([tenantId, hostPersonId])
+  @@index([tenantId, organizationId])
+  @@map("visit")
+}
+
+/// AccessCredential (P2-D21) — a badge for an employee/person/visitor holder granting a JSONB set of zone
+/// ids; active <-> suspended -> revoked, credential number unique per tenant, optional expiry. Tenant-owned:
+/// FORCE RLS.
+model AccessCredential {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  credentialNumber String    @map("credential_number")
+  holderType       String    @map("holder_type")
+  holderId         String    @map("holder_id") @db.Uuid
+  grantedZoneIds   Json      @default("[]") @map("granted_zone_ids")
+  issuedOn         String    @map("issued_on")
+  expiresOn        String?   @map("expires_on")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, credentialNumber])
+  @@index([tenantId])
+  @@index([tenantId, holderType, holderId])
+  @@index([tenantId, organizationId])
+  @@map("access_credential")
+}
+
+/// AccessEvent (P2-D21) — an immutable, append-only record of one access decision: a credential at a zone,
+/// the decision and reason code. No lifecycle, feeds the access-activity engine. Tenant-owned: FORCE RLS.
+model AccessEvent {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  credentialId   String    @map("credential_id") @db.Uuid
+  zoneId         String    @map("zone_id") @db.Uuid
+  pointLabel     String?   @map("point_label")
+  decision       String
+  reason         String
+  occurredAt     String    @map("occurred_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, credentialId])
+  @@index([tenantId, zoneId])
+  @@index([tenantId, organizationId])
+  @@map("access_event")
+}
+
+/// SecurityIncident (P2-D21) — an operational security/safety event (theft/trespass/…/lost_found) at an
+/// optional zone, with a category, severity, optional Person reporter and Employee assignee; reported ->
+/// triaged -> investigating -> resolved -> closed | cancelled, code unique per tenant. The summary is held
+/// here, never on an event. Tenant-owned: FORCE RLS.
+model SecurityIncident {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  code               String
+  category           String
+  severity           String
+  zoneId             String?   @map("zone_id") @db.Uuid
+  reportedByPersonId String?   @map("reported_by_person_id") @db.Uuid
+  assigneeId         String?   @map("assignee_id") @db.Uuid
+  summary            String
+  reportedOn         String    @map("reported_on")
+  resolvedOn         String?   @map("resolved_on")
+  status             String    @default("reported")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, zoneId])
+  @@index([tenantId, assigneeId])
+  @@index([tenantId, organizationId])
+  @@map("security_incident")
+}
+
+/// EmergencyDrill (P2-D21) — a planned safety exercise (fire/lockdown/evacuation/earthquake/
+/// shelter_in_place) for a zone or the site, with an expected roster and an accounted-for muster; scheduled
+/// -> in_progress -> completed | cancelled, code unique per tenant. The unaccounted-for count is derived.
+/// Tenant-owned: FORCE RLS.
+model EmergencyDrill {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  type           String
+  zoneId         String?   @map("zone_id") @db.Uuid
+  conductedById  String?   @map("conducted_by_id") @db.Uuid
+  scheduledFor   String    @map("scheduled_for")
+  expectedCount  Int       @default(0) @map("expected_count")
+  accountedCount Int       @default(0) @map("accounted_count")
+  startedAt      String?   @map("started_at")
+  completedAt    String?   @map("completed_at")
+  status         String    @default("scheduled")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, zoneId])
+  @@index([tenantId, organizationId])
+  @@map("emergency_drill")
+}
+
+/// SafetyProfile (P2-D21) — the descriptive read model per zone: on-site visitor presence (with an
+/// over-capacity flag), open-incident and active-credential counts, and granted/denied access activity,
+/// refreshed; one per zone. Holds no truth of its own. Tenant-owned: FORCE RLS.
+model SafetyProfile {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  zoneId                String    @map("zone_id") @db.Uuid
+  zoneCode              String    @map("zone_code")
+  zoneName              String    @map("zone_name")
+  securityLevel         String    @map("security_level")
+  zoneStatus            String    @map("zone_status")
+  capacity              Int       @default(0)
+  onSiteVisitorCount    Int       @default(0) @map("on_site_visitor_count")
+  available             Int       @default(0)
+  overCapacity          Boolean   @default(false) @map("over_capacity")
+  occupancyPercent      Int       @default(0) @map("occupancy_percent")
+  openIncidentCount     Int       @default(0) @map("open_incident_count")
+  activeCredentialCount Int       @default(0) @map("active_credential_count")
+  accessGrantedCount    Int       @default(0) @map("access_granted_count")
+  accessDeniedCount     Int       @default(0) @map("access_denied_count")
+  refreshedAt           String    @map("refreshed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+  updatedBy             String?   @map("updated_by") @db.Uuid
+  deletedAt             DateTime? @map("deleted_at")
+
+  @@unique([tenantId, zoneId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("safety_profile")
+}

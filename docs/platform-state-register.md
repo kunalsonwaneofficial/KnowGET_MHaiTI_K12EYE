@@ -1054,3 +1054,63 @@ active sensor per space+metric, one active comfort policy per org) are service-e
 independent adversarial audits were resolved clean (six domain consistency/semantics findings fixed before
 merge). All nine service tokens are exported for **in-process cross-domain use**. The operational
 built-environment base the campus and intelligence-core domains build on.
+
+## Campus Security, Safety & Visitor Platform (P2-D21, Program: Campus & Engagement · ADR-0040)
+
+The **physical-security and safety system of record for the institution** — the security zones the campus is
+divided into, the visitors who come to it and their visits, the access credentials that open zones and the
+immutable log of every access decision, the security incidents raised across the estate, the emergency drills
+that account for who is present, and the descriptive per-zone safety profile — built on the organization
+(P2-D01-M01), person (P2-D01-M02) and workforce (P2-D12) bases, delivered as one `@knowget/campus-security`
+package on the certified `v0.2.0` baseline. The **third contract of Program D (Campus & Engagement)**. It is
+named `@knowget/campus-security` — **not** the platform `@knowget/security` (the P1-M04 crypto/RBAC
+foundation) — an entirely different bounded context, on a distinct `campus-security.*` event namespace.
+Several quantities are **derived, not stored**, so the design begins with **two pure engines** built and
+tested first: the **presence engine** (`computeZonePresence` values a zone's checked-in count against its
+safe-occupancy capacity — places remaining, an over-capacity flag and an occupancy percent, **capacity 0 =
+not capacity-tracked**; `summarizeSitePresence` rolls zones into the campus picture; `computeMusterStatus`
+reconciles a drill's expected roster against the accounted-for headcount into the **safety-critical
+unaccounted-for count**, the roll-call analog) and the **access engine** (`evaluateAccess` decides
+granted/denied by strict priority — credential inactive → expired → zone-unavailable → locked-down →
+not-granted → ok, comparing a **date-only expiry against the date of the moment** so a credential is honoured
+through its whole expiry day; `summarizeAccessActivity` tallies the log). Distinctively, one aggregate is
+**immutable append-only telemetry** (an access event is a decision recorded once, never edited — its
+repository omits `remove`), and **this domain carries no money** (there is nothing to bill or buy here —
+security procurement is Procurement & Assets', P2-D15; any charge is Finance's, P2-D14). It models eight
+aggregates: **AccessZone** (a securable area with a security level — public/restricted/secure/high_security —
+and a safe-occupancy capacity; active ↔ locked_down → decommissioned, code unique per tenant),
+**Visitor** (a campus visitor with a type and optional contact; active ↔ blocked → archived, code unique per
+tenant, a blocked/archived visitor cannot have a visit requested or approved), **Visit** (a visitor's
+time-bounded presence linked to a host **Person** and an optional zone; requested → approved → checked_in →
+checked_out | denied | cancelled | expired, org derived from the visitor, **only checked-in counts toward
+presence**), **AccessCredential** (opens zones for an **Employee/Person/Visitor** holder — validated by type
+— with a de-duplicated set of granted zones and an optional date-only expiry; active ↔ suspended → revoked,
+number unique per tenant), **AccessEvent** (an **immutable append-only** granted/denied decision recorded by
+the spine, feeding the activity tally), **SecurityIncident** (the operational security event — reported →
+triaged → investigating → resolved → closed | cancelled, an **Employee assignee required before
+investigation**, a category + severity; **not** a standing safeguarding record — Learner Wellbeing P2-D05 —
+and **not** a clinical event — Health Centre P2-D19), **EmergencyDrill** (scheduled → in_progress → completed
+| cancelled with an optional **Employee** conductor, its **muster status derived** by the presence engine) and
+**SafetyProfile** (the descriptive per-zone presence + over-capacity + open-incident/active-credential/
+granted-denied read model, **refreshed** from the engines, never posted to directly). The
+**access-decision service** is the integration spine — it resolves a credential and a zone, runs the access
+engine, appends the decision to the immutable log and publishes the access-recorded event. It is
+**descriptive, not predictive** (threat scoring / anomaly detection are P2-D28). The **standing safeguarding/
+disciplinary record** belongs to **Learner Wellbeing (P2-D05)** and **clinical incidents** to the **Health
+Centre (P2-D19)**; this domain owns the operational, time-bounded security occurrence. A zone's/visitor's org
+is an **Organization**, a visit host and incident reporter a **Person**, and an incident assignee / drill
+conductor / employee credential-holder an **Employee**, referenced via directory ports and never duplicated.
+Money-free, free-text-free, **PII-free** campus-security events (no visitor name or contact, no incident
+summary) publish onto the shared bus. Eight tables carry **FORCE RLS** tenant isolation, verified on live
+PostgreSQL (INTEGER capacities/counts/rosters/musters/percents, **JSONB** granted-zone-ids, **BOOLEAN**
+over-capacity flag and **TEXT** codes/names/summaries/date stamps round-tripping exactly, cross-tenant INSERT
+rejected 42501), with tenant-scoped DB unique indexes (zone, visitor, credential, incident, drill codes; one
+profile per zone) — **all uniqueness absolute and DB-backed** (no status-scoped TOCTOU guard, unlike
+D16–D20). **Two permission scope pairs** split the platform along its access boundary — `security:*` for the
+institutional security surface (zones, credentials, the access decision + its log, incidents, drills, the
+safety profile) and `visitor:*` for the visitor surface (visitors, visits). Organization, Person and Employee
+existence enter through injected directory ports. Both independent adversarial audits were resolved clean
+(two domain consistency findings — the date-vs-timestamp expiry default and the missing credential-issuance
+organization validation — fixed before merge); zone occupancy capacity is advisory, a hard cap left opt-in
+behind the service (**TD-41**). All nine service tokens are exported for **in-process cross-domain use**. The
+operational campus-security base the engagement and intelligence-core domains build on.

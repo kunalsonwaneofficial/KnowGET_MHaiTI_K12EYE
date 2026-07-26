@@ -4,6 +4,7 @@ import { AcademicStructureModule } from "./domains/academic-structure/academic-s
 import { AssessmentEvaluationModule } from "./domains/assessment-evaluation/assessment-evaluation.module";
 import { AttendancePresenceModule } from "./domains/attendance-presence/attendance-presence.module";
 import { GovernanceModule } from "./domains/governance/governance.module";
+import { CampusSecurityModule } from "./domains/campus-security/campus-security.module";
 import { FacilitiesModule } from "./domains/facilities/facilities.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
 import { HealthCentreModule } from "./domains/health-centre/health-centre.module";
@@ -106,6 +107,7 @@ const persistedServices =
     LibraryModule,
     HealthCentreModule,
     FacilitiesModule,
+    CampusSecurityModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

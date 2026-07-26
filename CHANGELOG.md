@@ -3,7 +3,78 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D20 · Program: Campus & Engagement · Campus Infrastructure, Facilities & Smart Environment Platform
+## [Unreleased] — P2-D21 · Program: Campus & Engagement · Campus Security, Safety & Visitor Platform
+
+The third contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D01-M01 organization, P2-D01-M02 person and P2-D12 workforce bases. The institution's
+**physical-security and safety system of record**, delivered as one `@knowget/campus-security` package
+(ADR-0040): the security zones the campus is divided into, the visitors and their visits, the access
+credentials that open zones and the immutable log of every access decision, the security incidents, the
+emergency drills that account for who is present, and the descriptive per-zone safety profile. It is named
+`@knowget/campus-security` — **not** the platform `@knowget/security` (the P1-M04 crypto/RBAC foundation) — an
+entirely different bounded context, on a distinct `campus-security.*` event namespace. Several quantities are
+**derived, not stored** — a zone's live presence and over-capacity, a drill's safety-critical unaccounted-for
+count, and an access decision — so the design begins with **two pure engines**. Distinctively, one aggregate
+is **immutable append-only telemetry** (an access event is a decision recorded once, never edited), and **this
+domain carries no money** (nothing is billed or bought here — security procurement is Procurement & Assets',
+P2-D15; any charge is Finance's, P2-D14), so the money boundary is held structurally. The **standing
+safeguarding/disciplinary record** belongs to Learner Wellbeing (P2-D05) and **clinical incidents** to the
+Health Centre (P2-D19); this domain owns the operational, time-bounded security occurrence. Descriptive, not
+predictive — threat scoring and anomaly detection on the access log are deferred to the intelligence core
+(P2-D28).
+
+### Added
+
+- **Campus Security, Safety & Visitor Platform (ADR-0040):** two pure engines plus eight aggregates in one
+  `@knowget/campus-security` package. **Two engines:** the presence engine (`computeZonePresence` — a zone's
+  checked-in count against its safe-occupancy capacity, places remaining, an over-capacity flag and an
+  occupancy percent, capacity 0 = not-tracked; `summarizeSitePresence` — the campus rollup;
+  `computeMusterStatus` — a drill's safety-critical unaccounted-for count, all-accounted flag and completion
+  percent) and the access engine (`evaluateAccess` — a granted/denied decision by strict priority: credential
+  inactive → expired → zone-unavailable → locked-down → not-granted → ok, comparing a **date-only expiry
+  against the date of the moment** so a credential is honoured through its whole expiry day;
+  `summarizeAccessActivity` — the granted/denied tally over the log). The aggregates: **AccessZone** (a
+  securable area with a security level — public/restricted/secure/high_security — and a capacity; active ↔
+  locked_down → decommissioned, code unique per tenant), **Visitor** (a campus visitor with a type + optional
+  contact; active ↔ blocked → archived, code unique per tenant, a blocked/archived visitor cannot be requested
+  or approved), **Visit** (a visitor's presence linked to a host Person + optional zone; requested → approved
+  → checked_in → checked_out | denied | cancelled | expired, org from the visitor, only checked-in counts
+  toward presence), **AccessCredential** (opens zones for an Employee/Person/Visitor holder — validated by
+  type — with a de-duplicated set of granted zones + optional date-only expiry; active ↔ suspended → revoked,
+  number unique per tenant), **AccessEvent** (an **immutable append-only** granted/denied decision recorded by
+  the spine), **SecurityIncident** (the operational security event; reported → triaged → investigating →
+  resolved → closed | cancelled, an Employee assignee required before investigation, a category + severity),
+  **EmergencyDrill** (scheduled → in_progress → completed | cancelled with an optional Employee conductor, its
+  muster status derived) and **SafetyProfile** (the descriptive per-zone presence + open-work read model,
+  refreshed from the engines, never posted to directly). The **AccessDecisionService** integration spine
+  resolves a credential + zone, runs the access engine, appends the decision to the immutable log and publishes
+  the access-recorded event.
+- **No money & no free-text/PII events:** the domain defines no monetary field (security procurement →
+  Procurement & Assets P2-D15; any charge → Finance P2-D14), and no domain event carries a visitor's name or
+  contact details or an incident's free-text summary — only ids, codes, types, levels, statuses, severities,
+  decisions, reasons and counts, on the `campus-security.*` namespace.
+- **Boundaries:** the **standing safeguarding/disciplinary record** stays in Learner Wellbeing (P2-D05) — a
+  security incident is a time-bounded operational occurrence, not a standing record about a person — and the
+  **clinical incident** stays in the Health Centre (P2-D19). Physical door-controller/reader firmware, CCTV,
+  security-service billing and prediction (threat scoring, P2-D28) are out of scope.
+- **Persistence (ADR-0010):** eight tables + migration `20261222000000_add_campus_security`, each **FORCE RLS**
+  + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL (INTEGER capacities/
+  counts/rosters/musters/percents, **JSONB** granted-zone-ids, **BOOLEAN** over-capacity flag, **TEXT** codes/
+  names/summaries/date stamps round-tripping exactly; cross-tenant INSERT rejected 42501); tenant-scoped DB
+  unique indexes (zone, visitor, credential, incident, drill codes; one profile per zone) — **all uniqueness
+  absolute and DB-backed** (no status-scoped TOCTOU guard, unlike D16–D20).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `security/*` (zones, credentials, the
+  access decision + its log, incidents, drills, the safety profile) under `security:read`/`:write` and
+  `visitor/*` (visitors, visits) under `visitor:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + three
+  directory adapters (Organization, Person, Employee); `CampusSecurityModule` importing the Organization,
+  Person and Workforce modules and exporting every service token, registered in `app.module`.
+- **Zone occupancy capacity is advisory** (a derived `overCapacity` signal for monitoring, check-in not
+  blocked — deliberate for a physical-safety system, hard cap opt-in behind the service, **TD-41**); both
+  independent adversarial audits (domain; persistence/API) were resolved clean, the domain audit's two
+  consistency findings (the date-vs-timestamp expiry default; the missing credential-issuance organization
+  validation) fixed before merge.
+
+## P2-D20 · Program: Campus & Engagement · Campus Infrastructure, Facilities & Smart Environment Platform
 
 The second contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
 Phase-1 core, and the P2-D01-M01 organization and P2-D12 workforce bases. The institution's **built-environment
