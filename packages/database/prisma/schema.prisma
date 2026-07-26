@@ -2858,22 +2858,22 @@ model Supplier {
 /// InventoryItem (P2-D15) — a stockable good (unit of measure, reorder level, optional standard cost
 /// as BIGINT minor units for valuation); active <-> discontinued, sku unique per tenant. RLS.
 model InventoryItem {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  organizationId   String    @map("organization_id") @db.Uuid
-  sku              String
-  name             String
-  category         String?
-  unitOfMeasure    String    @map("unit_of_measure")
-  reorderLevel     Int       @default(0) @map("reorder_level")
-  standardCostMinor BigInt?  @map("standard_cost_minor")
-  currency         String?
-  status           String    @default("active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  createdBy        String?   @map("created_by") @db.Uuid
-  updatedBy        String?   @map("updated_by") @db.Uuid
-  deletedAt        DateTime? @map("deleted_at")
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  sku               String
+  name              String
+  category          String?
+  unitOfMeasure     String    @map("unit_of_measure")
+  reorderLevel      Int       @default(0) @map("reorder_level")
+  standardCostMinor BigInt?   @map("standard_cost_minor")
+  currency          String?
+  status            String    @default("active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
 
   @@unique([tenantId, sku])
   @@index([tenantId])
@@ -2962,27 +2962,27 @@ model PurchaseOrder {
 /// months for straight-line depreciation); in_service <-> under_maintenance -> retired -> disposed,
 /// tag unique per tenant. Tenant-owned: FORCE RLS.
 model Asset {
-  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId            String    @map("tenant_id") @db.Uuid
-  organizationId      String    @map("organization_id") @db.Uuid
-  assetTag            String    @map("asset_tag")
-  name                String
-  category            String?
-  custodianId         String?   @map("custodian_id") @db.Uuid
-  location            String?
-  acquisitionCostMinor BigInt   @map("acquisition_cost_minor")
-  salvageValueMinor   BigInt    @map("salvage_value_minor")
-  currency            String
-  acquisitionDate     String    @map("acquisition_date")
-  usefulLifeMonths    Int       @map("useful_life_months")
-  status              String    @default("in_service")
-  retiredAt           String?   @map("retired_at")
-  disposedAt          String?   @map("disposed_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
-  createdBy           String?   @map("created_by") @db.Uuid
-  updatedBy           String?   @map("updated_by") @db.Uuid
-  deletedAt           DateTime? @map("deleted_at")
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  assetTag             String    @map("asset_tag")
+  name                 String
+  category             String?
+  custodianId          String?   @map("custodian_id") @db.Uuid
+  location             String?
+  acquisitionCostMinor BigInt    @map("acquisition_cost_minor")
+  salvageValueMinor    BigInt    @map("salvage_value_minor")
+  currency             String
+  acquisitionDate      String    @map("acquisition_date")
+  usefulLifeMonths     Int       @map("useful_life_months")
+  status               String    @default("in_service")
+  retiredAt            String?   @map("retired_at")
+  disposedAt           String?   @map("disposed_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
 
   @@unique([tenantId, assetTag])
   @@index([tenantId])
@@ -3457,4 +3457,210 @@ model HostelOccupancyProfile {
   @@index([tenantId])
   @@index([tenantId, organizationId])
   @@map("hostel_occupancy_profile")
+}
+
+/// Title (P2-D18) — a bibliographic catalog record with authors/subjects (JSONB); ISBN unique per tenant
+/// when present; active <-> withdrawn. Copies attach to an active title. Tenant-owned: FORCE RLS.
+model Title {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  isbn            String?
+  title           String
+  authors         Json      @default("[]")
+  subjects        Json      @default("[]")
+  type            String
+  language        String?
+  publisher       String?
+  publicationYear Int?      @map("publication_year")
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, isbn])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("title")
+}
+
+/// Copy (P2-D18) — a physical holding of a Title tracked by a barcode (unique per tenant); available <->
+/// on_loan -> lost | withdrawn. Org derived from the title. Tenant-owned: FORCE RLS.
+model Copy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  titleId        String    @map("title_id") @db.Uuid
+  barcode        String
+  location       String?
+  condition      String    @default("good")
+  acquiredOn     String?   @map("acquired_on")
+  status         String    @default("available")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, barcode])
+  @@index([tenantId])
+  @@index([tenantId, titleId])
+  @@index([tenantId, organizationId])
+  @@map("copy")
+}
+
+/// DigitalAsset (P2-D18) — a digital learning resource (format, access model, access reference, optional
+/// licence expiry); active <-> retired. No physical copies. Tenant-owned: FORCE RLS.
+model DigitalAsset {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  title          String
+  format         String
+  accessModel    String    @map("access_model")
+  accessUrl      String?   @map("access_url")
+  provider       String?
+  licenseExpiry  String?   @map("license_expiry")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("digital_asset")
+}
+
+/// LibraryMember (P2-D18) — a borrower linked to a Person (P2-D01-M02); membership number unique per
+/// tenant; one membership per person per org; active <-> suspended -> expired. Tenant-owned: FORCE RLS.
+model LibraryMember {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  personId         String    @map("person_id") @db.Uuid
+  membershipNumber String    @map("membership_number")
+  category         String
+  joinedOn         String    @map("joined_on")
+  expiresOn        String?   @map("expires_on")
+  status           String    @default("active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, membershipNumber])
+  @@unique([tenantId, personId, organizationId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("library_member")
+}
+
+/// Loan (P2-D18) — a copy issued to a member, capturing the loan period + renewal limit at issue;
+/// active -> returned | lost. Due date and overdue derived, never stored. No money. Tenant-owned: RLS.
+model Loan {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  copyId         String    @map("copy_id") @db.Uuid
+  titleId        String    @map("title_id") @db.Uuid
+  memberId       String    @map("member_id") @db.Uuid
+  issueDate      String    @map("issue_date")
+  loanPeriodDays Int       @map("loan_period_days")
+  renewalLimit   Int       @map("renewal_limit")
+  renewalsUsed   Int       @default(0) @map("renewals_used")
+  returnedDate   String?   @map("returned_date")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, copyId])
+  @@index([tenantId, memberId])
+  @@index([tenantId, organizationId])
+  @@map("loan")
+}
+
+/// Reservation (P2-D18) — a member's hold on a title with a queue position; requested -> ready ->
+/// fulfilled | cancelled | expired, one open per member+title (service-enforced). Tenant-owned: RLS.
+model Reservation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  titleId        String    @map("title_id") @db.Uuid
+  memberId       String    @map("member_id") @db.Uuid
+  requestedOn    String    @map("requested_on")
+  queuePosition  Int       @map("queue_position")
+  readyOn        String?   @map("ready_on")
+  expiresOn      String?   @map("expires_on")
+  status         String    @default("requested")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, titleId])
+  @@index([tenantId, memberId])
+  @@index([tenantId, organizationId])
+  @@map("reservation")
+}
+
+/// CirculationPolicy (P2-D18) — the version-controlled lending rules (per-category rules + default rule,
+/// both JSONB); draft -> active -> archived, one active per org (service-enforced). Tenant-owned: RLS.
+model CirculationPolicy {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  name           String
+  defaultRule    Json      @map("default_rule")
+  rules          Json      @default("[]")
+  version        Int       @default(1)
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("circulation_policy")
+}
+
+/// CollectionProfile (P2-D18) — the descriptive collection read model per org, refreshed from the pure
+/// engines (catalog/holdings/circulation counts); one per org. Tenant-owned: FORCE RLS.
+model CollectionProfile {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String    @map("tenant_id") @db.Uuid
+  organizationId       String    @map("organization_id") @db.Uuid
+  titleCount           Int       @default(0) @map("title_count")
+  copyCount            Int       @default(0) @map("copy_count")
+  availableCount       Int       @default(0) @map("available_count")
+  onLoanCount          Int       @default(0) @map("on_loan_count")
+  lostCount            Int       @default(0) @map("lost_count")
+  digitalAssetCount    Int       @default(0) @map("digital_asset_count")
+  activeLoanCount      Int       @default(0) @map("active_loan_count")
+  overdueLoanCount     Int       @default(0) @map("overdue_loan_count")
+  openReservationCount Int       @default(0) @map("open_reservation_count")
+  utilizationPercent   Int       @default(0) @map("utilization_percent")
+  version              Int       @default(1)
+  refreshedAt          String?   @map("refreshed_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  createdBy            String?   @map("created_by") @db.Uuid
+  updatedBy            String?   @map("updated_by") @db.Uuid
+  deletedAt            DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId])
+  @@index([tenantId])
+  @@map("collection_profile")
 }
