@@ -236,7 +236,7 @@ CREATE TABLE "facility_profile" (
     "systems_under_maintenance" INTEGER NOT NULL DEFAULT 0,
     "readiness_percent" INTEGER NOT NULL DEFAULT 0,
     "open_maintenance_count" INTEGER NOT NULL DEFAULT 0,
-    "refreshed_at" TEXT,
+    "refreshed_at" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by" UUID,

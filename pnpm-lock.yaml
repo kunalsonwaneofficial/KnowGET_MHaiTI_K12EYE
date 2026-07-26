@@ -135,6 +135,9 @@ importers:
       '@knowget/exceptions':
         specifier: workspace:*
         version: link:../../packages/exceptions
+      '@knowget/facilities':
+        specifier: workspace:*
+        version: link:../../packages/facilities
       '@knowget/faculty-excellence':
         specifier: workspace:*
         version: link:../../packages/faculty-excellence

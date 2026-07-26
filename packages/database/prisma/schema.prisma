@@ -4092,7 +4092,7 @@ model FacilityProfile {
   systemsUnderMaintenance Int       @default(0) @map("systems_under_maintenance")
   readinessPercent        Int       @default(0) @map("readiness_percent")
   openMaintenanceCount    Int       @default(0) @map("open_maintenance_count")
-  refreshedAt             String?   @map("refreshed_at")
+  refreshedAt             String    @map("refreshed_at")
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @updatedAt @map("updated_at")
   createdBy               String?   @map("created_by") @db.Uuid
