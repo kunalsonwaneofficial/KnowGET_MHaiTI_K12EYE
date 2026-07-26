@@ -238,7 +238,6 @@ export interface AssertionEventPayload {
   readonly organizationId: Uuid;
   readonly subjectKind: string;
   readonly subjectId: Uuid;
-  readonly predicate: string;
   readonly method: string;
   readonly confidence: number;
   readonly derivedFromCount: number;
@@ -251,12 +250,13 @@ export type AssertionRetractedEvent = DomainEvent<
   AssertionEventPayload
 >;
 
+// NB: the `predicate` and `value` are the claim's content and never leave the domain in an event — a
+// downstream subscriber (P2-D26+) reacts to the assertion id and resolves the content within-tenant if needed.
 const assertionPayload = (a: Assertion): AssertionEventPayload => ({
   assertionId: a.id,
   organizationId: a.organizationId,
   subjectKind: a.subjectKind,
   subjectId: a.subjectId,
-  predicate: a.predicate,
   method: a.method,
   confidence: a.confidence,
   derivedFromCount: a.derivedFrom.length,

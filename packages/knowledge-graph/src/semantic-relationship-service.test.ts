@@ -31,6 +31,7 @@ describe("SemanticRelationshipService — ontology grammar", () => {
   let entityTypes: InMemoryEntityTypeRepository;
   let relTypes: InMemoryRelationshipTypeRepository;
   let svc: SemanticRelationshipService;
+  let entitySvc: KnowledgeEntityService;
   let studentId: Uuid;
   let courseId: Uuid;
 
@@ -45,7 +46,7 @@ describe("SemanticRelationshipService — ontology grammar", () => {
       entityTypes,
       organizations: orgDir,
     });
-    const entitySvc = new KnowledgeEntityService({
+    entitySvc = new KnowledgeEntityService({
       repository: entities,
       entityTypes,
       organizations: orgDir,
@@ -142,5 +143,11 @@ describe("SemanticRelationshipService — ontology grammar", () => {
     expect(prior.status).toBe("superseded"); // kept, not deleted
     const all = await svc.listForEntity(TENANT, studentId);
     expect(all).toHaveLength(2); // digital memory: both versions retained
+  });
+
+  it("refuses to supersede an edge onto an endpoint that is no longer active", async () => {
+    const v1 = await assertEnrollment(studentId, courseId);
+    await entitySvc.archive(TENANT, courseId); // target retired after the edge was asserted
+    await expect(svc.supersede(TENANT, v1.id)).rejects.toThrow(UnknownRelationshipEndpointError);
   });
 });

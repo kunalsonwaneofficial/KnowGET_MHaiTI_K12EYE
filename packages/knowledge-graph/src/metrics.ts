@@ -38,16 +38,19 @@ export function summarizeGraph(
   assertions: readonly AssertionView[],
 ): GraphSummary {
   const live = relationships.filter((r) => r.status === "asserted");
-  const grounded = assertions.filter((a) => isGroundedMethod(a.method)).length;
+  // Only standing assertions count — the summary describes the graph as it currently stands, so a retracted
+  // (withdrawn) assertion is excluded, mirroring the live-edge filter and `entityMemory`.
+  const standing = assertions.filter((a) => a.status === "asserted");
+  const grounded = standing.filter((a) => isGroundedMethod(a.method)).length;
   const entityCount = entityIds.length;
   return {
     entityCount,
     relationshipCount: live.length,
-    assertionCount: assertions.length,
+    assertionCount: standing.length,
     entitiesByType: tally(entityTypeKeys),
     relationshipsByType: tally(live.map((r) => r.relationshipTypeKey)),
     groundedAssertions: grounded,
-    derivedAssertions: assertions.length - grounded,
+    derivedAssertions: standing.length - grounded,
     averageDegree: entityCount > 0 ? Math.round((2 * live.length * 100) / entityCount) / 100 : 0,
   };
 }

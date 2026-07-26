@@ -65,6 +65,22 @@ describe("metrics engine", () => {
     expect(summarizeGraph([], [], [], []).averageDegree).toBe(0);
   });
 
+  it("summary counts only standing assertions (retracted excluded)", () => {
+    const s = summarizeGraph(
+      ["a"],
+      ["person"],
+      [],
+      [
+        a("o", "observed", 90),
+        a("r", "declared", 50, [], "retracted"),
+        a("d", "derived", 80, ["o"]),
+      ],
+    );
+    expect(s.assertionCount).toBe(2); // the retracted one is withdrawn
+    expect(s.groundedAssertions).toBe(1); // only the standing observed
+    expect(s.derivedAssertions).toBe(1);
+  });
+
   it("computes per-entity memory: degree, assertion counts and aggregate confidence", () => {
     const live = [edge("1", "a", "b"), edge("2", "c", "a")];
     const pool = [a("o1", "observed", 90), a("d1", "derived", 100, ["o1"])];

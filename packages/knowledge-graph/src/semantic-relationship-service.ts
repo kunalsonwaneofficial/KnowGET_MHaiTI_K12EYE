@@ -109,6 +109,14 @@ export class SemanticRelationshipService {
     patch: { validFrom?: string; validTo?: string | null } = {},
   ): Promise<SemanticRelationship> {
     const current = await this.require(tenantId, id);
+    // Re-validate the grammar before re-minting a live edge: the type must still be usable and both endpoints
+    // still active — a supersession must not resurrect an edge onto an archived/merged node or a deprecated type.
+    const relType = await this.relationshipTypes.findByKey(tenantId, current.relationshipTypeKey);
+    if (!relType || !isRelationshipTypeUsable(relType)) {
+      throw new UnknownRelationshipTypeError(current.relationshipTypeKey);
+    }
+    await this.requireActiveEntity(tenantId, current.sourceEntityId, "source");
+    await this.requireActiveEntity(tenantId, current.targetEntityId, "target");
     const successor = supersedeRelationship(current, patch);
     const superseded = markSuperseded(current);
     await this.repository.save(superseded);
