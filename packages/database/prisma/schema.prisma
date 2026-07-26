@@ -3253,3 +3253,208 @@ model RouteUtilizationProfile {
   @@index([tenantId, organizationId])
   @@map("route_utilization_profile")
 }
+
+/// Hostel (P2-D17) — a residential building for boarders (boys/girls/mixed) with an optional supervising
+/// warden; code unique per tenant; active <-> under_maintenance -> decommissioned. Tenant-owned: FORCE RLS.
+model Hostel {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  type           String
+  wardenId       String?   @map("warden_id") @db.Uuid
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("hostel")
+}
+
+/// Warden (P2-D17) — a staff member (Employee, P2-D12) supervising residential life; one warden per
+/// employee per tenant; active <-> suspended -> relieved. Tenant-owned: FORCE RLS.
+model Warden {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  role           String
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, employeeId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("warden")
+}
+
+/// Room (P2-D17) — a set of individually-allocatable beds (JSONB) in a hostel; number unique per hostel;
+/// draft -> available <-> under_maintenance -> decommissioned. Bed count is capacity. Tenant-owned: RLS.
+model Room {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  hostelId       String    @map("hostel_id") @db.Uuid
+  roomNumber     String    @map("room_number")
+  floor          Int?
+  type           String
+  beds           Json      @default("[]")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, hostelId, roomNumber])
+  @@index([tenantId])
+  @@index([tenantId, hostelId])
+  @@index([tenantId, organizationId])
+  @@map("room")
+}
+
+/// BedAllocation (P2-D17) — a student's residency in a specific bed; active -> ended; one active per bed
+/// and one active per student (service-enforced, TD-37). Org/hostel derived from the room. FORCE RLS.
+model BedAllocation {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  hostelId       String    @map("hostel_id") @db.Uuid
+  roomId         String    @map("room_id") @db.Uuid
+  bedKey         String    @map("bed_key")
+  studentId      String    @map("student_id") @db.Uuid
+  effectiveFrom  String    @map("effective_from")
+  effectiveTo    String?   @map("effective_to")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, roomId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, hostelId])
+  @@index([tenantId, organizationId])
+  @@map("bed_allocation")
+}
+
+/// Outpass (P2-D17) — a resident's gate pass; requested -> approved -> checked_out -> returned | rejected
+/// | cancelled; one open per resident (service-enforced). Overdue derived, never stored. FORCE RLS.
+model Outpass {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  hostelId       String    @map("hostel_id") @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  type           String
+  reason         String?
+  expectedOutAt  String    @map("expected_out_at")
+  expectedInAt   String    @map("expected_in_at")
+  actualOutAt    String?   @map("actual_out_at")
+  actualInAt     String?   @map("actual_in_at")
+  approvedBy     String?   @map("approved_by") @db.Uuid
+  status         String    @default("requested")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, studentId])
+  @@index([tenantId, hostelId])
+  @@index([tenantId, organizationId])
+  @@map("outpass")
+}
+
+/// RollCall (P2-D17) — a curfew presence check with a captured roster (JSONB) and per-resident markings
+/// (JSONB); scheduled -> in_progress -> completed | cancelled. Summary derived by engine. FORCE RLS.
+model RollCall {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  hostelId            String    @map("hostel_id") @db.Uuid
+  scheduledFor        String    @map("scheduled_for")
+  expectedResidentIds Json      @default("[]") @map("expected_resident_ids")
+  marks               Json      @default("[]")
+  status              String    @default("scheduled")
+  startedAt           String?   @map("started_at")
+  completedAt         String?   @map("completed_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, hostelId])
+  @@index([tenantId, organizationId])
+  @@map("roll_call")
+}
+
+/// HostelInspection (P2-D17) — a statutory compliance record (fire_safety/hygiene/electrical/structural/
+/// security) with conducted/next-due dates; one per type per hostel. Compliance derived, never stored. RLS.
+model HostelInspection {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  hostelId       String    @map("hostel_id") @db.Uuid
+  type           String
+  conductedOn    String    @map("conducted_on")
+  outcome        String
+  nextDueOn      String    @map("next_due_on")
+  inspector      String?
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, hostelId, type])
+  @@index([tenantId])
+  @@index([tenantId, hostelId])
+  @@index([tenantId, organizationId])
+  @@map("hostel_inspection")
+}
+
+/// HostelOccupancyProfile (P2-D17) — the descriptive bed-usage read model per hostel, refreshed from the
+/// pure occupancy engine (active allocations vs beds across in-service rooms); one per hostel. FORCE RLS.
+model HostelOccupancyProfile {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  hostelId              String    @map("hostel_id") @db.Uuid
+  hostelCode            String    @map("hostel_code")
+  roomCount             Int       @default(0) @map("room_count")
+  bedCount              Int       @default(0) @map("bed_count")
+  occupantCount         Int       @default(0) @map("occupant_count")
+  bedsAvailable         Int       @default(0) @map("beds_available")
+  occupancyPercent      Int       @default(0) @map("occupancy_percent")
+  overCapacityRoomCount Int       @default(0) @map("over_capacity_room_count")
+  overCapacity          Boolean   @default(false) @map("over_capacity")
+  version               Int       @default(1)
+  refreshedAt           String?   @map("refreshed_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+  updatedBy             String?   @map("updated_by") @db.Uuid
+  deletedAt             DateTime? @map("deleted_at")
+
+  @@unique([tenantId, hostelId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("hostel_occupancy_profile")
+}

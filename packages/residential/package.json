@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/residential",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Residential Life, Hostel & Boarding Platform (P2-D17) — the institution's boarding system of record: the hostels and the wardens who supervise them, the rooms and their beds, the students allocated beds (residents), the outpasses residents are granted to leave and return, the curfew roll calls run against the boarders, and the statutory compliance of the residential plant. A pure occupancy engine derives room/hostel/institution bed utilization; a pure roll-call engine reconciles per-resident presence markings against the expected roster. Money (hostel/mess fees, facility valuation/maintenance) is out of scope — deferred to Finance (P2-D14) and the Asset register (P2-D15).",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

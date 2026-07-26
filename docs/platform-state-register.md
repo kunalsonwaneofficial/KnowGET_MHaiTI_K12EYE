@@ -857,3 +857,53 @@ directory ports. Two status-scoped uniqueness invariants (one active assignment 
 subscription per student+route) are service-enforced (**TD-36**); both independent audits were clean.
 All eight service tokens are exported for **in-process cross-domain use**. The transport base the
 operational and intelligence-core domains build on.
+
+## Residential Life, Hostel & Boarding Platform (P2-D17, Program: Workforce & Operations · ADR-0036)
+
+The **boarding system of record for the institution** — the residential counterpart to the transport
+system (P2-D16), managing where boarders live rather than how they travel — built on the organization
+(P2-D01-M01), workforce (P2-D12) and student (P2-D03) bases, delivered as one `@knowget/residential`
+package on the certified `v0.2.0` baseline. The **sixth contract of Program C**. Two quantities are
+**derived, not stored**, so the design begins with **two pure engines** built and tested first:
+`computeRoomOccupancy` / `computeHostelOccupancy` / `summarizeResidenceOccupancy` value a room's active
+occupants against its beds and roll room → hostel → institution (beds available, occupancy percent,
+over-capacity); and `computeRollCall` reconciles a curfew roll call's per-resident presence markings
+(present/late/on_leave/absent) against the expected roster into counts and the **safety-critical
+unaccounted-for number** — the residential analog of the trip-occupancy ledger. Distinctively, **this
+domain carries no money** — hostel/mess fees belong to Finance (P2-D14) and facility valuation/
+maintenance to the Asset register (P2-D15) — so the boundary is held structurally and no money core is
+imported. It models eight aggregates: **Hostel** (a residential building for boys/girls/mixed with an
+optional supervising warden; active ↔ under_maintenance → decommissioned, code unique per tenant, active
+required to take rooms/allocations), **Warden** (a validated **Employee**, one per employee, org derived
+from the employee; active ↔ suspended → relieved), **Room** (an ordered set of individually-allocatable
+bed line-objects on a floor; draft → available → decommissioned, **beds & floor frozen once available**,
+number unique per hostel, the bed count is its capacity), **BedAllocation** (a student's residency in a
+specific bed; active → ended, **one active per bed and one active per student**), **Outpass** (a
+resident's gate pass; requested → approved → checked_out → returned | rejected | cancelled, a validated
+out/return window, **overdue derived** clock-free from the expected return, **one open per resident**),
+**RollCall** (a curfew presence check capturing the roster from active allocations and accumulating one
+marking per resident, rejecting off-roster and duplicate marks; scheduled → in_progress → completed |
+cancelled, the summary derived by the engine), **HostelInspection** (a statutory compliance record —
+fire_safety/hygiene/electrical/structural/security — one per type per hostel, re-inspected in place, its
+valid/due_soon/overdue status **derived** from the next-due date, never stored) and
+**HostelOccupancyProfile** (the descriptive bed-usage read model per hostel, **refreshed** from the
+occupancy engine over in-service rooms, never posted to directly). It is **descriptive, not predictive**
+(P2-D28). A hostel's organization is an **Organization (P2-D01-M01)**, a warden is an **Employee
+(P2-D12)** and a resident is a **Student (P2-D03)**, referenced via directory ports and never
+duplicated. Residential domain events (hostel registered/warden-assigned/warden-unassigned/maintenance/
+decommissioned; warden registered/suspended/reinstated/relieved; room drafted/made-available/maintenance/
+decommissioned; allocation created/ended; outpass requested/approved/rejected/checked-out/returned/
+cancelled; roll-call scheduled/started/completed/cancelled; inspection recorded/reinspected; occupancy
+refreshed) publish onto the shared bus. Eight tables carry **FORCE RLS** tenant isolation, verified on
+live PostgreSQL (JSONB room beds / roll-call roster & markings, INTEGER bed counts and BOOLEAN
+over-capacity round-tripping exactly), with tenant-scoped DB unique indexes (hostel code, one warden per
+employee, room number per hostel, one inspection per (hostel, type), one profile per hostel); bed counts/
+occupancy/percents/versions are **INTEGER**, over-capacity is **BOOLEAN**, room beds and roll-call
+roster/markings are non-null **JSONB**, and date/ISO stamps are **TEXT** — **no money**. **Two permission
+scope pairs** split the platform along its operational boundary — `hostel:*` for the physical plant and
+its people and compliance (hostels, wardens, rooms, inspections) and `boarding:*` for the operations
+(allocations, outpasses, roll calls, occupancy). Organization, Employee and Student existence enter
+through injected directory ports. Two status-scoped uniqueness invariants (one active allocation per bed,
+one active per student) are service-enforced (**TD-37**); both independent audits were clean. All eight
+service tokens are exported for **in-process cross-domain use**. The residential base the operational and
+intelligence-core domains build on.
