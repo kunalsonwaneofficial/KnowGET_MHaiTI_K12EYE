@@ -1,9 +1,11 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AdmissionCycle } from "./admission-cycle";
+import type { AdmissionEvaluation } from "./admission-evaluation";
 import type { Application } from "./application";
 import type { Lead } from "./lead";
 import type { MarketingCampaign } from "./marketing-campaign";
+import type { Offer } from "./offer";
 
 /**
  * Domain events for the Admissions, Marketing, Enrollment & Growth Platform (P2-D23), on the `admissions.*`
@@ -229,3 +231,78 @@ export const applicationRejected = (a: Application): ApplicationRejectedEvent =>
   createEvent(APPLICATION_REJECTED, applicationPayload(a), { tenantId: a.tenantId });
 export const applicationWithdrawn = (a: Application): ApplicationWithdrawnEvent =>
   createEvent(APPLICATION_WITHDRAWN, applicationPayload(a), { tenantId: a.tenantId });
+
+// --- Admission evaluation --------------------------------------------------------
+export const EVALUATION_RECORDED = "admissions.evaluation.recorded";
+
+export interface EvaluationEventPayload {
+  readonly evaluationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly applicationId: Uuid;
+  readonly type: string;
+  readonly score: number;
+  readonly recommendation: string;
+  readonly evaluatedOn: string;
+}
+
+export type EvaluationRecordedEvent = DomainEvent<
+  typeof EVALUATION_RECORDED,
+  EvaluationEventPayload
+>;
+
+export const evaluationRecorded = (evaluation: AdmissionEvaluation): EvaluationRecordedEvent =>
+  createEvent(
+    EVALUATION_RECORDED,
+    {
+      evaluationId: evaluation.id,
+      organizationId: evaluation.organizationId,
+      applicationId: evaluation.applicationId,
+      type: evaluation.type,
+      score: evaluation.score,
+      recommendation: evaluation.recommendation,
+      evaluatedOn: evaluation.evaluatedOn,
+    },
+    { tenantId: evaluation.tenantId },
+  );
+
+// --- Offer -----------------------------------------------------------------------
+export const OFFER_EXTENDED = "admissions.offer.extended";
+export const OFFER_ACCEPTED = "admissions.offer.accepted";
+export const OFFER_DECLINED = "admissions.offer.declined";
+export const OFFER_EXPIRED = "admissions.offer.expired";
+export const OFFER_WITHDRAWN = "admissions.offer.withdrawn";
+
+export interface OfferEventPayload {
+  readonly offerId: Uuid;
+  readonly organizationId: Uuid;
+  readonly applicationId: Uuid;
+  readonly cycleId: Uuid;
+  readonly gradeOffered: string;
+  readonly status: string;
+}
+
+export type OfferExtendedEvent = DomainEvent<typeof OFFER_EXTENDED, OfferEventPayload>;
+export type OfferAcceptedEvent = DomainEvent<typeof OFFER_ACCEPTED, OfferEventPayload>;
+export type OfferDeclinedEvent = DomainEvent<typeof OFFER_DECLINED, OfferEventPayload>;
+export type OfferExpiredEvent = DomainEvent<typeof OFFER_EXPIRED, OfferEventPayload>;
+export type OfferWithdrawnEvent = DomainEvent<typeof OFFER_WITHDRAWN, OfferEventPayload>;
+
+const offerPayload = (offer: Offer): OfferEventPayload => ({
+  offerId: offer.id,
+  organizationId: offer.organizationId,
+  applicationId: offer.applicationId,
+  cycleId: offer.cycleId,
+  gradeOffered: offer.gradeOffered,
+  status: offer.status,
+});
+
+export const offerExtended = (o: Offer): OfferExtendedEvent =>
+  createEvent(OFFER_EXTENDED, offerPayload(o), { tenantId: o.tenantId });
+export const offerAccepted = (o: Offer): OfferAcceptedEvent =>
+  createEvent(OFFER_ACCEPTED, offerPayload(o), { tenantId: o.tenantId });
+export const offerDeclined = (o: Offer): OfferDeclinedEvent =>
+  createEvent(OFFER_DECLINED, offerPayload(o), { tenantId: o.tenantId });
+export const offerExpired = (o: Offer): OfferExpiredEvent =>
+  createEvent(OFFER_EXPIRED, offerPayload(o), { tenantId: o.tenantId });
+export const offerWithdrawn = (o: Offer): OfferWithdrawnEvent =>
+  createEvent(OFFER_WITHDRAWN, offerPayload(o), { tenantId: o.tenantId });
