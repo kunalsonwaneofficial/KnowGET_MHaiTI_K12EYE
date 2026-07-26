@@ -256,3 +256,75 @@ export class InvalidCredentialTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Security incident -----------------------------------------------------------
+
+/** The requested security incident does not exist in the current tenant. */
+export class SecurityIncidentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Security incident "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A security incident must carry a non-empty code. */
+export class EmptyIncidentCodeError extends PlatformError {
+  constructor() {
+    super("A security incident must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A security incident must carry a non-empty summary. */
+export class EmptyIncidentSummaryError extends PlatformError {
+  constructor() {
+    super("A security incident must have a non-empty summary", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The incident code is already in use within the tenant. */
+export class DuplicateIncidentCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Security-incident code "${code}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** An invalid security-incident status transition was attempted. */
+export class InvalidIncidentTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A security incident cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A security incident cannot start investigation without an assignee. */
+export class IncidentUnassignedError extends PlatformError {
+  constructor(id: string) {
+    super(`Security incident "${id}" must be assigned before investigation can start`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

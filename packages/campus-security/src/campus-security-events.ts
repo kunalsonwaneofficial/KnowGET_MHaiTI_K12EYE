@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AccessCredential } from "./access-credential";
+import type { AccessEvent } from "./access-event";
 import type { AccessZone } from "./access-zone";
+import type { SecurityIncident } from "./security-incident";
 import type { Visit } from "./visit";
 import type { Visitor } from "./visitor";
 
@@ -242,3 +244,99 @@ export const credentialRevoked = (credential: AccessCredential): CredentialRevok
   createEvent(CREDENTIAL_REVOKED, credentialPayload(credential), {
     tenantId: credential.tenantId,
   });
+
+// --- Access event ----------------------------------------------------------------
+export const ACCESS_RECORDED = "campus-security.access.recorded";
+
+export interface AccessEventPayload {
+  readonly eventId: Uuid;
+  readonly organizationId: Uuid;
+  readonly credentialId: Uuid;
+  readonly zoneId: Uuid;
+  readonly decision: string;
+  readonly reason: string;
+  readonly occurredAt: string;
+}
+
+export type AccessRecordedEvent = DomainEvent<typeof ACCESS_RECORDED, AccessEventPayload>;
+
+const accessPayload = (event: AccessEvent): AccessEventPayload => ({
+  eventId: event.id,
+  organizationId: event.organizationId,
+  credentialId: event.credentialId,
+  zoneId: event.zoneId,
+  decision: event.decision,
+  reason: event.reason,
+  occurredAt: event.occurredAt,
+});
+
+export const accessRecorded = (event: AccessEvent): AccessRecordedEvent =>
+  createEvent(ACCESS_RECORDED, accessPayload(event), { tenantId: event.tenantId });
+
+// --- Security incident -----------------------------------------------------------
+export const INCIDENT_REPORTED = "campus-security.incident.reported";
+export const INCIDENT_TRIAGED = "campus-security.incident.triaged";
+export const INCIDENT_ASSIGNED = "campus-security.incident.assigned";
+export const INCIDENT_SEVERITY_SET = "campus-security.incident.severity_set";
+export const INCIDENT_INVESTIGATION_STARTED = "campus-security.incident.investigation_started";
+export const INCIDENT_RESOLVED = "campus-security.incident.resolved";
+export const INCIDENT_CLOSED = "campus-security.incident.closed";
+export const INCIDENT_CANCELLED = "campus-security.incident.cancelled";
+
+export interface IncidentEventPayload {
+  readonly incidentId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly category: string;
+  readonly severity: string;
+  readonly zoneId: Uuid | null;
+  readonly assigneeId: Uuid | null;
+  readonly status: string;
+}
+
+export type IncidentReportedEvent = DomainEvent<typeof INCIDENT_REPORTED, IncidentEventPayload>;
+export type IncidentTriagedEvent = DomainEvent<typeof INCIDENT_TRIAGED, IncidentEventPayload>;
+export type IncidentAssignedEvent = DomainEvent<typeof INCIDENT_ASSIGNED, IncidentEventPayload>;
+export type IncidentSeveritySetEvent = DomainEvent<
+  typeof INCIDENT_SEVERITY_SET,
+  IncidentEventPayload
+>;
+export type IncidentInvestigationStartedEvent = DomainEvent<
+  typeof INCIDENT_INVESTIGATION_STARTED,
+  IncidentEventPayload
+>;
+export type IncidentResolvedEvent = DomainEvent<typeof INCIDENT_RESOLVED, IncidentEventPayload>;
+export type IncidentClosedEvent = DomainEvent<typeof INCIDENT_CLOSED, IncidentEventPayload>;
+export type IncidentCancelledEvent = DomainEvent<typeof INCIDENT_CANCELLED, IncidentEventPayload>;
+
+const incidentPayload = (incident: SecurityIncident): IncidentEventPayload => ({
+  incidentId: incident.id,
+  organizationId: incident.organizationId,
+  code: incident.code,
+  category: incident.category,
+  severity: incident.severity,
+  zoneId: incident.zoneId,
+  assigneeId: incident.assigneeId,
+  status: incident.status,
+});
+
+export const incidentReported = (incident: SecurityIncident): IncidentReportedEvent =>
+  createEvent(INCIDENT_REPORTED, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentTriaged = (incident: SecurityIncident): IncidentTriagedEvent =>
+  createEvent(INCIDENT_TRIAGED, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentAssigned = (incident: SecurityIncident): IncidentAssignedEvent =>
+  createEvent(INCIDENT_ASSIGNED, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentSeveritySet = (incident: SecurityIncident): IncidentSeveritySetEvent =>
+  createEvent(INCIDENT_SEVERITY_SET, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentInvestigationStarted = (
+  incident: SecurityIncident,
+): IncidentInvestigationStartedEvent =>
+  createEvent(INCIDENT_INVESTIGATION_STARTED, incidentPayload(incident), {
+    tenantId: incident.tenantId,
+  });
+export const incidentResolved = (incident: SecurityIncident): IncidentResolvedEvent =>
+  createEvent(INCIDENT_RESOLVED, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentClosed = (incident: SecurityIncident): IncidentClosedEvent =>
+  createEvent(INCIDENT_CLOSED, incidentPayload(incident), { tenantId: incident.tenantId });
+export const incidentCancelled = (incident: SecurityIncident): IncidentCancelledEvent =>
+  createEvent(INCIDENT_CANCELLED, incidentPayload(incident), { tenantId: incident.tenantId });

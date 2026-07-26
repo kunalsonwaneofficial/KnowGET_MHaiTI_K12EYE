@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AccessCredential } from "./access-credential";
+import type { AccessEvent } from "./access-event";
 import type { AccessZone } from "./access-zone";
+import type { SecurityIncident } from "./security-incident";
 import type { Visit } from "./visit";
 import type { Visitor } from "./visitor";
 
@@ -268,6 +270,112 @@ export class InMemoryAccessCredentialRepository implements AccessCredentialRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const credential = this.byId.get(id);
     if (credential && credential.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for access events — an append-only door log. Tenant-scoped (explicit argument + RLS).
+ * There is no `remove`: access events are immutable facts.
+ */
+export interface AccessEventRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AccessEvent | null>;
+  listByCredential(tenantId: TenantId, credentialId: Uuid): Promise<AccessEvent[]>;
+  listByZone(tenantId: TenantId, zoneId: Uuid): Promise<AccessEvent[]>;
+  listByTenant(tenantId: TenantId): Promise<AccessEvent[]>;
+  save(event: AccessEvent): Promise<void>;
+}
+
+/** In-memory {@link AccessEventRepository} — the default for tests and bootstrap. */
+export class InMemoryAccessEventRepository implements AccessEventRepository {
+  private readonly byId = new Map<string, AccessEvent>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AccessEvent | null> {
+    const event = this.byId.get(id);
+    return event && event.tenantId === tenantId ? event : null;
+  }
+
+  async listByCredential(tenantId: TenantId, credentialId: Uuid): Promise<AccessEvent[]> {
+    return [...this.byId.values()].filter(
+      (e) => e.tenantId === tenantId && e.credentialId === credentialId,
+    );
+  }
+
+  async listByZone(tenantId: TenantId, zoneId: Uuid): Promise<AccessEvent[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId && e.zoneId === zoneId);
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AccessEvent[]> {
+    return [...this.byId.values()].filter((e) => e.tenantId === tenantId);
+  }
+
+  async save(event: AccessEvent): Promise<void> {
+    this.byId.set(event.id, event);
+  }
+}
+
+const OPEN_INCIDENTS = new Set<string>(["reported", "triaged", "investigating"]);
+
+/** Storage contract for security incidents. Tenant-scoped (explicit argument + RLS). */
+export interface SecurityIncidentRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SecurityIncident | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<SecurityIncident | null>;
+  listByZone(tenantId: TenantId, zoneId: Uuid): Promise<SecurityIncident[]>;
+  listByAssignee(tenantId: TenantId, assigneeId: Uuid): Promise<SecurityIncident[]>;
+  listOpen(tenantId: TenantId): Promise<SecurityIncident[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SecurityIncident[]>;
+  listByTenant(tenantId: TenantId): Promise<SecurityIncident[]>;
+  save(incident: SecurityIncident): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SecurityIncidentRepository} — the default for tests and bootstrap. */
+export class InMemorySecurityIncidentRepository implements SecurityIncidentRepository {
+  private readonly byId = new Map<string, SecurityIncident>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SecurityIncident | null> {
+    const incident = this.byId.get(id);
+    return incident && incident.tenantId === tenantId ? incident : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<SecurityIncident | null> {
+    return [...this.byId.values()].find((i) => i.tenantId === tenantId && i.code === code) ?? null;
+  }
+
+  async listByZone(tenantId: TenantId, zoneId: Uuid): Promise<SecurityIncident[]> {
+    return [...this.byId.values()].filter((i) => i.tenantId === tenantId && i.zoneId === zoneId);
+  }
+
+  async listByAssignee(tenantId: TenantId, assigneeId: Uuid): Promise<SecurityIncident[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.assigneeId === assigneeId,
+    );
+  }
+
+  async listOpen(tenantId: TenantId): Promise<SecurityIncident[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && OPEN_INCIDENTS.has(i.status),
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SecurityIncident[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SecurityIncident[]> {
+    return [...this.byId.values()].filter((i) => i.tenantId === tenantId);
+  }
+
+  async save(incident: SecurityIncident): Promise<void> {
+    this.byId.set(incident.id, incident);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const incident = this.byId.get(id);
+    if (incident && incident.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
