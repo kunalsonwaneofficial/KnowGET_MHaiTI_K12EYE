@@ -242,3 +242,137 @@ export class EncounterClinicianRequiredError extends PlatformError {
     });
   }
 }
+
+// --- Prescription ----------------------------------------------------------------
+
+/** The requested prescription does not exist in the current tenant. */
+export class PrescriptionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Prescription "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A prescription must name a non-empty medication. */
+export class EmptyMedicationError extends PlatformError {
+  constructor() {
+    super("A prescription must name a non-empty medication", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A prescription's doses-per-day, duration and recorded doses must be positive integers. */
+export class InvalidRegimenError extends PlatformError {
+  constructor(value: number) {
+    super(`Prescription regimen value "${value}" must be a positive integer`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { value },
+    });
+  }
+}
+
+/** No further doses can be recorded — the prescribed total has already been administered. */
+export class DoseLimitReachedError extends PlatformError {
+  constructor(id: string) {
+    super(`Prescription "${id}" has already had every prescribed dose administered`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An invalid prescription status transition was attempted. */
+export class InvalidPrescriptionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A prescription cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Sick-bay admission ----------------------------------------------------------
+
+/** The requested sick-bay admission does not exist in the current tenant. */
+export class AdmissionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Sick-bay admission "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A sick-bay admission must carry a non-empty bed label. */
+export class EmptyBedLabelError extends PlatformError {
+  constructor() {
+    super("A sick-bay admission must carry a non-empty bed label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** An invalid sick-bay-admission status transition was attempted. */
+export class InvalidAdmissionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A sick-bay admission cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** The sick-bay bed already holds an active admission. */
+export class BedOccupiedError extends PlatformError {
+  constructor(centreId: string, bedLabel: string) {
+    super(`Sick-bay bed "${bedLabel}" at centre "${centreId}" is already occupied`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { centreId, bedLabel },
+    });
+  }
+}
+
+/** The patient already has an active sick-bay admission. */
+export class PatientAlreadyAdmittedError extends PlatformError {
+  constructor(patientId: string) {
+    super(`Patient "${patientId}" already has an active sick-bay admission`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { patientId },
+    });
+  }
+}
+
+/** The sick bay is at capacity — no bed is free to admit into. */
+export class SickBayFullError extends PlatformError {
+  constructor(centreId: string) {
+    super(`The sick bay at centre "${centreId}" is at capacity`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { centreId },
+    });
+  }
+}

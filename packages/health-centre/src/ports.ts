@@ -4,6 +4,8 @@ import type { ClinicalEncounter } from "./clinical-encounter";
 import type { Clinician } from "./clinician";
 import type { HealthCentre } from "./health-centre";
 import { OPEN_APPOINTMENT_STATUSES } from "./health-centre-value";
+import type { Prescription } from "./prescription";
+import type { SickBayAdmission } from "./sick-bay-admission";
 
 const OPEN_ENCOUNTER: readonly string[] = ["draft", "in_progress"];
 
@@ -250,6 +252,158 @@ export class InMemoryEncounterRepository implements EncounterRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const encounter = this.byId.get(id);
     if (encounter && encounter.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for prescriptions. Tenant-scoped (explicit argument + RLS). */
+export interface PrescriptionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Prescription | null>;
+  listByPatient(tenantId: TenantId, patientId: Uuid): Promise<Prescription[]>;
+  listByCentre(tenantId: TenantId, centreId: Uuid): Promise<Prescription[]>;
+  listActiveByCentre(tenantId: TenantId, centreId: Uuid): Promise<Prescription[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Prescription[]>;
+  listByTenant(tenantId: TenantId): Promise<Prescription[]>;
+  save(prescription: Prescription): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link PrescriptionRepository} — the default for tests and bootstrap. */
+export class InMemoryPrescriptionRepository implements PrescriptionRepository {
+  private readonly byId = new Map<string, Prescription>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Prescription | null> {
+    const prescription = this.byId.get(id);
+    return prescription && prescription.tenantId === tenantId ? prescription : null;
+  }
+
+  async listByPatient(tenantId: TenantId, patientId: Uuid): Promise<Prescription[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.patientId === patientId,
+    );
+  }
+
+  async listByCentre(tenantId: TenantId, centreId: Uuid): Promise<Prescription[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.centreId === centreId,
+    );
+  }
+
+  async listActiveByCentre(tenantId: TenantId, centreId: Uuid): Promise<Prescription[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.centreId === centreId && p.status === "active",
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Prescription[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Prescription[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(prescription: Prescription): Promise<void> {
+    this.byId.set(prescription.id, prescription);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const prescription = this.byId.get(id);
+    if (prescription && prescription.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for sick-bay admissions. Tenant-scoped (explicit argument + RLS). */
+export interface AdmissionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SickBayAdmission | null>;
+  findActiveByBed(
+    tenantId: TenantId,
+    centreId: Uuid,
+    bedLabel: string,
+  ): Promise<SickBayAdmission | null>;
+  findActiveByPatient(tenantId: TenantId, patientId: Uuid): Promise<SickBayAdmission | null>;
+  listActiveByCentre(tenantId: TenantId, centreId: Uuid): Promise<SickBayAdmission[]>;
+  listByCentre(tenantId: TenantId, centreId: Uuid): Promise<SickBayAdmission[]>;
+  listByPatient(tenantId: TenantId, patientId: Uuid): Promise<SickBayAdmission[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SickBayAdmission[]>;
+  listByTenant(tenantId: TenantId): Promise<SickBayAdmission[]>;
+  save(admission: SickBayAdmission): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link AdmissionRepository} — the default for tests and bootstrap. */
+export class InMemoryAdmissionRepository implements AdmissionRepository {
+  private readonly byId = new Map<string, SickBayAdmission>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SickBayAdmission | null> {
+    const admission = this.byId.get(id);
+    return admission && admission.tenantId === tenantId ? admission : null;
+  }
+
+  async findActiveByBed(
+    tenantId: TenantId,
+    centreId: Uuid,
+    bedLabel: string,
+  ): Promise<SickBayAdmission | null> {
+    return (
+      [...this.byId.values()].find(
+        (a) =>
+          a.tenantId === tenantId &&
+          a.centreId === centreId &&
+          a.bedLabel === bedLabel &&
+          a.status === "active",
+      ) ?? null
+    );
+  }
+
+  async findActiveByPatient(tenantId: TenantId, patientId: Uuid): Promise<SickBayAdmission | null> {
+    return (
+      [...this.byId.values()].find(
+        (a) => a.tenantId === tenantId && a.patientId === patientId && a.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listActiveByCentre(tenantId: TenantId, centreId: Uuid): Promise<SickBayAdmission[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.centreId === centreId && a.status === "active",
+    );
+  }
+
+  async listByCentre(tenantId: TenantId, centreId: Uuid): Promise<SickBayAdmission[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.centreId === centreId,
+    );
+  }
+
+  async listByPatient(tenantId: TenantId, patientId: Uuid): Promise<SickBayAdmission[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.patientId === patientId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SickBayAdmission[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SickBayAdmission[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(admission: SickBayAdmission): Promise<void> {
+    this.byId.set(admission.id, admission);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const admission = this.byId.get(id);
+    if (admission && admission.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

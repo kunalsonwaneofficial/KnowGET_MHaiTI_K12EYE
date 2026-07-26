@@ -4,6 +4,8 @@ import type { Appointment } from "./appointment";
 import type { ClinicalEncounter } from "./clinical-encounter";
 import type { Clinician } from "./clinician";
 import type { HealthCentre } from "./health-centre";
+import type { Prescription } from "./prescription";
+import type { SickBayAdmission } from "./sick-bay-admission";
 
 /**
  * Domain events for the Integrated Health Centre & Clinical Services Platform (P2-D19), on the `clinical.*`
@@ -265,3 +267,102 @@ export const encounterCompleted = (encounter: ClinicalEncounter): EncounterCompl
   createEvent(ENCOUNTER_COMPLETED, encounterPayload(encounter), { tenantId: encounter.tenantId });
 export const encounterCancelled = (encounter: ClinicalEncounter): EncounterCancelledEvent =>
   createEvent(ENCOUNTER_CANCELLED, encounterPayload(encounter), { tenantId: encounter.tenantId });
+
+// --- Prescription ----------------------------------------------------------------
+// Content-free: a prescription event carries ids, the prescriber, a dose count and a status — never the
+// medication or dosage.
+export const PRESCRIPTION_ISSUED = "clinical.prescription.issued";
+export const PRESCRIPTION_DOSE_RECORDED = "clinical.prescription.dose_recorded";
+export const PRESCRIPTION_COMPLETED = "clinical.prescription.completed";
+export const PRESCRIPTION_DISCONTINUED = "clinical.prescription.discontinued";
+
+export interface PrescriptionEventPayload {
+  readonly prescriptionId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly patientId: Uuid;
+  readonly clinicianId: Uuid;
+  readonly dosesAdministered: number;
+  readonly status: string;
+}
+
+export type PrescriptionIssuedEvent = DomainEvent<
+  typeof PRESCRIPTION_ISSUED,
+  PrescriptionEventPayload
+>;
+export type PrescriptionDoseRecordedEvent = DomainEvent<
+  typeof PRESCRIPTION_DOSE_RECORDED,
+  PrescriptionEventPayload
+>;
+export type PrescriptionCompletedEvent = DomainEvent<
+  typeof PRESCRIPTION_COMPLETED,
+  PrescriptionEventPayload
+>;
+export type PrescriptionDiscontinuedEvent = DomainEvent<
+  typeof PRESCRIPTION_DISCONTINUED,
+  PrescriptionEventPayload
+>;
+
+const prescriptionPayload = (prescription: Prescription): PrescriptionEventPayload => ({
+  prescriptionId: prescription.id,
+  centreId: prescription.centreId,
+  organizationId: prescription.organizationId,
+  patientId: prescription.patientId,
+  clinicianId: prescription.clinicianId,
+  dosesAdministered: prescription.dosesAdministered,
+  status: prescription.status,
+});
+
+export const prescriptionIssued = (prescription: Prescription): PrescriptionIssuedEvent =>
+  createEvent(PRESCRIPTION_ISSUED, prescriptionPayload(prescription), {
+    tenantId: prescription.tenantId,
+  });
+export const prescriptionDoseRecorded = (
+  prescription: Prescription,
+): PrescriptionDoseRecordedEvent =>
+  createEvent(PRESCRIPTION_DOSE_RECORDED, prescriptionPayload(prescription), {
+    tenantId: prescription.tenantId,
+  });
+export const prescriptionCompleted = (prescription: Prescription): PrescriptionCompletedEvent =>
+  createEvent(PRESCRIPTION_COMPLETED, prescriptionPayload(prescription), {
+    tenantId: prescription.tenantId,
+  });
+export const prescriptionDiscontinued = (
+  prescription: Prescription,
+): PrescriptionDiscontinuedEvent =>
+  createEvent(PRESCRIPTION_DISCONTINUED, prescriptionPayload(prescription), {
+    tenantId: prescription.tenantId,
+  });
+
+// --- Sick-bay admission ----------------------------------------------------------
+export const ADMISSION_OPENED = "clinical.admission.opened";
+export const ADMISSION_DISCHARGED = "clinical.admission.discharged";
+
+export interface AdmissionEventPayload {
+  readonly admissionId: Uuid;
+  readonly centreId: Uuid;
+  readonly organizationId: Uuid;
+  readonly patientId: Uuid;
+  readonly bedLabel: string;
+  readonly status: string;
+}
+
+export type AdmissionOpenedEvent = DomainEvent<typeof ADMISSION_OPENED, AdmissionEventPayload>;
+export type AdmissionDischargedEvent = DomainEvent<
+  typeof ADMISSION_DISCHARGED,
+  AdmissionEventPayload
+>;
+
+const admissionPayload = (admission: SickBayAdmission): AdmissionEventPayload => ({
+  admissionId: admission.id,
+  centreId: admission.centreId,
+  organizationId: admission.organizationId,
+  patientId: admission.patientId,
+  bedLabel: admission.bedLabel,
+  status: admission.status,
+});
+
+export const admissionOpened = (admission: SickBayAdmission): AdmissionOpenedEvent =>
+  createEvent(ADMISSION_OPENED, admissionPayload(admission), { tenantId: admission.tenantId });
+export const admissionDischarged = (admission: SickBayAdmission): AdmissionDischargedEvent =>
+  createEvent(ADMISSION_DISCHARGED, admissionPayload(admission), { tenantId: admission.tenantId });
