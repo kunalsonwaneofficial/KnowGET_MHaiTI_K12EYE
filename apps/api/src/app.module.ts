@@ -8,6 +8,7 @@ import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.
 import { IdentityModule } from "./domains/identity/identity.module";
 import { LearnerWellbeingModule } from "./domains/learner-wellbeing/learner-wellbeing.module";
 import { LearningIntelligenceModule } from "./domains/learning-intelligence/learning-intelligence.module";
+import { LibraryModule } from "./domains/library/library.module";
 import { MembershipModule } from "./domains/membership/membership.module";
 import { OrganizationModule } from "./domains/organization/organization.module";
 import { PersonModule } from "./domains/person/person.module";
@@ -100,6 +101,7 @@ const persistedServices =
     ResourceModule,
     TransportModule,
     ResidentialModule,
+    LibraryModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

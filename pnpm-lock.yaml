@@ -171,6 +171,9 @@ importers:
       '@knowget/learning-intelligence':
         specifier: workspace:*
         version: link:../../packages/learning-intelligence
+      '@knowget/library':
+        specifier: workspace:*
+        version: link:../../packages/library
       '@knowget/logging':
         specifier: workspace:*
         version: link:../../packages/logging
