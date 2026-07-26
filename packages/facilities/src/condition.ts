@@ -23,18 +23,27 @@ function addDays(date: string, days: number): string {
 /**
  * The pure building-condition engine — rolls a building's spaces and fixed systems into a single condition
  * picture: the space counts and capacities (total, and available), the system counts (operational, under
- * maintenance), and a readiness percent (available capacity against total). Pure and deterministic. Built
- * and tested before any aggregate depends on it.
+ * maintenance), and a readiness percent (available capacity against total). **Decommissioned spaces and
+ * systems are terminal and excluded** — they are no longer part of the building's live inventory, so they do
+ * not count toward the space/system counts or the total capacity (a retired wing must not permanently
+ * depress readiness). Draft and out-of-service spaces still count toward the total (future / temporarily-down
+ * capacity), only `available` capacity counts as ready. Pure and deterministic. Built and tested before any
+ * aggregate depends on it.
  */
 export function computeBuildingCondition(
   spaces: readonly SpaceConditionView[],
   systems: readonly SystemConditionView[],
 ): BuildingCondition {
+  let spaceCount = 0;
   let availableSpaceCount = 0;
   let outOfServiceSpaceCount = 0;
   let totalCapacity = 0;
   let availableCapacity = 0;
   for (const space of spaces) {
+    if (space.status === "decommissioned") {
+      continue;
+    }
+    spaceCount += 1;
     totalCapacity += space.capacity;
     if (space.status === "available") {
       availableSpaceCount += 1;
@@ -43,9 +52,14 @@ export function computeBuildingCondition(
       outOfServiceSpaceCount += 1;
     }
   }
+  let systemCount = 0;
   let operationalSystemCount = 0;
   let systemsUnderMaintenance = 0;
   for (const system of systems) {
+    if (system.status === "decommissioned") {
+      continue;
+    }
+    systemCount += 1;
     if (system.status === "operational") {
       operationalSystemCount += 1;
     } else if (system.status === "under_maintenance") {
@@ -53,12 +67,12 @@ export function computeBuildingCondition(
     }
   }
   return {
-    spaceCount: spaces.length,
+    spaceCount,
     availableSpaceCount,
     outOfServiceSpaceCount,
     totalCapacity,
     availableCapacity,
-    systemCount: systems.length,
+    systemCount,
     operationalSystemCount,
     systemsUnderMaintenance,
     readinessPercent: totalCapacity > 0 ? Math.round((availableCapacity / totalCapacity) * 100) : 0,

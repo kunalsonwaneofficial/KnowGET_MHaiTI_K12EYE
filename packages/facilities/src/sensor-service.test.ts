@@ -83,6 +83,13 @@ describe("SensorService", () => {
     );
   });
 
+  it("rejects reactivating an already-active sensor with a transition error, not a false duplicate", async () => {
+    const { service, space } = await setup();
+    const s = await install(service, space.id);
+    // the only active sensor is the one being reactivated → transition error, not duplicate
+    await expect(service.reactivate(tenantId, s.id)).rejects.toThrow(/cannot move/);
+  });
+
   it("drives the sensor lifecycle with events", async () => {
     const { service, space, events } = await setup();
     const s = await install(service, space.id);

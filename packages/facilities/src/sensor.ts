@@ -62,9 +62,13 @@ const touch = (sensor: Sensor, patch: Partial<Sensor>): Sensor => ({
   updatedAt: nowIso(),
 });
 
-/** Set (or clear) the sensor's unit. */
-export const setSensorUnit = (sensor: Sensor, unit: string | null): Sensor =>
-  touch(sensor, { unit: unit?.trim() || null });
+/** Set (or clear) the sensor's unit; not allowed once retired (terminal). */
+export function setSensorUnit(sensor: Sensor, unit: string | null): Sensor {
+  if (sensor.status === "retired") {
+    throw new InvalidSensorTransitionError(sensor.status, "unit-set");
+  }
+  return touch(sensor, { unit: unit?.trim() || null });
+}
 
 /** Deactivate an active sensor (→ `inactive`). */
 export function deactivateSensor(sensor: Sensor): Sensor {

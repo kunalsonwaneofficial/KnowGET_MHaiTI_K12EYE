@@ -89,9 +89,12 @@ export class SensorService {
 
   async reactivate(tenantId: TenantId, id: Uuid): Promise<Sensor> {
     const current = await this.require(tenantId, id);
-    if (
-      await this.repository.findActiveBySpaceAndMetric(tenantId, current.spaceId, current.metric)
-    ) {
+    const active = await this.repository.findActiveBySpaceAndMetric(
+      tenantId,
+      current.spaceId,
+      current.metric,
+    );
+    if (active && active.id !== current.id) {
       throw new DuplicateActiveSensorError(current.spaceId, current.metric);
     }
     const updated = reactivateSensor(current);

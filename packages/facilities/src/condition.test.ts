@@ -34,6 +34,22 @@ describe("computeBuildingCondition", () => {
     expect(c.readinessPercent).toBe(0);
     expect(c.spaceCount).toBe(0);
   });
+
+  it("excludes decommissioned spaces and systems from the counts and total capacity", () => {
+    const c = computeBuildingCondition(
+      [
+        { status: "available", capacity: 40 },
+        { status: "decommissioned", capacity: 60 }, // retired: out of the live inventory entirely
+      ],
+      [{ status: "operational" }, { status: "decommissioned" }],
+    );
+    expect(c.spaceCount).toBe(1); // the decommissioned space is not counted
+    expect(c.totalCapacity).toBe(40); // nor its capacity in the denominator
+    expect(c.availableCapacity).toBe(40);
+    expect(c.readinessPercent).toBe(100); // 40/40, not 40/100
+    expect(c.systemCount).toBe(1); // the decommissioned system is not counted
+    expect(c.operationalSystemCount).toBe(1);
+  });
 });
 
 describe("summarizeCampusCondition", () => {

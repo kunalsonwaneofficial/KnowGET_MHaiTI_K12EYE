@@ -8,6 +8,7 @@ import {
   returnSpaceToService,
   setSpaceCapacity,
   setSpaceFloor,
+  setSpaceType,
   takeSpaceOutOfService,
 } from "./space";
 
@@ -67,5 +68,6 @@ describe("Space aggregate", () => {
     const d = decommissionSpace(a);
     expect(d.status).toBe("decommissioned");
     expect(() => setSpaceCapacity(d, 10)).toThrow(/cannot move/); // no reconfig once decommissioned
+    expect(() => setSpaceType(d, "office")).toThrow(/cannot move/); // type frozen too
   });
 });

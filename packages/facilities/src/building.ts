@@ -76,8 +76,11 @@ const touch = (building: Building, patch: Partial<Building>): Building => ({
   updatedAt: nowIso(),
 });
 
-/** Rename a building. */
+/** Rename a building; not allowed once decommissioned (terminal). */
 export function renameBuilding(building: Building, name: string): Building {
+  if (building.status === "decommissioned") {
+    throw new InvalidBuildingTransitionError(building.status, "renamed");
+  }
   const trimmed = name.trim();
   if (trimmed.length === 0) {
     throw new EmptyBuildingNameError();
@@ -85,8 +88,11 @@ export function renameBuilding(building: Building, name: string): Building {
   return touch(building, { name: trimmed });
 }
 
-/** Set the building's floor count (a non-negative integer). */
+/** Set the building's floor count (a non-negative integer); not allowed once decommissioned (terminal). */
 export function setBuildingFloors(building: Building, floors: number): Building {
+  if (building.status === "decommissioned") {
+    throw new InvalidBuildingTransitionError(building.status, "floors-set");
+  }
   return touch(building, { floors: requireFloors(floors) });
 }
 

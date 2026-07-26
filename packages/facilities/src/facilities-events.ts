@@ -346,7 +346,6 @@ export const COMFORT_POLICY_ARCHIVED = "facilities.comfort_policy.archived";
 export interface ComfortPolicyEventPayload {
   readonly policyId: Uuid;
   readonly organizationId: Uuid;
-  readonly name: string;
   readonly version: number;
   readonly status: string;
   readonly metricCount: number;
@@ -372,7 +371,6 @@ export type ComfortPolicyArchivedEvent = DomainEvent<
 const comfortPolicyPayload = (policy: ComfortPolicy): ComfortPolicyEventPayload => ({
   policyId: policy.id,
   organizationId: policy.organizationId,
-  name: policy.name,
   version: policy.version,
   status: policy.status,
   metricCount: policy.thresholds.length,

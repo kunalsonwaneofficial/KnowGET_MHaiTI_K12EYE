@@ -61,5 +61,6 @@ describe("Sensor aggregate", () => {
     const dead = retireSensor(s);
     expect(dead.status).toBe("retired");
     expect(() => retireSensor(dead)).toThrow(/cannot move/); // terminal
+    expect(() => setSensorUnit(dead, "K")).toThrow(/cannot move/); // unit frozen once retired
   });
 });

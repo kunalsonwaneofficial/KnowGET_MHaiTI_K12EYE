@@ -5,6 +5,7 @@ import {
   decommissionBuilding,
   isBuildingActive,
   registerBuilding,
+  renameBuilding,
   setBuildingFloors,
   startBuildingRenovation,
 } from "./building";
@@ -67,5 +68,12 @@ describe("Building aggregate", () => {
     expect(d.status).toBe("decommissioned");
     expect(() => decommissionBuilding(d)).toThrow(/cannot move/);
     expect(() => completeBuildingRenovation(b)).toThrow(/cannot move/); // active, not renovating
+  });
+
+  it("freezes a decommissioned (terminal) building against edits", () => {
+    const d = decommissionBuilding(make());
+    expect(() => renameBuilding(d, "New name")).toThrow(/cannot move/);
+    expect(() => setBuildingFloors(d, 5)).toThrow(/cannot move/);
+    expect(renameBuilding(make(), "New name").name).toBe("New name"); // still fine while active
   });
 });

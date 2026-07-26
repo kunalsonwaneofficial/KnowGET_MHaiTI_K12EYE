@@ -69,8 +69,13 @@ const touch = (space: Space, patch: Partial<Space>): Space => ({
   updatedAt: nowIso(),
 });
 
-/** Set the space's type. */
-export const setSpaceType = (space: Space, type: SpaceType): Space => touch(space, { type });
+/** Set the space's type; allowed at any point before decommissioning. */
+export function setSpaceType(space: Space, type: SpaceType): Space {
+  if (space.status === "decommissioned") {
+    throw new InvalidSpaceTransitionError(space.status, "type-set");
+  }
+  return touch(space, { type });
+}
 
 /** Set the usable capacity (a non-negative integer); allowed at any point before decommissioning. */
 export function setSpaceCapacity(space: Space, capacity: number): Space {
