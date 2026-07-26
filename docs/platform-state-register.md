@@ -1002,3 +1002,55 @@ Person and Employee existence enter through injected directory ports. Two status
 invariants (one active admission per bed, one active per patient) are service-enforced (**TD-39**); both
 independent audits were clean. All eight service tokens are exported for **in-process cross-domain use**.
 The operational clinical base the campus and intelligence-core domains build on.
+
+## Campus Infrastructure, Facilities & Smart Environment Platform (P2-D20, Program: Campus & Engagement · ADR-0039)
+
+The **built-environment system of record for the institution** — the buildings on the campus and the spaces
+within them, the fixed infrastructure systems that serve them, the smart sensors and the environment
+readings they capture, the operational maintenance work, the comfort policy that judges a space's
+environment, and the descriptive per-building condition profile — built on the organization (P2-D01-M01) and
+workforce (P2-D12) bases, delivered as one `@knowget/facilities` package on the certified `v0.2.0` baseline.
+The **second contract of Program D (Campus & Engagement)**. Several quantities are **derived, not stored**,
+so the design begins with **two pure engines** built and tested first: the **condition engine**
+(`computeBuildingCondition` / `summarizeCampusCondition` value a building's live spaces and systems,
+capacities and a readiness percent and roll building → campus — **decommissioned spaces and systems excluded**
+so a retired wing never permanently depresses readiness; `computeServiceStatus` derives a system's
+ok/due-soon/overdue against its next-due date in **days, never money**) and the **comfort engine**
+(`computeComfortIndex` measures a space's latest readings against per-metric acceptable ranges into a
+comfortable/marginal/poor band). Distinctively, one aggregate is **immutable append-only telemetry** (an
+environment reading is captured once, never edited — its repository omits `remove`), and **this domain
+carries no money** (asset value and costed maintenance are Procurement & Assets' — P2-D15; utility billing
+is Finance's — P2-D14). It models eight aggregates: **Building** (an academic/administrative/laboratory/
+sports/library/utility/multipurpose structure with a floor count; active ↔ under_renovation →
+decommissioned, code unique per tenant, active required to take spaces/systems/sensors, terminal state
+frozen against edits), **Space** (a room/area with a floor + usable capacity; draft → available ↔
+out_of_service → decommissioned, code unique per building, **floor frozen once in service**, terminal state
+frozen), **FacilitySystem** (fixed infrastructure — HVAC/electrical/plumbing/elevator/fire_safety/network/
+water — with a service interval + last-serviced date; operational ↔ under_maintenance → decommissioned,
+**service status derived** never stored), **Sensor** (a smart device reading one metric — temperature/
+humidity/co2/occupancy/energy/water; active ↔ inactive → retired, code unique per tenant, **one active per
+(space, metric)**, org/building from the space), **EnvironmentReading** (an **immutable append-only** float
+sample feeding the comfort engine), **MaintenanceOrder** (an operational **no-money** work order against a
+building/space/system with an **Employee** assignee; reported → assigned → in_progress → completed |
+cancelled), **ComfortPolicy** (a versioned per-metric threshold set in **JSONB**; draft → active → archived,
+thresholds frozen once active, **one active per org**) and **FacilityProfile** (the descriptive per-building
+condition + open-maintenance read model, **refreshed** from the condition engine, never posted to directly).
+The **comfort-assessment service** is the smart-environment integration spine — a space's latest readings
+measured against its org's active policy via the comfort engine (comfortable when no policy is active). It is
+**descriptive, not predictive** (P2-D28). The **movable, capitalized asset register**, asset depreciation and
+costed asset maintenance belong to **Procurement & Assets (P2-D15)**; this domain owns the immovable built
+environment and its operational, no-money work queue. A building's org is an **Organization** and a
+work-order assignee an **Employee**, referenced via directory ports and never duplicated. Money-free,
+free-text-free facilities events publish onto the shared bus. Eight tables carry **FORCE RLS** tenant
+isolation, verified on live PostgreSQL (INTEGER counts/capacities/floors/intervals/percents/versions, **FLOAT**
+sensor value, **JSONB** comfort thresholds and **TEXT** date stamps round-tripping exactly, cross-tenant
+INSERT rejected 42501), with tenant-scoped DB unique indexes (building code, space + facility-system code per
+building, sensor + maintenance-order code, one profile per building). **Two permission scope pairs** split the
+platform along its physical boundary — `facilities:*` for the immovable built environment and its operational
+work (buildings, spaces, fixed systems, maintenance orders, the condition profile) and `environment:*` for the
+smart environment (sensors, telemetry readings, comfort policies, the live comfort assessment). Organization
+and Employee existence enter through injected directory ports. Two status-scoped uniqueness invariants (one
+active sensor per space+metric, one active comfort policy per org) are service-enforced (**TD-40**); both
+independent adversarial audits were resolved clean (six domain consistency/semantics findings fixed before
+merge). All nine service tokens are exported for **in-process cross-domain use**. The operational
+built-environment base the campus and intelligence-core domains build on.

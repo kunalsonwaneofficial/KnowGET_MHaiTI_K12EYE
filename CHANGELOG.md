@@ -3,7 +3,65 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D19 · Program: Campus & Engagement · Integrated Health Centre & Clinical Services Platform
+## [Unreleased] — P2-D20 · Program: Campus & Engagement · Campus Infrastructure, Facilities & Smart Environment Platform
+
+The second contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
+Phase-1 core, and the P2-D01-M01 organization and P2-D12 workforce bases. The institution's **built-environment
+system of record**, delivered as one `@knowget/facilities` package (ADR-0039): the buildings and the spaces
+within them, the fixed infrastructure systems that serve them, the smart sensors and the environment readings
+they capture, the operational maintenance work, the comfort policy that judges a space's environment, and the
+descriptive per-building condition profile. Several quantities are **derived, not stored** — a building's
+condition (rolled building → campus), a system's service status and a space's comfort band — so the design
+begins with **two pure engines**. Distinctively, one aggregate is **immutable append-only telemetry** (an
+environment reading is captured once, never edited), and **this domain carries no money** (asset value and
+costed maintenance are Procurement & Assets' — P2-D15; utility billing is Finance's — P2-D14), so the money
+boundary is held structurally. It owns the **immovable built environment** and its operational, no-money work
+queue; the **movable, capitalized asset** and its costed maintenance stay in Procurement & Assets (P2-D15).
+Descriptive, not predictive — failure forecasting, energy optimization and predictive maintenance are deferred
+to the intelligence core (P2-D28).
+
+### Added
+
+- **Campus Infrastructure, Facilities & Smart Environment Platform (ADR-0039):** two pure engines plus eight
+  aggregates in one `@knowget/facilities` package. **Two engines:** the condition engine
+  (`computeBuildingCondition` / `summarizeCampusCondition` — a building's live spaces and systems, capacities
+  and a readiness percent, rolled building → campus, decommissioned excluded; plus `computeServiceStatus` —
+  a system's ok/due-soon/overdue against its next-due date, days never money) and the comfort engine
+  (`computeComfortIndex` — a space's latest readings measured against per-metric ranges into a comfortable/
+  marginal/poor band). The aggregates: **Building** (an academic/…/multipurpose structure with a floor count;
+  active ↔ under_renovation → decommissioned, code unique per tenant), **Space** (a room/area with a floor +
+  capacity; draft → available ↔ out_of_service → decommissioned, code unique per building, floor frozen once
+  in service), **FacilitySystem** (fixed infrastructure — HVAC/electrical/…/water — with a service interval;
+  operational ↔ under_maintenance → decommissioned, service status derived), **Sensor** (a smart device
+  reading one metric; active ↔ inactive → retired, code unique per tenant, one active per space+metric, org/
+  building from the space), **EnvironmentReading** (an **immutable append-only** float telemetry sample
+  feeding the comfort engine), **MaintenanceOrder** (an operational, **no-money** work order against a
+  building/space/system with an Employee assignee; reported → assigned → in_progress → completed | cancelled),
+  **ComfortPolicy** (a versioned per-metric threshold set in **JSONB**; draft → active → archived, one active
+  per org) and **FacilityProfile** (the descriptive per-building condition + open-work read model, refreshed
+  from the condition engine, never posted to directly). The **ComfortAssessmentService** integration spine
+  measures a space's latest readings against its org's active policy via the comfort engine.
+- **No money & no free-text events:** the domain defines no monetary field (asset cost → Procurement & Assets
+  P2-D15; utility billing → Finance P2-D14), and no domain event carries a maintenance summary or a policy
+  name — only ids, codes, types, statuses, versions and counts.
+- **Boundary with Procurement & Assets (P2-D15):** the movable, capitalized asset register, asset depreciation
+  and costed asset maintenance stay in P2-D15; this domain models the immovable built environment and its
+  operational, no-money work queue.
+- **Persistence (ADR-0010):** eight tables + migration `20261221000000_add_facilities`, each **FORCE RLS** +
+  `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL (INTEGER counts/capacities/
+  floors/intervals/percents/versions, **FLOAT** sensor value, **JSONB** comfort thresholds, **TEXT** date/ISO
+  stamps round-tripping exactly; cross-tenant INSERT rejected 42501); tenant-scoped DB unique indexes (building
+  code, space + facility-system code per building, sensor + maintenance code, one profile per building).
+- **API:** nine permission-gated, tenant-scoped REST controllers — `facilities/*` (buildings, spaces, systems,
+  maintenance orders, the condition profile) under `facilities:read`/`:write` and `environment/*` (sensors,
+  readings, comfort policies, the live comfort assessment) under `environment:read`/`:write`; zod DTOs; eight
+  Prisma/RLS adapters + two directory adapters (Organization, Employee); `FacilitiesModule` importing the
+  Organization and Workforce modules and exporting every service token, registered in `app.module`.
+- **Two status-scoped uniqueness invariants** (one active sensor per space+metric, one active comfort policy
+  per org) are service-enforced (**TD-40**); both independent adversarial audits (domain; persistence/API)
+  were resolved clean, the domain audit's six consistency/semantics findings fixed before merge.
+
+## P2-D19 · Program: Campus & Engagement · Integrated Health Centre & Clinical Services Platform
 
 The first contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the frozen
 Phase-1 core, and the P2-D01-M01 organization, P2-D01-M02 person and P2-D12 workforce bases. The
