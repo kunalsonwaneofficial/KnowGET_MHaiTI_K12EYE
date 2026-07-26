@@ -180,14 +180,25 @@ const services: Provider[] = [
     provide: CS_CREDENTIAL_SERVICE,
     useFactory: (
       repository: AccessCredentialRepository,
+      organizations: OrganizationDirectory,
       zones: AccessZoneRepository,
       employees: EmployeeDirectory,
       persons: PersonDirectory,
       visitors: VisitorRepository,
       events: EventBus,
-    ) => new AccessCredentialService({ repository, zones, employees, persons, visitors, events }),
+    ) =>
+      new AccessCredentialService({
+        repository,
+        organizations,
+        zones,
+        employees,
+        persons,
+        visitors,
+        events,
+      }),
     inject: [
       CS_CREDENTIAL_REPOSITORY,
+      CS_ORGANIZATION_DIRECTORY,
       CS_ZONE_REPOSITORY,
       CS_EMPLOYEE_DIRECTORY,
       CS_PERSON_DIRECTORY,

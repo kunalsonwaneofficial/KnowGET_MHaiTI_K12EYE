@@ -55,6 +55,9 @@ export class AccessDecisionService {
     if (!zone) {
       throw new AccessZoneNotFoundError(input.zoneId);
     }
+    // The engine compares a date-only `expiresOn` against the as-of date; default it to the DATE portion
+    // of `occurredAt` (a timestamp) so a credential is not falsely expired on its own expiry day.
+    const asOfDate = input.asOfDate ?? input.occurredAt.slice(0, 10);
     const evaluation = evaluateAccess(
       {
         status: credential.status,
@@ -62,7 +65,7 @@ export class AccessDecisionService {
         expiresOn: credential.expiresOn,
       },
       { id: zone.id, status: zone.status },
-      input.asOfDate ?? input.occurredAt,
+      asOfDate,
     );
     const event = recordAccessEvent({
       tenantId: input.tenantId,

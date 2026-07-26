@@ -26,6 +26,7 @@ import {
   AccessZoneNotFoundError,
   DuplicateCredentialNumberError,
   EmployeeNotFoundForSecurityError,
+  OrganizationNotFoundForSecurityError,
   PersonNotFoundForSecurityError,
   VisitorNotFoundError,
 } from "./errors";
@@ -33,12 +34,14 @@ import type {
   AccessCredentialRepository,
   AccessZoneRepository,
   EmployeeDirectory,
+  OrganizationDirectory,
   PersonDirectory,
   VisitorRepository,
 } from "./ports";
 
 export interface AccessCredentialServiceDeps {
   readonly repository: AccessCredentialRepository;
+  readonly organizations: OrganizationDirectory;
   readonly zones: AccessZoneRepository;
   readonly employees: EmployeeDirectory;
   readonly persons: PersonDirectory;
@@ -54,6 +57,7 @@ export interface AccessCredentialServiceDeps {
  */
 export class AccessCredentialService {
   private readonly repository: AccessCredentialRepository;
+  private readonly organizations: OrganizationDirectory;
   private readonly zones: AccessZoneRepository;
   private readonly employees: EmployeeDirectory;
   private readonly persons: PersonDirectory;
@@ -62,6 +66,7 @@ export class AccessCredentialService {
 
   constructor(deps: AccessCredentialServiceDeps) {
     this.repository = deps.repository;
+    this.organizations = deps.organizations;
     this.zones = deps.zones;
     this.employees = deps.employees;
     this.persons = deps.persons;
@@ -70,6 +75,9 @@ export class AccessCredentialService {
   }
 
   async issue(input: IssueCredentialParams): Promise<AccessCredential> {
+    if (!(await this.organizations.exists(input.tenantId, input.organizationId))) {
+      throw new OrganizationNotFoundForSecurityError(input.organizationId);
+    }
     await this.requireHolder(input.tenantId, input.holderType, input.holderId);
     for (const zoneId of input.grantedZoneIds ?? []) {
       await this.requireZone(input.tenantId, zoneId);

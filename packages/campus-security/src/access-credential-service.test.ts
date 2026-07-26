@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import { AccessCredentialService } from "./access-credential-service";
 import { createAccessZone } from "./access-zone";
-import type { EmployeeDirectory, PersonDirectory } from "./ports";
+import type { EmployeeDirectory, OrganizationDirectory, PersonDirectory } from "./ports";
 import {
   InMemoryAccessCredentialRepository,
   InMemoryAccessZoneRepository,
@@ -25,6 +25,11 @@ const employees: EmployeeDirectory = {
 const persons: PersonDirectory = {
   async exists() {
     return false;
+  },
+};
+const organizations: OrganizationDirectory = {
+  async exists(_t: TenantId, id: Uuid) {
+    return id === organizationId;
   },
 };
 
@@ -51,6 +56,7 @@ const setup = async () => {
   await visitors.save(visitor);
   const service = new AccessCredentialService({
     repository,
+    organizations,
     zones,
     employees,
     persons,
@@ -91,8 +97,19 @@ describe("AccessCredentialService", () => {
     ).rejects.toThrow(/already in use/);
   });
 
-  it("validates the holder and every granted zone", async () => {
+  it("validates the organization, the holder and every granted zone", async () => {
     const { service, zone, visitor } = await setup();
+    // unknown organization
+    await expect(
+      service.issue({
+        tenantId,
+        organizationId: "missing" as Uuid,
+        credentialNumber: "C-0",
+        holderType: "employee",
+        holderId: employeeId,
+        issuedOn: "2026-07-01",
+      }),
+    ).rejects.toThrow(/Organization/);
     // unknown employee holder
     await expect(
       service.issue({

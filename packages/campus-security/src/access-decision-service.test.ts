@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import { AccessDecisionService } from "./access-decision-service";
-import { issueCredential, suspendCredential } from "./access-credential";
+import { issueCredential, setCredentialExpiry, suspendCredential } from "./access-credential";
 import { createAccessZone, lockDownZone } from "./access-zone";
 import {
   InMemoryAccessCredentialRepository,
@@ -87,6 +87,27 @@ describe("AccessDecisionService", () => {
       occurredAt: "2026-07-01T09:00:00.000Z",
     });
     expect(denied).toMatchObject({ decision: "denied", reason: "credential_inactive" });
+  });
+
+  it("does not falsely expire a credential on its own expiry day (date vs timestamp default)", async () => {
+    const { service, credentials, zone, credential } = await setup();
+    await credentials.save(setCredentialExpiry(credential, "2026-07-01"));
+    // a decision at 09:00 on the expiry day (a timestamp occurredAt) is still granted
+    const onDay = await service.decide({
+      tenantId,
+      credentialId: credential.id,
+      zoneId: zone.id,
+      occurredAt: "2026-07-01T09:00:00.000Z",
+    });
+    expect(onDay).toMatchObject({ decision: "granted", reason: "ok" });
+    // the day after expiry it is denied as expired
+    const nextDay = await service.decide({
+      tenantId,
+      credentialId: credential.id,
+      zoneId: zone.id,
+      occurredAt: "2026-07-02T09:00:00.000Z",
+    });
+    expect(nextDay).toMatchObject({ decision: "denied", reason: "credential_expired" });
   });
 
   it("rejects an unknown credential or zone", async () => {
