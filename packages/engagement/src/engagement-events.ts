@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { MessageThread } from "./message-thread";
 
 /**
  * Domain events for the Unified Communication, Engagement & Collaboration Platform (P2-D22), on the
@@ -165,3 +167,75 @@ export const announcementArchived = (a: Announcement): AnnouncementArchivedEvent
   createEvent(ANNOUNCEMENT_ARCHIVED, announcementPayload(a), { tenantId: a.tenantId });
 export const announcementCancelled = (a: Announcement): AnnouncementCancelledEvent =>
   createEvent(ANNOUNCEMENT_CANCELLED, announcementPayload(a), { tenantId: a.tenantId });
+
+// --- Acknowledgement receipt -----------------------------------------------------
+export const ACKNOWLEDGEMENT_RECORDED = "engagement.acknowledgement.recorded";
+
+export interface AcknowledgementEventPayload {
+  readonly receiptId: Uuid;
+  readonly organizationId: Uuid;
+  readonly announcementId: Uuid;
+  readonly personId: Uuid;
+  readonly acknowledgedAt: string;
+}
+
+export type AcknowledgementRecordedEvent = DomainEvent<
+  typeof ACKNOWLEDGEMENT_RECORDED,
+  AcknowledgementEventPayload
+>;
+
+export const acknowledgementRecorded = (
+  receipt: AcknowledgementReceipt,
+): AcknowledgementRecordedEvent =>
+  createEvent(
+    ACKNOWLEDGEMENT_RECORDED,
+    {
+      receiptId: receipt.id,
+      organizationId: receipt.organizationId,
+      announcementId: receipt.announcementId,
+      personId: receipt.personId,
+      acknowledgedAt: receipt.acknowledgedAt,
+    },
+    { tenantId: receipt.tenantId },
+  );
+
+// --- Message thread --------------------------------------------------------------
+export const THREAD_OPENED = "engagement.thread.opened";
+export const THREAD_PARTICIPANT_ADDED = "engagement.thread.participant_added";
+export const THREAD_CLOSED = "engagement.thread.closed";
+export const THREAD_REOPENED = "engagement.thread.reopened";
+export const THREAD_ARCHIVED = "engagement.thread.archived";
+
+export interface ThreadEventPayload {
+  readonly threadId: Uuid;
+  readonly organizationId: Uuid;
+  readonly participantCount: number;
+  readonly status: string;
+}
+
+export type ThreadOpenedEvent = DomainEvent<typeof THREAD_OPENED, ThreadEventPayload>;
+export type ThreadParticipantAddedEvent = DomainEvent<
+  typeof THREAD_PARTICIPANT_ADDED,
+  ThreadEventPayload
+>;
+export type ThreadClosedEvent = DomainEvent<typeof THREAD_CLOSED, ThreadEventPayload>;
+export type ThreadReopenedEvent = DomainEvent<typeof THREAD_REOPENED, ThreadEventPayload>;
+export type ThreadArchivedEvent = DomainEvent<typeof THREAD_ARCHIVED, ThreadEventPayload>;
+
+const threadPayload = (thread: MessageThread): ThreadEventPayload => ({
+  threadId: thread.id,
+  organizationId: thread.organizationId,
+  participantCount: thread.participantPersonIds.length,
+  status: thread.status,
+});
+
+export const threadOpened = (t: MessageThread): ThreadOpenedEvent =>
+  createEvent(THREAD_OPENED, threadPayload(t), { tenantId: t.tenantId });
+export const threadParticipantAdded = (t: MessageThread): ThreadParticipantAddedEvent =>
+  createEvent(THREAD_PARTICIPANT_ADDED, threadPayload(t), { tenantId: t.tenantId });
+export const threadClosed = (t: MessageThread): ThreadClosedEvent =>
+  createEvent(THREAD_CLOSED, threadPayload(t), { tenantId: t.tenantId });
+export const threadReopened = (t: MessageThread): ThreadReopenedEvent =>
+  createEvent(THREAD_REOPENED, threadPayload(t), { tenantId: t.tenantId });
+export const threadArchived = (t: MessageThread): ThreadArchivedEvent =>
+  createEvent(THREAD_ARCHIVED, threadPayload(t), { tenantId: t.tenantId });

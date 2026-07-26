@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { AcknowledgementReceipt } from "./acknowledgement";
 import type { Announcement } from "./announcement";
 import type { Audience } from "./audience";
+import type { MessageThread } from "./message-thread";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the tenant?
@@ -117,6 +119,118 @@ export class InMemoryAnnouncementRepository implements AnnouncementRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const announcement = this.byId.get(id);
     if (announcement && announcement.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for acknowledgement receipts — an append-only log. Tenant-scoped (explicit argument +
+ * RLS). There is no `remove`: receipts are immutable facts. `findByAnnouncementAndPerson` backs the
+ * one-per-(announcement, person) guard; `countByAnnouncement` is the announcement's acknowledged count.
+ */
+export interface AcknowledgementRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<AcknowledgementReceipt | null>;
+  findByAnnouncementAndPerson(
+    tenantId: TenantId,
+    announcementId: Uuid,
+    personId: Uuid,
+  ): Promise<AcknowledgementReceipt | null>;
+  listByAnnouncement(tenantId: TenantId, announcementId: Uuid): Promise<AcknowledgementReceipt[]>;
+  countByAnnouncement(tenantId: TenantId, announcementId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<AcknowledgementReceipt[]>;
+  save(receipt: AcknowledgementReceipt): Promise<void>;
+}
+
+/** In-memory {@link AcknowledgementRepository} — the default for tests and bootstrap. */
+export class InMemoryAcknowledgementRepository implements AcknowledgementRepository {
+  private readonly byId = new Map<string, AcknowledgementReceipt>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<AcknowledgementReceipt | null> {
+    const receipt = this.byId.get(id);
+    return receipt && receipt.tenantId === tenantId ? receipt : null;
+  }
+
+  async findByAnnouncementAndPerson(
+    tenantId: TenantId,
+    announcementId: Uuid,
+    personId: Uuid,
+  ): Promise<AcknowledgementReceipt | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) =>
+          r.tenantId === tenantId && r.announcementId === announcementId && r.personId === personId,
+      ) ?? null
+    );
+  }
+
+  async listByAnnouncement(
+    tenantId: TenantId,
+    announcementId: Uuid,
+  ): Promise<AcknowledgementReceipt[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.announcementId === announcementId,
+    );
+  }
+
+  async countByAnnouncement(tenantId: TenantId, announcementId: Uuid): Promise<number> {
+    return (await this.listByAnnouncement(tenantId, announcementId)).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AcknowledgementReceipt[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(receipt: AcknowledgementReceipt): Promise<void> {
+    this.byId.set(receipt.id, receipt);
+  }
+}
+
+/**
+ * Storage contract for message threads. Tenant-scoped (explicit argument + RLS). `listByParticipant` returns
+ * the threads a person takes part in.
+ */
+export interface MessageThreadRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<MessageThread | null>;
+  listByParticipant(tenantId: TenantId, personId: Uuid): Promise<MessageThread[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<MessageThread[]>;
+  listByTenant(tenantId: TenantId): Promise<MessageThread[]>;
+  save(thread: MessageThread): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link MessageThreadRepository} — the default for tests and bootstrap. */
+export class InMemoryMessageThreadRepository implements MessageThreadRepository {
+  private readonly byId = new Map<string, MessageThread>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<MessageThread | null> {
+    const thread = this.byId.get(id);
+    return thread && thread.tenantId === tenantId ? thread : null;
+  }
+
+  async listByParticipant(tenantId: TenantId, personId: Uuid): Promise<MessageThread[]> {
+    return [...this.byId.values()].filter(
+      (t) => t.tenantId === tenantId && t.participantPersonIds.includes(personId),
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<MessageThread[]> {
+    return [...this.byId.values()].filter(
+      (t) => t.tenantId === tenantId && t.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<MessageThread[]> {
+    return [...this.byId.values()].filter((t) => t.tenantId === tenantId);
+  }
+
+  async save(thread: MessageThread): Promise<void> {
+    this.byId.set(thread.id, thread);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const thread = this.byId.get(id);
+    if (thread && thread.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
