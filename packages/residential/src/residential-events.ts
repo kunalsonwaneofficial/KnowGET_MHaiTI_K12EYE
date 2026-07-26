@@ -1,6 +1,8 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { BedAllocation } from "./bed-allocation";
 import type { Hostel } from "./hostel";
+import type { Room } from "./room";
 import type { Warden } from "./warden";
 
 // --- Hostel ----------------------------------------------------------------------
@@ -97,3 +99,88 @@ export const wardenReinstated = (warden: Warden): WardenReinstatedEvent =>
 
 export const wardenRelieved = (warden: Warden): WardenRelievedEvent =>
   createEvent(WARDEN_RELIEVED, wardenPayload(warden), { tenantId: warden.tenantId });
+
+// --- Room ------------------------------------------------------------------------
+export const ROOM_DRAFTED = "residential.room.drafted";
+export const ROOM_MADE_AVAILABLE = "residential.room.made_available";
+export const ROOM_SENT_TO_MAINTENANCE = "residential.room.sent_to_maintenance";
+export const ROOM_RETURNED_FROM_MAINTENANCE = "residential.room.returned_from_maintenance";
+export const ROOM_DECOMMISSIONED = "residential.room.decommissioned";
+
+export interface RoomEventPayload {
+  readonly roomId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly roomNumber: string;
+  readonly bedCount: number;
+  readonly status: string;
+}
+
+export type RoomDraftedEvent = DomainEvent<typeof ROOM_DRAFTED, RoomEventPayload>;
+export type RoomMadeAvailableEvent = DomainEvent<typeof ROOM_MADE_AVAILABLE, RoomEventPayload>;
+export type RoomSentToMaintenanceEvent = DomainEvent<
+  typeof ROOM_SENT_TO_MAINTENANCE,
+  RoomEventPayload
+>;
+export type RoomReturnedFromMaintenanceEvent = DomainEvent<
+  typeof ROOM_RETURNED_FROM_MAINTENANCE,
+  RoomEventPayload
+>;
+export type RoomDecommissionedEvent = DomainEvent<typeof ROOM_DECOMMISSIONED, RoomEventPayload>;
+
+const roomPayload = (room: Room): RoomEventPayload => ({
+  roomId: room.id,
+  organizationId: room.organizationId,
+  hostelId: room.hostelId,
+  roomNumber: room.roomNumber,
+  bedCount: room.beds.length,
+  status: room.status,
+});
+
+export const roomDrafted = (room: Room): RoomDraftedEvent =>
+  createEvent(ROOM_DRAFTED, roomPayload(room), { tenantId: room.tenantId });
+
+export const roomMadeAvailable = (room: Room): RoomMadeAvailableEvent =>
+  createEvent(ROOM_MADE_AVAILABLE, roomPayload(room), { tenantId: room.tenantId });
+
+export const roomSentToMaintenance = (room: Room): RoomSentToMaintenanceEvent =>
+  createEvent(ROOM_SENT_TO_MAINTENANCE, roomPayload(room), { tenantId: room.tenantId });
+
+export const roomReturnedFromMaintenance = (room: Room): RoomReturnedFromMaintenanceEvent =>
+  createEvent(ROOM_RETURNED_FROM_MAINTENANCE, roomPayload(room), { tenantId: room.tenantId });
+
+export const roomDecommissioned = (room: Room): RoomDecommissionedEvent =>
+  createEvent(ROOM_DECOMMISSIONED, roomPayload(room), { tenantId: room.tenantId });
+
+// --- Bed allocation --------------------------------------------------------------
+export const ALLOCATION_CREATED = "residential.allocation.created";
+export const ALLOCATION_ENDED = "residential.allocation.ended";
+
+export interface AllocationEventPayload {
+  readonly allocationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly roomId: Uuid;
+  readonly bedKey: string;
+  readonly studentId: Uuid;
+  readonly status: string;
+}
+
+export type AllocationCreatedEvent = DomainEvent<typeof ALLOCATION_CREATED, AllocationEventPayload>;
+export type AllocationEndedEvent = DomainEvent<typeof ALLOCATION_ENDED, AllocationEventPayload>;
+
+const allocationPayload = (allocation: BedAllocation): AllocationEventPayload => ({
+  allocationId: allocation.id,
+  organizationId: allocation.organizationId,
+  hostelId: allocation.hostelId,
+  roomId: allocation.roomId,
+  bedKey: allocation.bedKey,
+  studentId: allocation.studentId,
+  status: allocation.status,
+});
+
+export const allocationCreated = (allocation: BedAllocation): AllocationCreatedEvent =>
+  createEvent(ALLOCATION_CREATED, allocationPayload(allocation), { tenantId: allocation.tenantId });
+
+export const allocationEnded = (allocation: BedAllocation): AllocationEndedEvent =>
+  createEvent(ALLOCATION_ENDED, allocationPayload(allocation), { tenantId: allocation.tenantId });

@@ -165,3 +165,183 @@ export class WardenNotActiveError extends PlatformError {
     });
   }
 }
+
+// --- Room ------------------------------------------------------------------------
+
+/** The requested room does not exist in the current tenant. */
+export class RoomNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Room "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A room must carry a non-empty room number. */
+export class EmptyRoomNumberError extends PlatformError {
+  constructor() {
+    super("A room must have a non-empty room number", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The room number is already in use within its hostel. */
+export class DuplicateRoomNumberError extends PlatformError {
+  constructor(hostelId: string, roomNumber: string) {
+    super(`Room number "${roomNumber}" is already in use in hostel "${hostelId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { hostelId, roomNumber },
+    });
+  }
+}
+
+/** The requested room lifecycle transition is not permitted. */
+export class InvalidRoomTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition room from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A room's beds can only be edited while it is a draft. */
+export class RoomNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Room "${id}" is "${status}"; its beds can only be edited while draft`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** A room must have at least one bed before it can be made available. */
+export class EmptyRoomError extends PlatformError {
+  constructor() {
+    super("A room must have at least one bed before it can be made available", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The room is not available, so it cannot take bed allocations. */
+export class RoomNotAvailableError extends PlatformError {
+  constructor(id: string) {
+    super(`Room "${id}" is not available`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A bed must carry a non-empty key (its stable identifier within the room). */
+export class EmptyBedKeyError extends PlatformError {
+  constructor() {
+    super("A room bed must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A bed must carry a non-empty label. */
+export class EmptyBedLabelError extends PlatformError {
+  constructor() {
+    super("A room bed must have a non-empty label", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A bed key must be unique within its room. */
+export class DuplicateBedKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Room bed key "${key}" is already in use in this room`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** The requested bed was not found on the room. */
+export class BedNotFoundError extends PlatformError {
+  constructor(key: string) {
+    super(`Room bed "${key}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+// --- Bed allocation --------------------------------------------------------------
+
+/** The requested bed allocation does not exist in the current tenant. */
+export class AllocationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Bed allocation "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The bed already has an active allocation; end it before allocating the bed again. */
+export class BedOccupiedError extends PlatformError {
+  constructor(roomId: string, bedKey: string) {
+    super(`Bed "${bedKey}" in room "${roomId}" is already occupied`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { roomId, bedKey },
+    });
+  }
+}
+
+/** The student already has an active bed allocation; end it before allocating another bed. */
+export class StudentAlreadyResidentError extends PlatformError {
+  constructor(studentId: string) {
+    super(`Student "${studentId}" already has an active bed allocation`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { studentId },
+    });
+  }
+}
+
+/** The requested allocation lifecycle transition is not permitted. */
+export class InvalidAllocationTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition bed allocation from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

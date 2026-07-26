@@ -1,9 +1,12 @@
 // value objects + views
 export * from "./residential-value";
 export * from "./residential-view";
+export * from "./room-bed";
 // aggregates
 export * from "./hostel";
 export * from "./warden";
+export * from "./room";
+export * from "./bed-allocation";
 // pure engines (room/hostel/institution occupancy; roll-call reconciliation)
 export * from "./occupancy";
 export * from "./roll-call";
@@ -12,6 +15,8 @@ export * from "./residential-events";
 // application services
 export * from "./hostel-service";
 export * from "./warden-service";
+export * from "./room-service";
+export * from "./bed-allocation-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors

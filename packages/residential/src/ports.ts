@@ -1,5 +1,7 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { BedAllocation } from "./bed-allocation";
 import type { Hostel } from "./hostel";
+import type { Room } from "./room";
 import type { Warden } from "./warden";
 
 /**
@@ -121,6 +123,162 @@ export class InMemoryWardenRepository implements WardenRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const warden = this.byId.get(id);
     if (warden && warden.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for rooms. Tenant-scoped (explicit argument + RLS). */
+export interface RoomRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<Room | null>;
+  findByHostelAndNumber(
+    tenantId: TenantId,
+    hostelId: Uuid,
+    roomNumber: string,
+  ): Promise<Room | null>;
+  listByHostel(tenantId: TenantId, hostelId: Uuid): Promise<Room[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Room[]>;
+  listByTenant(tenantId: TenantId): Promise<Room[]>;
+  save(room: Room): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link RoomRepository} — the default for tests and bootstrap. */
+export class InMemoryRoomRepository implements RoomRepository {
+  private readonly byId = new Map<string, Room>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<Room | null> {
+    const room = this.byId.get(id);
+    return room && room.tenantId === tenantId ? room : null;
+  }
+
+  async findByHostelAndNumber(
+    tenantId: TenantId,
+    hostelId: Uuid,
+    roomNumber: string,
+  ): Promise<Room | null> {
+    return (
+      [...this.byId.values()].find(
+        (r) => r.tenantId === tenantId && r.hostelId === hostelId && r.roomNumber === roomNumber,
+      ) ?? null
+    );
+  }
+
+  async listByHostel(tenantId: TenantId, hostelId: Uuid): Promise<Room[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.hostelId === hostelId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<Room[]> {
+    return [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<Room[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(room: Room): Promise<void> {
+    this.byId.set(room.id, room);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const room = this.byId.get(id);
+    if (room && room.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for bed allocations. Tenant-scoped (explicit argument + RLS). */
+export interface BedAllocationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<BedAllocation | null>;
+  findActiveByBed(tenantId: TenantId, roomId: Uuid, bedKey: string): Promise<BedAllocation | null>;
+  findActiveByStudent(tenantId: TenantId, studentId: Uuid): Promise<BedAllocation | null>;
+  listActiveByRoom(tenantId: TenantId, roomId: Uuid): Promise<BedAllocation[]>;
+  listActiveByHostel(tenantId: TenantId, hostelId: Uuid): Promise<BedAllocation[]>;
+  listByRoom(tenantId: TenantId, roomId: Uuid): Promise<BedAllocation[]>;
+  listByStudent(tenantId: TenantId, studentId: Uuid): Promise<BedAllocation[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<BedAllocation[]>;
+  listByTenant(tenantId: TenantId): Promise<BedAllocation[]>;
+  save(allocation: BedAllocation): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link BedAllocationRepository} — the default for tests and bootstrap. */
+export class InMemoryBedAllocationRepository implements BedAllocationRepository {
+  private readonly byId = new Map<string, BedAllocation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<BedAllocation | null> {
+    const allocation = this.byId.get(id);
+    return allocation && allocation.tenantId === tenantId ? allocation : null;
+  }
+
+  async findActiveByBed(
+    tenantId: TenantId,
+    roomId: Uuid,
+    bedKey: string,
+  ): Promise<BedAllocation | null> {
+    return (
+      [...this.byId.values()].find(
+        (a) =>
+          a.tenantId === tenantId &&
+          a.roomId === roomId &&
+          a.bedKey === bedKey &&
+          a.status === "active",
+      ) ?? null
+    );
+  }
+
+  async findActiveByStudent(tenantId: TenantId, studentId: Uuid): Promise<BedAllocation | null> {
+    return (
+      [...this.byId.values()].find(
+        (a) => a.tenantId === tenantId && a.studentId === studentId && a.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listActiveByRoom(tenantId: TenantId, roomId: Uuid): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.roomId === roomId && a.status === "active",
+    );
+  }
+
+  async listActiveByHostel(tenantId: TenantId, hostelId: Uuid): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.hostelId === hostelId && a.status === "active",
+    );
+  }
+
+  async listByRoom(tenantId: TenantId, roomId: Uuid): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId && a.roomId === roomId);
+  }
+
+  async listByStudent(tenantId: TenantId, studentId: Uuid): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.studentId === studentId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter(
+      (a) => a.tenantId === tenantId && a.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<BedAllocation[]> {
+    return [...this.byId.values()].filter((a) => a.tenantId === tenantId);
+  }
+
+  async save(allocation: BedAllocation): Promise<void> {
+    this.byId.set(allocation.id, allocation);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const allocation = this.byId.get(id);
+    if (allocation && allocation.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
