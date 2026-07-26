@@ -174,3 +174,125 @@ export class InvalidSpaceTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Facility system -------------------------------------------------------------
+
+/** The requested facility system does not exist in the current tenant. */
+export class FacilitySystemNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Facility system "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A facility system must carry a non-empty code. */
+export class EmptySystemCodeError extends PlatformError {
+  constructor() {
+    super("A facility system must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A service interval must be a positive integer number of days. */
+export class InvalidServiceIntervalError extends PlatformError {
+  constructor(days: number) {
+    super(`Service interval "${days}" must be a positive integer number of days`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { days },
+    });
+  }
+}
+
+/** The facility-system code is already in use within the building. */
+export class DuplicateSystemCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Facility-system code "${code}" is already in use in this building`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** An invalid facility-system status transition was attempted. */
+export class InvalidSystemTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A facility system cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Sensor ----------------------------------------------------------------------
+
+/** The requested sensor does not exist in the current tenant. */
+export class SensorNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Sensor "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A sensor must carry a non-empty code. */
+export class EmptySensorCodeError extends PlatformError {
+  constructor() {
+    super("A sensor must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The sensor code is already in use within the tenant. */
+export class DuplicateSensorCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Sensor code "${code}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** An active sensor already reads this metric in this space. */
+export class DuplicateActiveSensorError extends PlatformError {
+  constructor(spaceId: string, metric: string) {
+    super(`An active "${metric}" sensor already exists in space "${spaceId}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { spaceId, metric },
+    });
+  }
+}
+
+/** An invalid sensor status transition was attempted. */
+export class InvalidSensorTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A sensor cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
