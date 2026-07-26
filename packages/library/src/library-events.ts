@@ -1,5 +1,7 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
+import type { CirculationPolicy } from "./circulation-policy";
+import type { CollectionProfile } from "./collection-profile";
 import type { Copy } from "./copy";
 import type { DigitalAsset } from "./digital-asset";
 import type { LibraryMember } from "./library-member";
@@ -270,3 +272,70 @@ export const reservationExpired = (reservation: Reservation): ReservationExpired
   createEvent(RESERVATION_EXPIRED, reservationPayload(reservation), {
     tenantId: reservation.tenantId,
   });
+
+// --- Circulation policy ----------------------------------------------------------
+export const POLICY_DRAFTED = "library.policy.drafted";
+export const POLICY_ACTIVATED = "library.policy.activated";
+export const POLICY_ARCHIVED = "library.policy.archived";
+
+export interface PolicyEventPayload {
+  readonly policyId: Uuid;
+  readonly organizationId: Uuid;
+  readonly name: string;
+  readonly version: number;
+  readonly status: string;
+}
+
+export type PolicyDraftedEvent = DomainEvent<typeof POLICY_DRAFTED, PolicyEventPayload>;
+export type PolicyActivatedEvent = DomainEvent<typeof POLICY_ACTIVATED, PolicyEventPayload>;
+export type PolicyArchivedEvent = DomainEvent<typeof POLICY_ARCHIVED, PolicyEventPayload>;
+
+const policyPayload = (policy: CirculationPolicy): PolicyEventPayload => ({
+  policyId: policy.id,
+  organizationId: policy.organizationId,
+  name: policy.name,
+  version: policy.version,
+  status: policy.status,
+});
+
+export const policyDrafted = (policy: CirculationPolicy): PolicyDraftedEvent =>
+  createEvent(POLICY_DRAFTED, policyPayload(policy), { tenantId: policy.tenantId });
+
+export const policyActivated = (policy: CirculationPolicy): PolicyActivatedEvent =>
+  createEvent(POLICY_ACTIVATED, policyPayload(policy), { tenantId: policy.tenantId });
+
+export const policyArchived = (policy: CirculationPolicy): PolicyArchivedEvent =>
+  createEvent(POLICY_ARCHIVED, policyPayload(policy), { tenantId: policy.tenantId });
+
+// --- Collection profile ----------------------------------------------------------
+export const COLLECTION_REFRESHED = "library.collection.refreshed";
+
+export interface CollectionProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly titleCount: number;
+  readonly copyCount: number;
+  readonly onLoanCount: number;
+  readonly overdueLoanCount: number;
+  readonly version: number;
+}
+
+export type CollectionRefreshedEvent = DomainEvent<
+  typeof COLLECTION_REFRESHED,
+  CollectionProfileEventPayload
+>;
+
+export const collectionRefreshed = (profile: CollectionProfile): CollectionRefreshedEvent =>
+  createEvent(
+    COLLECTION_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      titleCount: profile.titleCount,
+      copyCount: profile.copyCount,
+      onLoanCount: profile.onLoanCount,
+      overdueLoanCount: profile.overdueLoanCount,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );

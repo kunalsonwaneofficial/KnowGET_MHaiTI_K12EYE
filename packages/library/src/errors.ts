@@ -348,3 +348,90 @@ export class DuplicateReservationError extends PlatformError {
     });
   }
 }
+
+// --- Circulation policy ----------------------------------------------------------
+
+/** The requested circulation policy does not exist in the current tenant. */
+export class PolicyNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Circulation policy "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A circulation policy must carry a non-empty name. */
+export class EmptyPolicyNameError extends PlatformError {
+  constructor() {
+    super("A circulation policy must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A circulation rule's numeric limits must be non-negative whole numbers. */
+export class InvalidPolicyRuleError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid circulation rule: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** The requested circulation policy lifecycle transition is not permitted. */
+export class InvalidPolicyTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`Cannot transition circulation policy from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** A circulation policy's rules can only be edited while it is a draft. */
+export class PolicyNotEditableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Circulation policy "${id}" is "${status}"; its rules can only be edited while draft`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** The organization already has an active circulation policy; archive it before activating another. */
+export class OrgHasActivePolicyError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" already has an active circulation policy`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}
+
+// --- Collection profile ----------------------------------------------------------
+
+/** The requested collection profile does not exist in the current tenant. */
+export class CollectionProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Collection profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

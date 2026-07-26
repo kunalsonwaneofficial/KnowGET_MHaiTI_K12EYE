@@ -1,4 +1,6 @@
 import type { TenantId, Uuid } from "@knowget/types";
+import type { CirculationPolicy } from "./circulation-policy";
+import type { CollectionProfile } from "./collection-profile";
 import type { Copy } from "./copy";
 import type { DigitalAsset } from "./digital-asset";
 import type { LibraryMember } from "./library-member";
@@ -380,6 +382,107 @@ export class InMemoryReservationRepository implements ReservationRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const reservation = this.byId.get(id);
     if (reservation && reservation.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for circulation policies. Tenant-scoped (explicit argument + RLS). */
+export interface CirculationPolicyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CirculationPolicy | null>;
+  findActiveByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CirculationPolicy | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CirculationPolicy[]>;
+  listByTenant(tenantId: TenantId): Promise<CirculationPolicy[]>;
+  save(policy: CirculationPolicy): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CirculationPolicyRepository} — the default for tests and bootstrap. */
+export class InMemoryCirculationPolicyRepository implements CirculationPolicyRepository {
+  private readonly byId = new Map<string, CirculationPolicy>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CirculationPolicy | null> {
+    const policy = this.byId.get(id);
+    return policy && policy.tenantId === tenantId ? policy : null;
+  }
+
+  async findActiveByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CirculationPolicy | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) =>
+          p.tenantId === tenantId && p.organizationId === organizationId && p.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CirculationPolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CirculationPolicy[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(policy: CirculationPolicy): Promise<void> {
+    this.byId.set(policy.id, policy);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const policy = this.byId.get(id);
+    if (policy && policy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for collection profiles (one per organization). Tenant-scoped (argument + RLS). */
+export interface CollectionProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<CollectionProfile | null>;
+  findByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<CollectionProfile | null>;
+  listByTenant(tenantId: TenantId): Promise<CollectionProfile[]>;
+  save(profile: CollectionProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link CollectionProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryCollectionProfileRepository implements CollectionProfileRepository {
+  private readonly byId = new Map<string, CollectionProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<CollectionProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<CollectionProfile | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+      ) ?? null
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<CollectionProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: CollectionProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
