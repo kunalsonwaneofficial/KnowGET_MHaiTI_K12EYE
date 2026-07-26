@@ -1,7 +1,9 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AdmissionCycle } from "./admission-cycle";
 import type { AdmissionEvaluation } from "./admission-evaluation";
+import type { AdmissionsFunnelProfile } from "./admissions-funnel-profile";
 import type { Application } from "./application";
+import type { EnrollmentConfirmation } from "./enrollment-confirmation";
 import type { Lead } from "./lead";
 import type { MarketingCampaign } from "./marketing-campaign";
 import type { Offer } from "./offer";
@@ -324,5 +326,83 @@ export class InMemoryOfferRepository implements OfferRepository {
     if (offer && offer.tenantId === tenantId) {
       this.byId.delete(id);
     }
+  }
+}
+
+/**
+ * Storage contract for enrollment confirmations — the immutable close of the funnel. Tenant-scoped (explicit
+ * argument + RLS). `findByOffer` backs the one-confirmation-per-offer rule; `listByCycle`/`countByCycle` feed
+ * the funnel's enrollment count and the per-grade intake rollup. There is no `remove`: confirmations are
+ * immutable facts.
+ */
+export interface EnrollmentConfirmationRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EnrollmentConfirmation | null>;
+  findByOffer(tenantId: TenantId, offerId: Uuid): Promise<EnrollmentConfirmation | null>;
+  listByCycle(tenantId: TenantId, cycleId: Uuid): Promise<EnrollmentConfirmation[]>;
+  countByCycle(tenantId: TenantId, cycleId: Uuid): Promise<number>;
+  listByTenant(tenantId: TenantId): Promise<EnrollmentConfirmation[]>;
+  save(confirmation: EnrollmentConfirmation): Promise<void>;
+}
+
+/** In-memory {@link EnrollmentConfirmationRepository} — the default for tests and bootstrap. */
+export class InMemoryEnrollmentConfirmationRepository implements EnrollmentConfirmationRepository {
+  private readonly byId = new Map<string, EnrollmentConfirmation>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EnrollmentConfirmation | null> {
+    const confirmation = this.byId.get(id);
+    return confirmation && confirmation.tenantId === tenantId ? confirmation : null;
+  }
+
+  async findByOffer(tenantId: TenantId, offerId: Uuid): Promise<EnrollmentConfirmation | null> {
+    return (
+      [...this.byId.values()].find((c) => c.tenantId === tenantId && c.offerId === offerId) ?? null
+    );
+  }
+
+  async listByCycle(tenantId: TenantId, cycleId: Uuid): Promise<EnrollmentConfirmation[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId && c.cycleId === cycleId);
+  }
+
+  async countByCycle(tenantId: TenantId, cycleId: Uuid): Promise<number> {
+    return (await this.listByCycle(tenantId, cycleId)).length;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EnrollmentConfirmation[]> {
+    return [...this.byId.values()].filter((c) => c.tenantId === tenantId);
+  }
+
+  async save(confirmation: EnrollmentConfirmation): Promise<void> {
+    this.byId.set(confirmation.id, confirmation);
+  }
+}
+
+/**
+ * Storage contract for admissions funnel profiles — the derived per-cycle projection. Tenant-scoped (explicit
+ * argument + RLS). One profile per cycle (`findByCycle`); the refresh spine upserts through `save`.
+ */
+export interface AdmissionsFunnelProfileRepository {
+  findByCycle(tenantId: TenantId, cycleId: Uuid): Promise<AdmissionsFunnelProfile | null>;
+  listByTenant(tenantId: TenantId): Promise<AdmissionsFunnelProfile[]>;
+  save(profile: AdmissionsFunnelProfile): Promise<void>;
+}
+
+/** In-memory {@link AdmissionsFunnelProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryAdmissionsFunnelProfileRepository implements AdmissionsFunnelProfileRepository {
+  private readonly byCycle = new Map<string, AdmissionsFunnelProfile>();
+
+  private key(tenantId: TenantId, cycleId: Uuid): string {
+    return `${tenantId}:${cycleId}`;
+  }
+
+  async findByCycle(tenantId: TenantId, cycleId: Uuid): Promise<AdmissionsFunnelProfile | null> {
+    return this.byCycle.get(this.key(tenantId, cycleId)) ?? null;
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<AdmissionsFunnelProfile[]> {
+    return [...this.byCycle.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: AdmissionsFunnelProfile): Promise<void> {
+    this.byCycle.set(this.key(profile.tenantId, profile.cycleId), profile);
   }
 }

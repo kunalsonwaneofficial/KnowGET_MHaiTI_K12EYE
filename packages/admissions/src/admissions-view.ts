@@ -73,3 +73,8 @@ export interface IntakeSummary {
   readonly totalConfirmed: number;
   readonly fillPercent: number;
 }
+
+/** A grade's intake picture labeled with the grade it belongs to — the per-grade read the refresh spine exposes. */
+export interface GradeIntakeCapacity extends IntakeCapacity {
+  readonly grade: string;
+}

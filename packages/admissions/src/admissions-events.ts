@@ -2,7 +2,9 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AdmissionCycle } from "./admission-cycle";
 import type { AdmissionEvaluation } from "./admission-evaluation";
+import type { AdmissionsFunnelProfile } from "./admissions-funnel-profile";
 import type { Application } from "./application";
+import type { EnrollmentConfirmation } from "./enrollment-confirmation";
 import type { Lead } from "./lead";
 import type { MarketingCampaign } from "./marketing-campaign";
 import type { Offer } from "./offer";
@@ -306,3 +308,84 @@ export const offerExpired = (o: Offer): OfferExpiredEvent =>
   createEvent(OFFER_EXPIRED, offerPayload(o), { tenantId: o.tenantId });
 export const offerWithdrawn = (o: Offer): OfferWithdrawnEvent =>
   createEvent(OFFER_WITHDRAWN, offerPayload(o), { tenantId: o.tenantId });
+
+// --- Enrollment confirmation -----------------------------------------------------
+export const ENROLLMENT_CONFIRMED = "admissions.enrollment.confirmed";
+
+export interface EnrollmentEventPayload {
+  readonly confirmationId: Uuid;
+  readonly organizationId: Uuid;
+  readonly offerId: Uuid;
+  readonly applicationId: Uuid;
+  readonly cycleId: Uuid;
+  readonly applicantPersonId: Uuid;
+  readonly studentId: Uuid | null;
+  readonly gradeConfirmed: string;
+}
+
+export type EnrollmentConfirmedEvent = DomainEvent<
+  typeof ENROLLMENT_CONFIRMED,
+  EnrollmentEventPayload
+>;
+
+/**
+ * The funnel-closing fact and the hand-off signal to Student Lifecycle (P2-D03): an accepted offer has become
+ * a confirmed enrollment. Carries ids and the grade only — no PII.
+ */
+export const enrollmentConfirmed = (
+  confirmation: EnrollmentConfirmation,
+): EnrollmentConfirmedEvent =>
+  createEvent(
+    ENROLLMENT_CONFIRMED,
+    {
+      confirmationId: confirmation.id,
+      organizationId: confirmation.organizationId,
+      offerId: confirmation.offerId,
+      applicationId: confirmation.applicationId,
+      cycleId: confirmation.cycleId,
+      applicantPersonId: confirmation.applicantPersonId,
+      studentId: confirmation.studentId,
+      gradeConfirmed: confirmation.gradeConfirmed,
+    },
+    { tenantId: confirmation.tenantId },
+  );
+
+// --- Admissions funnel profile ---------------------------------------------------
+export const FUNNEL_PROFILE_REFRESHED = "admissions.funnel_profile.refreshed";
+
+export interface FunnelProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly cycleId: Uuid;
+  readonly leadCount: number;
+  readonly applicationCount: number;
+  readonly offerCount: number;
+  readonly enrollmentCount: number;
+  readonly overallConversionPercent: number;
+  readonly fillPercent: number;
+}
+
+export type FunnelProfileRefreshedEvent = DomainEvent<
+  typeof FUNNEL_PROFILE_REFRESHED,
+  FunnelProfileEventPayload
+>;
+
+/** The derived per-cycle funnel projection has been recomputed. Carries counts and rates only — no PII. */
+export const funnelProfileRefreshed = (
+  profile: AdmissionsFunnelProfile,
+): FunnelProfileRefreshedEvent =>
+  createEvent(
+    FUNNEL_PROFILE_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      cycleId: profile.cycleId,
+      leadCount: profile.leadCount,
+      applicationCount: profile.applicationCount,
+      offerCount: profile.offerCount,
+      enrollmentCount: profile.enrollmentCount,
+      overallConversionPercent: profile.overallConversionPercent,
+      fillPercent: profile.fillPercent,
+    },
+    { tenantId: profile.tenantId },
+  );
