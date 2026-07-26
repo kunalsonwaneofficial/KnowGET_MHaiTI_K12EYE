@@ -90,6 +90,9 @@ importers:
       '@knowget/academic-structure':
         specifier: workspace:*
         version: link:../../packages/academic-structure
+      '@knowget/admissions':
+        specifier: workspace:*
+        version: link:../../packages/admissions
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting

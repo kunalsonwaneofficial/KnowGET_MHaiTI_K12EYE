@@ -19,6 +19,7 @@
     "@knowget/attendance-presence": "workspace:*",
     "@knowget/academic-scheduling": "workspace:*",
     "@knowget/academic-structure": "workspace:*",
+    "@knowget/admissions": "workspace:*",
     "@knowget/alerting": "workspace:*",
     "@knowget/auth": "workspace:*",
     "@knowget/campus-security": "workspace:*",
