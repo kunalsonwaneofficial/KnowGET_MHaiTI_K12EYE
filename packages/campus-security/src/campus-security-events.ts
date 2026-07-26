@@ -3,6 +3,8 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { AccessCredential } from "./access-credential";
 import type { AccessEvent } from "./access-event";
 import type { AccessZone } from "./access-zone";
+import type { EmergencyDrill } from "./emergency-drill";
+import type { SafetyProfile } from "./safety-profile";
 import type { SecurityIncident } from "./security-incident";
 import type { Visit } from "./visit";
 import type { Visitor } from "./visitor";
@@ -340,3 +342,86 @@ export const incidentClosed = (incident: SecurityIncident): IncidentClosedEvent 
   createEvent(INCIDENT_CLOSED, incidentPayload(incident), { tenantId: incident.tenantId });
 export const incidentCancelled = (incident: SecurityIncident): IncidentCancelledEvent =>
   createEvent(INCIDENT_CANCELLED, incidentPayload(incident), { tenantId: incident.tenantId });
+
+// --- Emergency drill -------------------------------------------------------------
+export const DRILL_SCHEDULED = "campus-security.drill.scheduled";
+export const DRILL_EXPECTED_SET = "campus-security.drill.expected_set";
+export const DRILL_STARTED = "campus-security.drill.started";
+export const DRILL_MUSTER_RECORDED = "campus-security.drill.muster_recorded";
+export const DRILL_COMPLETED = "campus-security.drill.completed";
+export const DRILL_CANCELLED = "campus-security.drill.cancelled";
+
+export interface DrillEventPayload {
+  readonly drillId: Uuid;
+  readonly organizationId: Uuid;
+  readonly code: string;
+  readonly type: string;
+  readonly zoneId: Uuid | null;
+  readonly status: string;
+  readonly expectedCount: number;
+  readonly accountedCount: number;
+}
+
+export type DrillScheduledEvent = DomainEvent<typeof DRILL_SCHEDULED, DrillEventPayload>;
+export type DrillExpectedSetEvent = DomainEvent<typeof DRILL_EXPECTED_SET, DrillEventPayload>;
+export type DrillStartedEvent = DomainEvent<typeof DRILL_STARTED, DrillEventPayload>;
+export type DrillMusterRecordedEvent = DomainEvent<typeof DRILL_MUSTER_RECORDED, DrillEventPayload>;
+export type DrillCompletedEvent = DomainEvent<typeof DRILL_COMPLETED, DrillEventPayload>;
+export type DrillCancelledEvent = DomainEvent<typeof DRILL_CANCELLED, DrillEventPayload>;
+
+const drillPayload = (drill: EmergencyDrill): DrillEventPayload => ({
+  drillId: drill.id,
+  organizationId: drill.organizationId,
+  code: drill.code,
+  type: drill.type,
+  zoneId: drill.zoneId,
+  status: drill.status,
+  expectedCount: drill.expectedCount,
+  accountedCount: drill.accountedCount,
+});
+
+export const drillScheduled = (drill: EmergencyDrill): DrillScheduledEvent =>
+  createEvent(DRILL_SCHEDULED, drillPayload(drill), { tenantId: drill.tenantId });
+export const drillExpectedSet = (drill: EmergencyDrill): DrillExpectedSetEvent =>
+  createEvent(DRILL_EXPECTED_SET, drillPayload(drill), { tenantId: drill.tenantId });
+export const drillStarted = (drill: EmergencyDrill): DrillStartedEvent =>
+  createEvent(DRILL_STARTED, drillPayload(drill), { tenantId: drill.tenantId });
+export const drillMusterRecorded = (drill: EmergencyDrill): DrillMusterRecordedEvent =>
+  createEvent(DRILL_MUSTER_RECORDED, drillPayload(drill), { tenantId: drill.tenantId });
+export const drillCompleted = (drill: EmergencyDrill): DrillCompletedEvent =>
+  createEvent(DRILL_COMPLETED, drillPayload(drill), { tenantId: drill.tenantId });
+export const drillCancelled = (drill: EmergencyDrill): DrillCancelledEvent =>
+  createEvent(DRILL_CANCELLED, drillPayload(drill), { tenantId: drill.tenantId });
+
+// --- Safety profile --------------------------------------------------------------
+export const SAFETY_PROFILE_REFRESHED = "campus-security.profile.refreshed";
+
+export interface SafetyProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly zoneId: Uuid;
+  readonly organizationId: Uuid;
+  readonly onSiteVisitorCount: number;
+  readonly openIncidentCount: number;
+  readonly activeCredentialCount: number;
+  readonly refreshedAt: string;
+}
+
+export type SafetyProfileRefreshedEvent = DomainEvent<
+  typeof SAFETY_PROFILE_REFRESHED,
+  SafetyProfileEventPayload
+>;
+
+const safetyProfilePayload = (profile: SafetyProfile): SafetyProfileEventPayload => ({
+  profileId: profile.id,
+  zoneId: profile.zoneId,
+  organizationId: profile.organizationId,
+  onSiteVisitorCount: profile.onSiteVisitorCount,
+  openIncidentCount: profile.openIncidentCount,
+  activeCredentialCount: profile.activeCredentialCount,
+  refreshedAt: profile.refreshedAt,
+});
+
+export const safetyProfileRefreshed = (profile: SafetyProfile): SafetyProfileRefreshedEvent =>
+  createEvent(SAFETY_PROFILE_REFRESHED, safetyProfilePayload(profile), {
+    tenantId: profile.tenantId,
+  });

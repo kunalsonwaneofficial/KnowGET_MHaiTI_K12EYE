@@ -328,3 +328,64 @@ export class IncidentUnassignedError extends PlatformError {
     });
   }
 }
+
+// --- Emergency drill -------------------------------------------------------------
+
+/** The requested emergency drill does not exist in the current tenant. */
+export class EmergencyDrillNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Emergency drill "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An emergency drill must carry a non-empty code. */
+export class EmptyDrillCodeError extends PlatformError {
+  constructor() {
+    super("An emergency drill must have a non-empty code", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A drill's expected roster or accounted-for headcount must be a non-negative integer. */
+export class InvalidDrillCountError extends PlatformError {
+  constructor(value: number) {
+    super(`Drill headcount "${value}" must be a non-negative integer`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { value },
+    });
+  }
+}
+
+/** The drill code is already in use within the tenant. */
+export class DuplicateDrillCodeError extends PlatformError {
+  constructor(code: string) {
+    super(`Emergency-drill code "${code}" is already in use`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { code },
+    });
+  }
+}
+
+/** An invalid emergency-drill status transition was attempted. */
+export class InvalidDrillTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An emergency drill cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

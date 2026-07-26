@@ -2,6 +2,8 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { AccessCredential } from "./access-credential";
 import type { AccessEvent } from "./access-event";
 import type { AccessZone } from "./access-zone";
+import type { EmergencyDrill } from "./emergency-drill";
+import type { SafetyProfile } from "./safety-profile";
 import type { SecurityIncident } from "./security-incident";
 import type { Visit } from "./visit";
 import type { Visitor } from "./visitor";
@@ -376,6 +378,103 @@ export class InMemorySecurityIncidentRepository implements SecurityIncidentRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const incident = this.byId.get(id);
     if (incident && incident.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for emergency drills. Tenant-scoped (explicit argument + RLS). */
+export interface EmergencyDrillRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<EmergencyDrill | null>;
+  findByCode(tenantId: TenantId, code: string): Promise<EmergencyDrill | null>;
+  listByZone(tenantId: TenantId, zoneId: Uuid): Promise<EmergencyDrill[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EmergencyDrill[]>;
+  listByTenant(tenantId: TenantId): Promise<EmergencyDrill[]>;
+  save(drill: EmergencyDrill): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link EmergencyDrillRepository} — the default for tests and bootstrap. */
+export class InMemoryEmergencyDrillRepository implements EmergencyDrillRepository {
+  private readonly byId = new Map<string, EmergencyDrill>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<EmergencyDrill | null> {
+    const drill = this.byId.get(id);
+    return drill && drill.tenantId === tenantId ? drill : null;
+  }
+
+  async findByCode(tenantId: TenantId, code: string): Promise<EmergencyDrill | null> {
+    return [...this.byId.values()].find((d) => d.tenantId === tenantId && d.code === code) ?? null;
+  }
+
+  async listByZone(tenantId: TenantId, zoneId: Uuid): Promise<EmergencyDrill[]> {
+    return [...this.byId.values()].filter((d) => d.tenantId === tenantId && d.zoneId === zoneId);
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<EmergencyDrill[]> {
+    return [...this.byId.values()].filter(
+      (d) => d.tenantId === tenantId && d.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<EmergencyDrill[]> {
+    return [...this.byId.values()].filter((d) => d.tenantId === tenantId);
+  }
+
+  async save(drill: EmergencyDrill): Promise<void> {
+    this.byId.set(drill.id, drill);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const drill = this.byId.get(id);
+    if (drill && drill.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for safety profiles — one per zone. Tenant-scoped (explicit argument + RLS). */
+export interface SafetyProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SafetyProfile | null>;
+  findByZone(tenantId: TenantId, zoneId: Uuid): Promise<SafetyProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SafetyProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<SafetyProfile[]>;
+  save(profile: SafetyProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SafetyProfileRepository} — the default for tests and bootstrap. */
+export class InMemorySafetyProfileRepository implements SafetyProfileRepository {
+  private readonly byId = new Map<string, SafetyProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SafetyProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByZone(tenantId: TenantId, zoneId: Uuid): Promise<SafetyProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.zoneId === zoneId) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<SafetyProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SafetyProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: SafetyProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
