@@ -7,6 +7,7 @@ import { surveyResponseSubmitted } from "./engagement-events";
 import {
   DuplicateSurveyResponseError,
   PersonNotFoundForEngagementError,
+  SingleValueQuestionError,
   SurveyNotFoundError,
   SurveyNotOpenError,
   UnknownSurveyQuestionError,
@@ -56,11 +57,20 @@ export class SurveyResponseService {
     if (!isSurveyOpen(survey)) {
       throw new SurveyNotOpenError(input.surveyId);
     }
-    const questionKeys = new Set(survey.questions.map((q) => q.key));
+    const questionsByKey = new Map(survey.questions.map((q) => [q.key, q]));
     for (const answer of input.answers) {
       const key = answer.questionKey.trim();
-      if (!questionKeys.has(key)) {
+      const question = questionsByKey.get(key);
+      if (!question) {
         throw new UnknownSurveyQuestionError(key);
+      }
+      // A single-choice or rating answer selects exactly one option; more than one distinct value would
+      // over-count the tally, so it is rejected here (multi_choice and text are unconstrained).
+      if (question.type === "single_choice" || question.type === "rating") {
+        const distinct = new Set(answer.values.map((v) => v.trim()).filter((v) => v.length > 0));
+        if (distinct.size > 1) {
+          throw new SingleValueQuestionError(key);
+        }
       }
     }
     const respondentPersonId = input.respondentPersonId ?? null;

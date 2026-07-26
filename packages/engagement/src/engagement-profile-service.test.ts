@@ -79,6 +79,17 @@ const setup = async () => {
     "2026-07-01T00:00:00.000Z",
   );
   await surveys.save(survey);
+  // a draft survey must be excluded from the profile's survey count and its response-rate denominator
+  await surveys.save(
+    createSurvey({
+      tenantId,
+      organizationId,
+      audienceId: audience.id,
+      title: "Draft",
+      type: "poll",
+      questions: [{ key: "d1", prompt: "?", type: "text", options: [], required: false }],
+    }),
+  );
   await responses.save(
     recordSurveyResponse({
       tenantId,

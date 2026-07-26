@@ -64,9 +64,13 @@ export class MessageThreadService {
 
   async addParticipant(tenantId: TenantId, id: Uuid, personId: Uuid): Promise<MessageThread> {
     await this.requirePerson(tenantId, personId);
-    const updated = addThreadParticipant(await this.require(tenantId, id), personId);
-    await this.repository.save(updated);
-    await this.emit(threadParticipantAdded(updated));
+    const thread = await this.require(tenantId, id);
+    const updated = addThreadParticipant(thread, personId);
+    // Already a participant ⇒ the aggregate returns the same reference; skip the save and the spurious event.
+    if (updated !== thread) {
+      await this.repository.save(updated);
+      await this.emit(threadParticipantAdded(updated));
+    }
     return updated;
   }
 

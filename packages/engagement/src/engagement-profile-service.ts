@@ -79,7 +79,12 @@ export class EngagementProfileService {
     }
     const engagement = summarizeEngagement(reachViews);
 
-    const surveys = await this.surveys.listByAudience(tenantId, audienceId);
+    // Only surveys that have been issued (opened at some point — not still draft) can collect responses, so
+    // draft surveys are excluded from the count and the rate denominator, mirroring the published-only
+    // announcement roll-up above.
+    const surveys = (await this.surveys.listByAudience(tenantId, audienceId)).filter(
+      (survey) => survey.status !== "draft",
+    );
     let totalResponses = 0;
     for (const survey of surveys) {
       totalResponses += await this.responses.countBySurvey(tenantId, survey.id);

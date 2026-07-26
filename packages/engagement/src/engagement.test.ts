@@ -57,4 +57,14 @@ describe("summarizeEngagement", () => {
       acknowledgementPercent: 0,
     });
   });
+
+  it("caps each item's acknowledged count at its own audience size (no >100% rollup)", () => {
+    // a stale over-count (6 acks on a size-4 audience) is capped to 4, so the rollup stays <= 100%
+    const summary = summarizeEngagement([
+      { audienceSize: 4, acknowledgedCount: 6 },
+      { audienceSize: 4, acknowledgedCount: 0 },
+    ]);
+    expect(summary.totalAcknowledged).toBe(4);
+    expect(summary.acknowledgementPercent).toBe(50);
+  });
 });

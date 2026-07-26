@@ -103,6 +103,26 @@ describe("SurveyResponseService", () => {
     ).rejects.toThrow(/already responded/);
   });
 
+  it("rejects a single-choice answer with multiple distinct values, but de-duplicates repeats", async () => {
+    const { service, survey } = await setup();
+    await expect(
+      service.submit({
+        tenantId,
+        surveyId: survey.id,
+        answers: [{ questionKey: "q1", values: ["y", "n"] }],
+        submittedAt: "t",
+      }),
+    ).rejects.toThrow(/single value/);
+    // repeated values of the same option collapse to one (allowed) and are stored de-duplicated
+    const r = await service.submit({
+      tenantId,
+      surveyId: survey.id,
+      answers: [{ questionKey: "q1", values: ["y", "y"] }],
+      submittedAt: "t",
+    });
+    expect(r.answers[0]?.values).toEqual(["y"]);
+  });
+
   it("allows multiple anonymous responses (no respondent, no dedup)", async () => {
     const { service, survey } = await setup();
     await service.submit({

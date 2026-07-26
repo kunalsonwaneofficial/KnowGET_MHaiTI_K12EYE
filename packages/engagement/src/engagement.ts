@@ -34,8 +34,11 @@ export function summarizeEngagement(items: readonly AnnouncementReachView[]): En
   let totalAudience = 0;
   let totalAcknowledged = 0;
   for (const item of items) {
-    totalAudience += Math.max(0, item.audienceSize);
-    totalAcknowledged += Math.max(0, item.acknowledgedCount);
+    const size = Math.max(0, item.audienceSize);
+    totalAudience += size;
+    // Cap each item's acknowledged count at its own audience size (as computeAnnouncementReach does), so a
+    // stale over-count on one announcement cannot push the rolled-up percent above 100.
+    totalAcknowledged += Math.min(Math.max(0, item.acknowledgedCount), size);
   }
   return {
     announcementCount: items.length,

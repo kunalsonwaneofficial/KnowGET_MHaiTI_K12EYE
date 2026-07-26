@@ -246,18 +246,6 @@ export class NonParticipantAuthorError extends PlatformError {
 
 // --- Message ---------------------------------------------------------------------
 
-/** The requested message does not exist in the current tenant. */
-export class MessageNotFoundError extends PlatformError {
-  constructor(id: string) {
-    super(`Message "${id}" not found`, {
-      code: "NOT_FOUND",
-      httpStatus: 404,
-      isOperational: true,
-      details: { id },
-    });
-  }
-}
-
 /** A message must carry a non-empty body. */
 export class EmptyMessageBodyError extends PlatformError {
   constructor() {
@@ -335,22 +323,22 @@ export class SurveyNotOpenError extends PlatformError {
 
 // --- Survey response -------------------------------------------------------------
 
-/** The requested survey response does not exist in the current tenant. */
-export class SurveyResponseNotFoundError extends PlatformError {
-  constructor(id: string) {
-    super(`Survey response "${id}" not found`, {
-      code: "NOT_FOUND",
-      httpStatus: 404,
-      isOperational: true,
-      details: { id },
-    });
-  }
-}
-
 /** A survey response references a question the survey does not define. */
 export class UnknownSurveyQuestionError extends PlatformError {
   constructor(questionKey: string) {
     super(`Survey response references unknown question "${questionKey}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { questionKey },
+    });
+  }
+}
+
+/** A single-choice or rating answer selected more than one value. */
+export class SingleValueQuestionError extends PlatformError {
+  constructor(questionKey: string) {
+    super(`Question "${questionKey}" accepts a single value, but multiple were given`, {
       code: "VALIDATION_ERROR",
       httpStatus: 422,
       isOperational: true,
@@ -367,20 +355,6 @@ export class DuplicateSurveyResponseError extends PlatformError {
       httpStatus: 409,
       isOperational: true,
       details: { surveyId, respondentPersonId },
-    });
-  }
-}
-
-// --- Engagement profile ----------------------------------------------------------
-
-/** The requested engagement profile does not exist in the current tenant. */
-export class EngagementProfileNotFoundError extends PlatformError {
-  constructor(id: string) {
-    super(`Engagement profile "${id}" not found`, {
-      code: "NOT_FOUND",
-      httpStatus: 404,
-      isOperational: true,
-      details: { id },
     });
   }
 }

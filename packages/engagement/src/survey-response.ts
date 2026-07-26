@@ -30,12 +30,12 @@ export interface RecordSurveyResponseParams {
   readonly submittedAt: string;
 }
 
-/** Normalize answers — trim values, drop blanks, and drop answers left with no values. */
+/** Normalize answers — trim values, drop blanks, de-duplicate, and drop answers left with no values. */
 const normalizeAnswers = (answers: readonly SurveyAnswerView[]): SurveyAnswerView[] =>
   answers
     .map((a) => ({
       questionKey: a.questionKey.trim(),
-      values: a.values.map((v) => v.trim()).filter((v) => v.length > 0),
+      values: [...new Set(a.values.map((v) => v.trim()).filter((v) => v.length > 0))],
     }))
     .filter((a) => a.questionKey.length > 0 && a.values.length > 0);
 
