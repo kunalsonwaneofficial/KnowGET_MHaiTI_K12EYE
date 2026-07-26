@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TenantId, Uuid } from "@knowget/types";
+import { issueCopy } from "./copy";
 import { CopyService } from "./copy-service";
 import { InMemoryCopyRepository, InMemoryTitleRepository } from "./ports";
 import { catalogTitle, withdrawTitle } from "./title";
@@ -51,5 +52,21 @@ describe("CopyService.availabilityForTitle", () => {
     expect(avail.availableCopies).toBe(1);
     expect(avail.lostCount).toBe(1);
     expect(avail.isAvailable).toBe(true);
+  });
+});
+
+describe("CopyService.markLost", () => {
+  it("marks an available copy lost", async () => {
+    const { service, title } = await setup();
+    const c = await service.accession({ tenantId, titleId: title.id, barcode: "BC-1" });
+    expect((await service.markLost(tenantId, c.id)).status).toBe("lost");
+  });
+
+  it("refuses to lose an on-loan copy directly — that must go through the loan", async () => {
+    const { service, repository, title } = await setup();
+    const c = await service.accession({ tenantId, titleId: title.id, barcode: "BC-1" });
+    await repository.save(issueCopy(c)); // simulate the copy being out on loan
+    await expect(service.markLost(tenantId, c.id)).rejects.toThrow(/on loan/);
+    expect((await service.getById(tenantId, c.id)).status).toBe("on_loan"); // unchanged
   });
 });

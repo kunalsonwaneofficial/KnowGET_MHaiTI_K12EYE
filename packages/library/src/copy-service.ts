@@ -12,6 +12,7 @@ import {
 } from "./copy";
 import {
   CopyNotFoundError,
+  CopyOnLoanError,
   DuplicateBarcodeError,
   TitleNotActiveError,
   TitleNotFoundError,
@@ -74,7 +75,13 @@ export class CopyService {
   }
 
   async markLost(tenantId: TenantId, id: Uuid): Promise<Copy> {
-    const updated = markCopyLost(await this.require(tenantId, id));
+    const copy = await this.require(tenantId, id);
+    // An on-loan copy can only be lost through the loan (LoanService.markLost), which reconciles the loan
+    // and the copy together; losing it here would leave the loan active and the item double-counted.
+    if (copy.status === "on_loan") {
+      throw new CopyOnLoanError(id);
+    }
+    const updated = markCopyLost(copy);
     await this.repository.save(updated);
     await this.emit(copyLost(updated));
     return updated;

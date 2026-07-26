@@ -81,13 +81,16 @@ export class ReservationService {
       throw new DuplicateReservationError(input.memberId, input.titleId);
     }
     const open = await this.repository.listOpenByTitle(input.tenantId, input.titleId);
+    // One past the highest open position — not `open.length + 1`, which could collide with a live hold
+    // after an earlier one in the queue was cancelled.
+    const queuePosition = open.reduce((max, r) => Math.max(max, r.queuePosition), 0) + 1;
     const reservation = placeReservation({
       tenantId: input.tenantId,
       organizationId: title.organizationId,
       titleId: input.titleId,
       memberId: input.memberId,
       requestedOn: input.requestedOn,
-      queuePosition: open.length + 1,
+      queuePosition,
     });
     await this.repository.save(reservation);
     await this.emit(reservationPlaced(reservation));

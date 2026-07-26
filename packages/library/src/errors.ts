@@ -151,6 +151,22 @@ export class CopyNotAvailableError extends PlatformError {
   }
 }
 
+/**
+ * A copy that is currently on loan cannot be marked lost through the copy service, which would leave its
+ * loan active and the item double-counted. The loss must go through the loan (LoanService.markLost), which
+ * reconciles the loan and the copy together.
+ */
+export class CopyOnLoanError extends PlatformError {
+  constructor(id: string) {
+    super(`Copy "${id}" is on loan; mark its loan lost instead`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
 // --- Digital asset ---------------------------------------------------------------
 
 /** The requested digital asset does not exist in the current tenant. */
