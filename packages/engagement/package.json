@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/engagement",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified Communication, Engagement & Collaboration Platform (P2-D22) — the institution's engagement system of record: the audiences it addresses, the announcements it broadcasts and the immutable acknowledgement receipts they draw, the message threads and their immutable messages, the surveys it runs and the immutable responses they collect, with a descriptive per-audience engagement profile. A pure engagement engine derives an announcement's reach (audience size vs acknowledgements → acknowledged/pending and an acknowledgement rate, rolled across announcements); a pure survey-tally engine derives a survey's per-question response distribution and its response rate. Channel delivery is the platform notifications service's (P1-M05) and contact preferences are Family & Guardian's (P2-D04); money is out of scope and domain events carry no money and no message/response free text.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
