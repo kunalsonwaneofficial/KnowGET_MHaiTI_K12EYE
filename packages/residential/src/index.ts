@@ -10,6 +10,8 @@ export * from "./room";
 export * from "./bed-allocation";
 export * from "./outpass";
 export * from "./roll-call-session";
+export * from "./hostel-inspection";
+export * from "./hostel-occupancy-profile";
 // pure engines (room/hostel/institution occupancy; roll-call reconciliation)
 export * from "./occupancy";
 export * from "./roll-call";
@@ -22,6 +24,8 @@ export * from "./room-service";
 export * from "./bed-allocation-service";
 export * from "./outpass-service";
 export * from "./roll-call-service";
+export * from "./hostel-inspection-service";
+export * from "./hostel-occupancy-profile-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain errors

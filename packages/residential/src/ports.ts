@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { BedAllocation } from "./bed-allocation";
 import type { Hostel } from "./hostel";
+import type { HostelInspection } from "./hostel-inspection";
+import type { HostelOccupancyProfile } from "./hostel-occupancy-profile";
 import type { Outpass } from "./outpass";
 import type { RollCall } from "./roll-call-session";
 import type { Room } from "./room";
@@ -401,6 +403,121 @@ export class InMemoryRollCallRepository implements RollCallRepository {
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const rollCall = this.byId.get(id);
     if (rollCall && rollCall.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for hostel inspections. Tenant-scoped (explicit argument + RLS). */
+export interface HostelInspectionRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<HostelInspection | null>;
+  findByHostelAndType(
+    tenantId: TenantId,
+    hostelId: Uuid,
+    type: string,
+  ): Promise<HostelInspection | null>;
+  listByHostel(tenantId: TenantId, hostelId: Uuid): Promise<HostelInspection[]>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<HostelInspection[]>;
+  listByTenant(tenantId: TenantId): Promise<HostelInspection[]>;
+  save(inspection: HostelInspection): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link HostelInspectionRepository} — the default for tests and bootstrap. */
+export class InMemoryHostelInspectionRepository implements HostelInspectionRepository {
+  private readonly byId = new Map<string, HostelInspection>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<HostelInspection | null> {
+    const inspection = this.byId.get(id);
+    return inspection && inspection.tenantId === tenantId ? inspection : null;
+  }
+
+  async findByHostelAndType(
+    tenantId: TenantId,
+    hostelId: Uuid,
+    type: string,
+  ): Promise<HostelInspection | null> {
+    return (
+      [...this.byId.values()].find(
+        (i) => i.tenantId === tenantId && i.hostelId === hostelId && i.type === type,
+      ) ?? null
+    );
+  }
+
+  async listByHostel(tenantId: TenantId, hostelId: Uuid): Promise<HostelInspection[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.hostelId === hostelId,
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<HostelInspection[]> {
+    return [...this.byId.values()].filter(
+      (i) => i.tenantId === tenantId && i.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<HostelInspection[]> {
+    return [...this.byId.values()].filter((i) => i.tenantId === tenantId);
+  }
+
+  async save(inspection: HostelInspection): Promise<void> {
+    this.byId.set(inspection.id, inspection);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const inspection = this.byId.get(id);
+    if (inspection && inspection.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for hostel occupancy profiles (one per hostel). Tenant-scoped (argument + RLS). */
+export interface HostelOccupancyProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<HostelOccupancyProfile | null>;
+  findByHostel(tenantId: TenantId, hostelId: Uuid): Promise<HostelOccupancyProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<HostelOccupancyProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<HostelOccupancyProfile[]>;
+  save(profile: HostelOccupancyProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link HostelOccupancyProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryHostelOccupancyProfileRepository implements HostelOccupancyProfileRepository {
+  private readonly byId = new Map<string, HostelOccupancyProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<HostelOccupancyProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByHostel(tenantId: TenantId, hostelId: Uuid): Promise<HostelOccupancyProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.hostelId === hostelId) ??
+      null
+    );
+  }
+
+  async listByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<HostelOccupancyProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<HostelOccupancyProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: HostelOccupancyProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

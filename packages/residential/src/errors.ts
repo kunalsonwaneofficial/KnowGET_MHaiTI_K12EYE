@@ -481,3 +481,55 @@ export class InvalidRollCallMarkError extends PlatformError {
     });
   }
 }
+
+// --- Hostel inspection -----------------------------------------------------------
+
+/** The requested hostel inspection does not exist in the current tenant. */
+export class InspectionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Hostel inspection "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The hostel already has an inspection of this type; re-inspect it instead of recording another. */
+export class DuplicateInspectionError extends PlatformError {
+  constructor(hostelId: string, type: string) {
+    super(`Hostel "${hostelId}" already has a "${type}" inspection`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { hostelId, type },
+    });
+  }
+}
+
+/** A hostel inspection must have valid dates, with the next-due date on or after the conducted date. */
+export class InvalidInspectionDatesError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid hostel inspection dates: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+// --- Hostel occupancy profile ----------------------------------------------------
+
+/** The requested hostel occupancy profile does not exist in the current tenant. */
+export class HostelOccupancyProfileNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Hostel occupancy profile "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}

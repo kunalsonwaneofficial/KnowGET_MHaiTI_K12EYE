@@ -2,6 +2,8 @@ import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { BedAllocation } from "./bed-allocation";
 import type { Hostel } from "./hostel";
+import type { HostelInspection } from "./hostel-inspection";
+import type { HostelOccupancyProfile } from "./hostel-occupancy-profile";
 import type { Outpass } from "./outpass";
 import type { RollCall } from "./roll-call-session";
 import { rollCallSummary } from "./roll-call-session";
@@ -286,3 +288,77 @@ export const rollCallCompleted = (rollCall: RollCall): RollCallCompletedEvent =>
 
 export const rollCallCancelled = (rollCall: RollCall): RollCallCancelledEvent =>
   createEvent(ROLL_CALL_CANCELLED, rollCallPayload(rollCall), { tenantId: rollCall.tenantId });
+
+// --- Hostel inspection -----------------------------------------------------------
+export const INSPECTION_RECORDED = "residential.inspection.recorded";
+export const INSPECTION_REINSPECTED = "residential.inspection.reinspected";
+
+export interface InspectionEventPayload {
+  readonly inspectionId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly type: string;
+  readonly outcome: string;
+  readonly nextDueOn: string;
+}
+
+export type InspectionRecordedEvent = DomainEvent<
+  typeof INSPECTION_RECORDED,
+  InspectionEventPayload
+>;
+export type InspectionReinspectedEvent = DomainEvent<
+  typeof INSPECTION_REINSPECTED,
+  InspectionEventPayload
+>;
+
+const inspectionPayload = (inspection: HostelInspection): InspectionEventPayload => ({
+  inspectionId: inspection.id,
+  organizationId: inspection.organizationId,
+  hostelId: inspection.hostelId,
+  type: inspection.type,
+  outcome: inspection.outcome,
+  nextDueOn: inspection.nextDueOn,
+});
+
+export const inspectionRecorded = (inspection: HostelInspection): InspectionRecordedEvent =>
+  createEvent(INSPECTION_RECORDED, inspectionPayload(inspection), {
+    tenantId: inspection.tenantId,
+  });
+
+export const inspectionReinspected = (inspection: HostelInspection): InspectionReinspectedEvent =>
+  createEvent(INSPECTION_REINSPECTED, inspectionPayload(inspection), {
+    tenantId: inspection.tenantId,
+  });
+
+// --- Hostel occupancy profile ----------------------------------------------------
+export const OCCUPANCY_REFRESHED = "residential.occupancy.refreshed";
+
+export interface OccupancyProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly organizationId: Uuid;
+  readonly hostelId: Uuid;
+  readonly bedCount: number;
+  readonly occupantCount: number;
+  readonly overCapacity: boolean;
+  readonly version: number;
+}
+
+export type OccupancyRefreshedEvent = DomainEvent<
+  typeof OCCUPANCY_REFRESHED,
+  OccupancyProfileEventPayload
+>;
+
+export const occupancyRefreshed = (profile: HostelOccupancyProfile): OccupancyRefreshedEvent =>
+  createEvent(
+    OCCUPANCY_REFRESHED,
+    {
+      profileId: profile.id,
+      organizationId: profile.organizationId,
+      hostelId: profile.hostelId,
+      bedCount: profile.bedCount,
+      occupantCount: profile.occupantCount,
+      overCapacity: profile.overCapacity,
+      version: profile.version,
+    },
+    { tenantId: profile.tenantId },
+  );
