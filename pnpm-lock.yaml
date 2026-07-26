@@ -129,6 +129,9 @@ importers:
       '@knowget/documents':
         specifier: workspace:*
         version: link:../../packages/documents
+      '@knowget/engagement':
+        specifier: workspace:*
+        version: link:../../packages/engagement
       '@knowget/enterprise-identity':
         specifier: workspace:*
         version: link:../../packages/enterprise-identity
