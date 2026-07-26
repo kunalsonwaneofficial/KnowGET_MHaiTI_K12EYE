@@ -111,6 +111,9 @@ importers:
       '@knowget/cache':
         specifier: workspace:*
         version: link:../../packages/cache
+      '@knowget/campus-security':
+        specifier: workspace:*
+        version: link:../../packages/campus-security
       '@knowget/configuration':
         specifier: workspace:*
         version: link:../../packages/configuration
