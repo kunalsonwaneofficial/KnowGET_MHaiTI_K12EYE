@@ -2,13 +2,13 @@
 
 **Campus Infrastructure, Facilities & Smart Environment Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Campus & Engagement
 
-|                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D20 — Campus Infrastructure, Facilities & Smart Environment Platform                                                                                                                                                                                                                                                                                                                                                                                          |
-| **Status**     | 🟡 In progress — CI green; branch `feat/p2-d20-facilities` pushed, awaiting "It's green" to merge. In-sandbox: `@knowget/facilities` typecheck/lint/format/build clean, **72 tests** (19 files); `apps/api` typecheck/lint/build clean + facilities DI-graph spec (2 tests) in the 208-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**245** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
-| **Depends on** | P2-D01-M01 (Organization — the campus-node base), P2-D12 (Workforce, ADR-0031 — the Employee base for maintenance assignees), P2-D15 (Procurement & Assets, ADR-0034 — where the movable capitalized asset + costed maintenance live), P2-D19 (Health Centre, ADR-0038 — the Program D operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                                                      |
-| **Date**       | 21 December 2026                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Next**       | P2-D21 — Campus Security, Safety & Visitor (next Program D contract)                                                                                                                                                                                                                                                                                                                                                                                             |
+|                |                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D20 — Campus Infrastructure, Facilities & Smart Environment Platform                                                                                                                                                                                                                                                                                                                                             |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`7436798`). In-sandbox: `@knowget/facilities` typecheck/lint/format/build clean, **72 tests** (19 files); `apps/api` typecheck/lint/build clean + facilities DI-graph spec (2 tests) in the 208-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (**245** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
+| **Depends on** | P2-D01-M01 (Organization — the campus-node base), P2-D12 (Workforce, ADR-0031 — the Employee base for maintenance assignees), P2-D15 (Procurement & Assets, ADR-0034 — where the movable capitalized asset + costed maintenance live), P2-D19 (Health Centre, ADR-0038 — the Program D operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                         |
+| **Date**       | 21 December 2026                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Next**       | P2-D21 — Campus Security, Safety & Visitor (next Program D contract)                                                                                                                                                                                                                                                                                                                                                |
 
 ---
 
@@ -131,7 +131,7 @@ Assets (P2-D15); two status-scoped uniqueness invariants service-enforced (**TD-
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the facilities events ride the
   same bus.
 
-## 7. Outcome — awaiting merge, then proceed to P2-D21
+## 7. Outcome — merged to `main`, proceed to P2-D21
 
 The Campus Infrastructure, Facilities & Smart Environment Platform is complete behind its gates: building
 condition, service status and comfort are derived consistently by pure engines (retired spaces/systems out
@@ -139,7 +139,7 @@ of the live inventory), a (space, metric) and an organization each hold one acti
 environment telemetry is immutable, the no-money and immovable/movable boundaries are held structurally, the
 movable capitalized asset is left to Procurement & Assets, and all eight tables are FORCE-RLS tenant-isolated
 (verified live, FLOAT/JSONB/INTEGER round-tripping exactly, cross-tenant insert rejected 42501); both
-independent audits were resolved clean. CI is green on branch `feat/p2-d20-facilities`; **awaiting the "It's
-green" go-ahead to merge to `main`** (this report flips to ✅ with the merge hash on merge). Next is
-**P2-D21 — Campus Security, Safety & Visitor**. **Reminder: rotate the GitHub PAT** used for pushes at this
-milestone boundary — it has not yet been rotated across the P2-D18/D19/D20 boundaries.
+independent audits were resolved clean. CI is green and the milestone is **merged to `main` (`7436798`)**,
+the second contract of Program D (Campus & Engagement); next is **P2-D21 — Campus Security, Safety &
+Visitor**. **Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary — it has not yet
+been rotated across the P2-D18/D19/D20 boundaries.
