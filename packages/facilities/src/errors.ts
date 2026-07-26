@@ -382,3 +382,76 @@ export class InvalidMaintenanceTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Comfort policy --------------------------------------------------------------
+
+/** The requested comfort policy does not exist in the current tenant. */
+export class ComfortPolicyNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Comfort policy "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A comfort policy must carry a non-empty name. */
+export class EmptyComfortPolicyNameError extends PlatformError {
+  constructor() {
+    super("A comfort policy must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A comfort policy's version must be a positive integer. */
+export class InvalidComfortPolicyVersionError extends PlatformError {
+  constructor(version: number) {
+    super(`Comfort-policy version "${version}" must be a positive integer`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { version },
+    });
+  }
+}
+
+/** A comfort threshold is malformed — unknown metric, non-finite bound, min above max, or a duplicate. */
+export class InvalidComfortThresholdError extends PlatformError {
+  constructor(reason: string) {
+    super(`Invalid comfort threshold: ${reason}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { reason },
+    });
+  }
+}
+
+/** An invalid comfort-policy status transition was attempted. */
+export class InvalidComfortPolicyTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A comfort policy cannot move from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** An active comfort policy already exists for this organization (only one may be active at a time). */
+export class DuplicateActiveComfortPolicyError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" already has an active comfort policy`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}

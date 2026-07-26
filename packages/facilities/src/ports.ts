@@ -1,6 +1,8 @@
 import type { TenantId, Uuid } from "@knowget/types";
 import type { Building } from "./building";
+import type { ComfortPolicy } from "./comfort-policy";
 import type { EnvironmentReading } from "./environment-reading";
+import type { FacilityProfile } from "./facility-profile";
 import type { FacilitySystem } from "./facility-system";
 import type { MaintenanceOrder } from "./maintenance-order";
 import type { Sensor } from "./sensor";
@@ -388,6 +390,110 @@ export class InMemoryMaintenanceOrderRepository implements MaintenanceOrderRepos
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const order = this.byId.get(id);
     if (order && order.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for comfort policies. Tenant-scoped (explicit argument + RLS). `findActiveByOrganization`
+ * resolves the single active policy the comfort engine measures against (or `null`).
+ */
+export interface ComfortPolicyRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<ComfortPolicy | null>;
+  findActiveByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<ComfortPolicy | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<ComfortPolicy[]>;
+  listByTenant(tenantId: TenantId): Promise<ComfortPolicy[]>;
+  save(policy: ComfortPolicy): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link ComfortPolicyRepository} — the default for tests and bootstrap. */
+export class InMemoryComfortPolicyRepository implements ComfortPolicyRepository {
+  private readonly byId = new Map<string, ComfortPolicy>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<ComfortPolicy | null> {
+    const policy = this.byId.get(id);
+    return policy && policy.tenantId === tenantId ? policy : null;
+  }
+
+  async findActiveByOrganization(
+    tenantId: TenantId,
+    organizationId: Uuid,
+  ): Promise<ComfortPolicy | null> {
+    return (
+      [...this.byId.values()].find(
+        (p) =>
+          p.tenantId === tenantId && p.organizationId === organizationId && p.status === "active",
+      ) ?? null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<ComfortPolicy[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<ComfortPolicy[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(policy: ComfortPolicy): Promise<void> {
+    this.byId.set(policy.id, policy);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const policy = this.byId.get(id);
+    if (policy && policy.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/** Storage contract for facility profiles — one per building. Tenant-scoped (explicit argument + RLS). */
+export interface FacilityProfileRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<FacilityProfile | null>;
+  findByBuilding(tenantId: TenantId, buildingId: Uuid): Promise<FacilityProfile | null>;
+  listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<FacilityProfile[]>;
+  listByTenant(tenantId: TenantId): Promise<FacilityProfile[]>;
+  save(profile: FacilityProfile): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link FacilityProfileRepository} — the default for tests and bootstrap. */
+export class InMemoryFacilityProfileRepository implements FacilityProfileRepository {
+  private readonly byId = new Map<string, FacilityProfile>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<FacilityProfile | null> {
+    const profile = this.byId.get(id);
+    return profile && profile.tenantId === tenantId ? profile : null;
+  }
+
+  async findByBuilding(tenantId: TenantId, buildingId: Uuid): Promise<FacilityProfile | null> {
+    return (
+      [...this.byId.values()].find((p) => p.tenantId === tenantId && p.buildingId === buildingId) ??
+      null
+    );
+  }
+
+  async listByOrganization(tenantId: TenantId, organizationId: Uuid): Promise<FacilityProfile[]> {
+    return [...this.byId.values()].filter(
+      (p) => p.tenantId === tenantId && p.organizationId === organizationId,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<FacilityProfile[]> {
+    return [...this.byId.values()].filter((p) => p.tenantId === tenantId);
+  }
+
+  async save(profile: FacilityProfile): Promise<void> {
+    this.byId.set(profile.id, profile);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const profile = this.byId.get(id);
+    if (profile && profile.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }

@@ -1,7 +1,9 @@
 import { createEvent } from "@knowget/events";
 import type { DomainEvent, Uuid } from "@knowget/types";
 import type { Building } from "./building";
+import type { ComfortPolicy } from "./comfort-policy";
 import type { EnvironmentReading } from "./environment-reading";
+import type { FacilityProfile } from "./facility-profile";
 import type { FacilitySystem } from "./facility-system";
 import type { MaintenanceOrder } from "./maintenance-order";
 import type { Sensor } from "./sensor";
@@ -334,3 +336,86 @@ export const maintenanceCompleted = (order: MaintenanceOrder): MaintenanceComple
   createEvent(MAINTENANCE_COMPLETED, maintenancePayload(order), { tenantId: order.tenantId });
 export const maintenanceCancelled = (order: MaintenanceOrder): MaintenanceCancelledEvent =>
   createEvent(MAINTENANCE_CANCELLED, maintenancePayload(order), { tenantId: order.tenantId });
+
+// --- Comfort policy --------------------------------------------------------------
+export const COMFORT_POLICY_DRAFTED = "facilities.comfort_policy.drafted";
+export const COMFORT_POLICY_UPDATED = "facilities.comfort_policy.updated";
+export const COMFORT_POLICY_ACTIVATED = "facilities.comfort_policy.activated";
+export const COMFORT_POLICY_ARCHIVED = "facilities.comfort_policy.archived";
+
+export interface ComfortPolicyEventPayload {
+  readonly policyId: Uuid;
+  readonly organizationId: Uuid;
+  readonly name: string;
+  readonly version: number;
+  readonly status: string;
+  readonly metricCount: number;
+}
+
+export type ComfortPolicyDraftedEvent = DomainEvent<
+  typeof COMFORT_POLICY_DRAFTED,
+  ComfortPolicyEventPayload
+>;
+export type ComfortPolicyUpdatedEvent = DomainEvent<
+  typeof COMFORT_POLICY_UPDATED,
+  ComfortPolicyEventPayload
+>;
+export type ComfortPolicyActivatedEvent = DomainEvent<
+  typeof COMFORT_POLICY_ACTIVATED,
+  ComfortPolicyEventPayload
+>;
+export type ComfortPolicyArchivedEvent = DomainEvent<
+  typeof COMFORT_POLICY_ARCHIVED,
+  ComfortPolicyEventPayload
+>;
+
+const comfortPolicyPayload = (policy: ComfortPolicy): ComfortPolicyEventPayload => ({
+  policyId: policy.id,
+  organizationId: policy.organizationId,
+  name: policy.name,
+  version: policy.version,
+  status: policy.status,
+  metricCount: policy.thresholds.length,
+});
+
+export const comfortPolicyDrafted = (policy: ComfortPolicy): ComfortPolicyDraftedEvent =>
+  createEvent(COMFORT_POLICY_DRAFTED, comfortPolicyPayload(policy), { tenantId: policy.tenantId });
+export const comfortPolicyUpdated = (policy: ComfortPolicy): ComfortPolicyUpdatedEvent =>
+  createEvent(COMFORT_POLICY_UPDATED, comfortPolicyPayload(policy), { tenantId: policy.tenantId });
+export const comfortPolicyActivated = (policy: ComfortPolicy): ComfortPolicyActivatedEvent =>
+  createEvent(COMFORT_POLICY_ACTIVATED, comfortPolicyPayload(policy), {
+    tenantId: policy.tenantId,
+  });
+export const comfortPolicyArchived = (policy: ComfortPolicy): ComfortPolicyArchivedEvent =>
+  createEvent(COMFORT_POLICY_ARCHIVED, comfortPolicyPayload(policy), { tenantId: policy.tenantId });
+
+// --- Facility profile ------------------------------------------------------------
+export const FACILITY_PROFILE_REFRESHED = "facilities.profile.refreshed";
+
+export interface FacilityProfileEventPayload {
+  readonly profileId: Uuid;
+  readonly buildingId: Uuid;
+  readonly organizationId: Uuid;
+  readonly readinessPercent: number;
+  readonly openMaintenanceCount: number;
+  readonly refreshedAt: string;
+}
+
+export type FacilityProfileRefreshedEvent = DomainEvent<
+  typeof FACILITY_PROFILE_REFRESHED,
+  FacilityProfileEventPayload
+>;
+
+const facilityProfilePayload = (profile: FacilityProfile): FacilityProfileEventPayload => ({
+  profileId: profile.id,
+  buildingId: profile.buildingId,
+  organizationId: profile.organizationId,
+  readinessPercent: profile.readinessPercent,
+  openMaintenanceCount: profile.openMaintenanceCount,
+  refreshedAt: profile.refreshedAt,
+});
+
+export const facilityProfileRefreshed = (profile: FacilityProfile): FacilityProfileRefreshedEvent =>
+  createEvent(FACILITY_PROFILE_REFRESHED, facilityProfilePayload(profile), {
+    tenantId: profile.tenantId,
+  });
