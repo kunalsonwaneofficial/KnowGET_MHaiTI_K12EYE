@@ -3,7 +3,58 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D16 · Program: Workforce & Operations · Smart Mobility, Transport & Fleet Platform
+## [Unreleased] — P2-D17 · Program: Workforce & Operations · Residential Life, Hostel & Boarding Platform
+
+The sixth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
+the P2-D01-M01 organization, P2-D12 workforce and P2-D03 student bases. The institution's **boarding
+system of record**, delivered as one `@knowget/residential` package (ADR-0036): the hostels and wardens,
+rooms and beds, student bed allocations, outpasses, curfew roll calls, and hostel compliance. The
+residential counterpart to the transport system (P2-D16) — transport manages how students travel, this
+domain manages where they live. Two quantities are **derived, not stored** — a hostel's bed occupancy and
+a roll call's presence reconciliation — so the design begins with **two pure engines**. Distinctively,
+**this domain carries no money**: hostel/mess fees belong to Finance (P2-D14) and facility valuation/
+maintenance to the Asset register (P2-D15), so the boundary is held structurally. Descriptive, not
+predictive — occupancy forecasting is deferred to the intelligence core (P2-D28).
+
+### Added
+
+- **Residential Life, Hostel & Boarding Platform (ADR-0036):** two pure engines plus eight aggregates in
+  one `@knowget/residential` package. **Two engines:** `computeRoomOccupancy` / `computeHostelOccupancy` /
+  `summarizeResidenceOccupancy` (active occupants against beds, rolled room → hostel → institution, over-
+  capacity flagged), and `computeRollCall` (reconciles a curfew roll call's per-resident presence markings
+  against the expected roster into counts and the safety-critical unaccounted-for number). The aggregates:
+  **Hostel** (a residential building for boys/girls/mixed with an optional supervising warden; active ↔
+  under_maintenance → decommissioned, code unique per tenant), **Warden** (a validated Employee, one per
+  employee, org derived from the employee; active ↔ suspended → relieved), **Room** (an ordered set of
+  individually-allocatable bed line-objects on a floor; draft → available → decommissioned, beds & floor
+  frozen once available, number unique per hostel, the bed count is its capacity), **BedAllocation** (a
+  student's residency in a specific bed; active → ended, one active per bed and one active per student),
+  **Outpass** (a resident's gate pass; requested → approved → checked_out → returned | rejected |
+  cancelled, a validated out/return window, overdue derived clock-free, one open per resident),
+  **RollCall** (a curfew presence check capturing the roster from active allocations and taking one marking
+  per resident, off-roster and duplicate marks rejected; scheduled → in_progress → completed | cancelled,
+  the summary derived by the engine), **HostelInspection** (a compliance record — fire_safety/hygiene/
+  electrical/structural/security — one per type per hostel, re-inspected in place, its valid/due_soon/
+  overdue status derived from the next-due date, never stored) and **HostelOccupancyProfile** (the
+  descriptive bed-usage read model per hostel, refreshed from the occupancy engine, never posted to
+  directly).
+- **No money:** hostel/mess fees and facility valuation/maintenance are deferred to Finance (P2-D14) and
+  the Asset register (P2-D15); the domain defines no monetary field and imports no money core.
+- **Persistence (ADR-0010):** eight tables + migration `20261218000000_add_residential`, each **FORCE
+  RLS** + `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on live PostgreSQL; bed counts/
+  occupancy/percents/versions **INTEGER**, over-capacity **BOOLEAN**, room beds & roll-call roster/markings
+  non-null **JSONB**, date/ISO stamps **TEXT**; tenant-scoped DB unique indexes (hostel code, one warden
+  per employee, room number per hostel, one inspection per (hostel, type), one profile per hostel).
+- **API:** eight permission-gated, tenant-scoped REST controllers — `hostel/*` (hostels, wardens, rooms,
+  inspections) under `hostel:read`/`:write` and `boarding/*` (allocations, outpasses, roll-calls,
+  occupancy) under `boarding:read`/`:write`; zod DTOs; eight Prisma/RLS adapters + three directory
+  adapters (Organization, Employee, Student); `ResidentialModule` importing the Organization, Workforce
+  and Student-Lifecycle modules and exporting every service token, registered in `app.module`.
+- **Two status-scoped uniqueness invariants** (one active allocation per bed, one active per student) are
+  service-enforced (**TD-37**); both independent adversarial audits (domain; persistence/API) were
+  resolved clean.
+
+## P2-D16 · Program: Workforce & Operations · Smart Mobility, Transport & Fleet Platform
 
 The fifth contract of **Program C** — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and
 the P2-D01-M01 organization, P2-D12 workforce and P2-D03 student bases. The institution's **transport
