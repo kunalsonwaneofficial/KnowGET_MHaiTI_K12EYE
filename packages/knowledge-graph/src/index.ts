@@ -11,10 +11,12 @@ export * from "./entity-type";
 export * from "./relationship-type";
 // graph aggregates
 export * from "./knowledge-entity";
+export * from "./semantic-relationship";
 // application services
 export * from "./entity-type-service";
 export * from "./relationship-type-service";
 export * from "./knowledge-entity-service";
+export * from "./semantic-relationship-service";
 // ports (repositories + directories) and in-memory adapters
 export * from "./ports";
 // domain events

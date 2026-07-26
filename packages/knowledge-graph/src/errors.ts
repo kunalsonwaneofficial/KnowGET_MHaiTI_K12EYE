@@ -230,3 +230,103 @@ export class MergeTargetNotFoundError extends PlatformError {
     });
   }
 }
+
+// --- Semantic relationship (edge) ------------------------------------------------
+
+/** The requested semantic relationship does not exist in the current tenant. */
+export class SemanticRelationshipNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Semantic relationship "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A semantic relationship must carry a type key and both endpoints. */
+export class EmptyRelationshipEndpointsError extends PlatformError {
+  constructor() {
+    super("A semantic relationship must have a type key and both endpoints", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A semantic relationship connects two distinct entities — no self-edges. */
+export class SelfRelationshipError extends PlatformError {
+  constructor(entityId: string) {
+    super(`A semantic relationship cannot connect an entity to itself ("${entityId}")`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { entityId },
+    });
+  }
+}
+
+/** The relationship's validity window is invalid (blank start, or an end at/before the start). */
+export class InvalidRelationshipWindowError extends PlatformError {
+  constructor(validFrom: string, validTo: string | null) {
+    super(`Invalid relationship window: from "${validFrom}" to "${validTo ?? "open"}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { validFrom, validTo },
+    });
+  }
+}
+
+/** The relationship type is not registered (or not usable) in the tenant. */
+export class UnknownRelationshipTypeError extends PlatformError {
+  constructor(relationshipTypeKey: string) {
+    super(`Relationship type "${relationshipTypeKey}" is not a registered, usable type`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { relationshipTypeKey },
+    });
+  }
+}
+
+/** An endpoint of a relationship is not an active knowledge entity in the tenant. */
+export class UnknownRelationshipEndpointError extends PlatformError {
+  constructor(entityId: string, end: "source" | "target") {
+    super(`The ${end} entity "${entityId}" is not an active knowledge entity`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { entityId, end },
+    });
+  }
+}
+
+/** An endpoint's entity type does not match what the relationship type requires (the ontology grammar). */
+export class EndpointTypeMismatchError extends PlatformError {
+  constructor(end: "source" | "target", expected: string, actual: string) {
+    super(
+      `The ${end} entity is a "${actual}", but the relationship type requires a "${expected}"`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { end, expected, actual },
+      },
+    );
+  }
+}
+
+/** The attempted semantic-relationship lifecycle transition is not allowed from its current status. */
+export class InvalidSemanticRelationshipTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A semantic relationship cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}

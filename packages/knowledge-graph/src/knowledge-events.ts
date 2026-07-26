@@ -3,6 +3,7 @@ import type { DomainEvent, Uuid } from "@knowget/types";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
 import type { RelationshipType } from "./relationship-type";
+import type { SemanticRelationship } from "./semantic-relationship";
 
 /**
  * Domain events for the Institutional Knowledge Graph (P2-D25), on the `knowledge.*` namespace. Payloads carry
@@ -167,3 +168,61 @@ export const knowledgeEntityMerged = (e: KnowledgeEntity): KnowledgeEntityMerged
   createEvent(ENTITY_MERGED, entityPayload(e), { tenantId: e.tenantId });
 export const knowledgeEntityArchived = (e: KnowledgeEntity): KnowledgeEntityArchivedEvent =>
   createEvent(ENTITY_ARCHIVED, entityPayload(e), { tenantId: e.tenantId });
+
+// --- Semantic relationship (edge) ------------------------------------------------
+export const RELATIONSHIP_ASSERTED = "knowledge.relationship.asserted";
+export const RELATIONSHIP_CLOSED = "knowledge.relationship.closed";
+export const RELATIONSHIP_SUPERSEDED = "knowledge.relationship.superseded";
+export const RELATIONSHIP_RETRACTED = "knowledge.relationship.retracted";
+
+export interface SemanticRelationshipEventPayload {
+  readonly relationshipId: Uuid;
+  readonly organizationId: Uuid;
+  readonly relationshipTypeKey: string;
+  readonly sourceEntityId: Uuid;
+  readonly targetEntityId: Uuid;
+  readonly version: number;
+  readonly supersedesId: Uuid | null;
+  readonly status: string;
+}
+
+export type SemanticRelationshipAssertedEvent = DomainEvent<
+  typeof RELATIONSHIP_ASSERTED,
+  SemanticRelationshipEventPayload
+>;
+export type SemanticRelationshipClosedEvent = DomainEvent<
+  typeof RELATIONSHIP_CLOSED,
+  SemanticRelationshipEventPayload
+>;
+export type SemanticRelationshipSupersededEvent = DomainEvent<
+  typeof RELATIONSHIP_SUPERSEDED,
+  SemanticRelationshipEventPayload
+>;
+export type SemanticRelationshipRetractedEvent = DomainEvent<
+  typeof RELATIONSHIP_RETRACTED,
+  SemanticRelationshipEventPayload
+>;
+
+const relationshipPayload = (rel: SemanticRelationship): SemanticRelationshipEventPayload => ({
+  relationshipId: rel.id,
+  organizationId: rel.organizationId,
+  relationshipTypeKey: rel.relationshipTypeKey,
+  sourceEntityId: rel.sourceEntityId,
+  targetEntityId: rel.targetEntityId,
+  version: rel.version,
+  supersedesId: rel.supersedesId,
+  status: rel.status,
+});
+
+export const relationshipAsserted = (r: SemanticRelationship): SemanticRelationshipAssertedEvent =>
+  createEvent(RELATIONSHIP_ASSERTED, relationshipPayload(r), { tenantId: r.tenantId });
+export const relationshipClosed = (r: SemanticRelationship): SemanticRelationshipClosedEvent =>
+  createEvent(RELATIONSHIP_CLOSED, relationshipPayload(r), { tenantId: r.tenantId });
+export const relationshipSuperseded = (
+  r: SemanticRelationship,
+): SemanticRelationshipSupersededEvent =>
+  createEvent(RELATIONSHIP_SUPERSEDED, relationshipPayload(r), { tenantId: r.tenantId });
+export const relationshipRetracted = (
+  r: SemanticRelationship,
+): SemanticRelationshipRetractedEvent =>
+  createEvent(RELATIONSHIP_RETRACTED, relationshipPayload(r), { tenantId: r.tenantId });

@@ -2,6 +2,7 @@ import type { TenantId, Uuid } from "@knowget/types";
 import type { EntityType } from "./entity-type";
 import type { KnowledgeEntity } from "./knowledge-entity";
 import type { RelationshipType } from "./relationship-type";
+import type { SemanticRelationship } from "./semantic-relationship";
 
 /**
  * Read model over the organization domain (P2-D01-M01): does this organization node exist in the tenant? Every
@@ -108,6 +109,72 @@ export class InMemoryKnowledgeEntityRepository implements KnowledgeEntityReposit
   async remove(tenantId: TenantId, id: Uuid): Promise<void> {
     const entity = this.byId.get(id);
     if (entity && entity.tenantId === tenantId) {
+      this.byId.delete(id);
+    }
+  }
+}
+
+/**
+ * Storage contract for semantic relationships (graph edges). Tenant-scoped (explicit argument + RLS).
+ * `listByEntity` (either endpoint) backs traversal and memory refresh; `listBetween` backs versioning (the next
+ * version of an edge between two entities of one type).
+ */
+export interface SemanticRelationshipRepository {
+  findById(tenantId: TenantId, id: Uuid): Promise<SemanticRelationship | null>;
+  listByEntity(tenantId: TenantId, entityId: Uuid): Promise<SemanticRelationship[]>;
+  listBetween(
+    tenantId: TenantId,
+    sourceEntityId: Uuid,
+    targetEntityId: Uuid,
+    relationshipTypeKey: string,
+  ): Promise<SemanticRelationship[]>;
+  listByTenant(tenantId: TenantId): Promise<SemanticRelationship[]>;
+  save(relationship: SemanticRelationship): Promise<void>;
+  remove(tenantId: TenantId, id: Uuid): Promise<void>;
+}
+
+/** In-memory {@link SemanticRelationshipRepository} — the default for tests and bootstrap. */
+export class InMemorySemanticRelationshipRepository implements SemanticRelationshipRepository {
+  private readonly byId = new Map<string, SemanticRelationship>();
+
+  async findById(tenantId: TenantId, id: Uuid): Promise<SemanticRelationship | null> {
+    const rel = this.byId.get(id);
+    return rel && rel.tenantId === tenantId ? rel : null;
+  }
+
+  async listByEntity(tenantId: TenantId, entityId: Uuid): Promise<SemanticRelationship[]> {
+    return [...this.byId.values()].filter(
+      (r) =>
+        r.tenantId === tenantId && (r.sourceEntityId === entityId || r.targetEntityId === entityId),
+    );
+  }
+
+  async listBetween(
+    tenantId: TenantId,
+    sourceEntityId: Uuid,
+    targetEntityId: Uuid,
+    relationshipTypeKey: string,
+  ): Promise<SemanticRelationship[]> {
+    return [...this.byId.values()].filter(
+      (r) =>
+        r.tenantId === tenantId &&
+        r.sourceEntityId === sourceEntityId &&
+        r.targetEntityId === targetEntityId &&
+        r.relationshipTypeKey === relationshipTypeKey,
+    );
+  }
+
+  async listByTenant(tenantId: TenantId): Promise<SemanticRelationship[]> {
+    return [...this.byId.values()].filter((r) => r.tenantId === tenantId);
+  }
+
+  async save(relationship: SemanticRelationship): Promise<void> {
+    this.byId.set(relationship.id, relationship);
+  }
+
+  async remove(tenantId: TenantId, id: Uuid): Promise<void> {
+    const rel = this.byId.get(id);
+    if (rel && rel.tenantId === tenantId) {
       this.byId.delete(id);
     }
   }
