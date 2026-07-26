@@ -4751,3 +4751,204 @@ model AdmissionsFunnelProfile {
   @@index([tenantId, organizationId])
   @@map("admissions_funnel_profile")
 }
+
+// ---------------------------------------------------------------------------------
+// P2-D24 — Alumni, Community & Relationship Platform
+// ---------------------------------------------------------------------------------
+
+/// AlumniProfile (P2-D24) — an alumnus's membership in the alumni network, built on the alumnus lifecycle stage
+/// that Student Lifecycle (P2-D03) owns; references the alumnus as a Person (P2-D01-M02); active <-> lapsed ->
+/// opted_out. One profile per person per tenant. Tenant-owned: FORCE RLS.
+model AlumniProfile {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  alumnusPersonId String    @map("alumnus_person_id") @db.Uuid
+  graduationYear  String    @map("graduation_year")
+  program         String?
+  status          String    @default("active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, alumnusPersonId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("alumni_profile")
+}
+
+/// AlumniChapter (P2-D24) — a regional/interest/class-year/professional alumni community (code unique per
+/// tenant); forming -> active <-> inactive -> archived. Tenant-owned: FORCE RLS.
+model AlumniChapter {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  type           String
+  region         String?
+  status         String    @default("forming")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("alumni_chapter")
+}
+
+/// ChapterMembership (P2-D24) — an alumni profile's membership in a chapter with a role; active -> left with
+/// left -> active reactivation. One row per (chapter, alumni profile) — DB-backed, absolute (not
+/// status-scoped). Tenant-owned: FORCE RLS.
+model ChapterMembership {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  chapterId       String    @map("chapter_id") @db.Uuid
+  alumniProfileId String    @map("alumni_profile_id") @db.Uuid
+  role            String    @default("member")
+  status          String    @default("active")
+  joinedOn        String    @map("joined_on")
+  leftOn          String?   @map("left_on")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, chapterId, alumniProfileId])
+  @@index([tenantId])
+  @@index([tenantId, chapterId])
+  @@index([tenantId, alumniProfileId])
+  @@map("chapter_membership")
+}
+
+/// AlumniEvent (P2-D24) — a reunion/networking/webinar/fundraiser/volunteer event with a capacity (0 =
+/// untracked) and window (code unique per tenant); draft -> scheduled -> open -> closed -> completed |
+/// cancelled. Registrations are taken only while open. Tenant-owned: FORCE RLS.
+model AlumniEvent {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  code           String
+  name           String
+  type           String
+  capacity       Int       @default(0)
+  startsOn       String?   @map("starts_on")
+  endsOn         String?   @map("ends_on")
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("alumni_event")
+}
+
+/// EventRegistration (P2-D24) — an alumni profile's registration for an event; registered -> attended |
+/// no_show | cancelled with cancelled -> registered reinstatement. One row per (event, alumni profile) —
+/// DB-backed, absolute. Tenant-owned: FORCE RLS.
+model EventRegistration {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  eventId         String    @map("event_id") @db.Uuid
+  alumniProfileId String    @map("alumni_profile_id") @db.Uuid
+  status          String    @default("registered")
+  registeredOn    String    @map("registered_on")
+  respondedOn     String?   @map("responded_on")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@unique([tenantId, eventId, alumniProfileId])
+  @@index([tenantId])
+  @@index([tenantId, eventId])
+  @@index([tenantId, alumniProfileId])
+  @@map("event_registration")
+}
+
+/// MentorshipConnection (P2-D24) — a relationship between two distinct alumni profiles (mentor, mentee) with an
+/// optional focus; proposed -> active -> completed | ended. Tenant-owned: FORCE RLS.
+model MentorshipConnection {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  mentorProfileId String    @map("mentor_profile_id") @db.Uuid
+  menteeProfileId String    @map("mentee_profile_id") @db.Uuid
+  focus           String?
+  status          String    @default("proposed")
+  proposedOn      String    @map("proposed_on")
+  startedOn       String?   @map("started_on")
+  endedOn         String?   @map("ended_on")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, mentorProfileId])
+  @@index([tenantId, menteeProfileId])
+  @@map("mentorship_connection")
+}
+
+/// Contribution (P2-D24) — an immutable, append-only giving record (type + non-monetary recognition tier +
+/// optional campaign ref). NO money: the gift amount is Finance's (P2-D14); this records the relationship
+/// fact. No lifecycle. Tenant-owned: FORCE RLS.
+model Contribution {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  alumniProfileId String    @map("alumni_profile_id") @db.Uuid
+  type            String
+  recognitionTier String    @map("recognition_tier")
+  campaignRef     String?   @map("campaign_ref")
+  contributedOn   String    @map("contributed_on")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, alumniProfileId])
+  @@map("contribution")
+}
+
+/// AlumniEngagementProfile (P2-D24) — a descriptive, re-derivable per-alumnus read model snapshotting the
+/// engagement engine (activity counts + score + level). One per alumni profile. Tenant-owned: FORCE RLS.
+model AlumniEngagementProfile {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  alumniProfileId    String    @map("alumni_profile_id") @db.Uuid
+  eventsAttended     Int       @default(0) @map("events_attended")
+  activeChapters     Int       @default(0) @map("active_chapters")
+  activeMentorships  Int       @default(0) @map("active_mentorships")
+  contributionsCount Int       @default(0) @map("contributions_count")
+  score              Int       @default(0)
+  level              String    @default("inactive")
+  refreshedAt        String    @map("refreshed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@unique([tenantId, alumniProfileId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("alumni_engagement_profile")
+}
