@@ -2,13 +2,13 @@
 
 **Knowledge Resource, Library & Digital Learning Asset Platform** · Phase 2 (Enterprise Domain Engineering) · Program: Workforce & Operations
 
-|                |                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D18 — Knowledge Resource, Library & Digital Learning Asset Platform                                                                                                                                                                                                                                                                                                                |
-| **Status**     | 🟡 Awaiting CI + merge — feature branch `feat/p2-d18-library` pushed. In-sandbox: `@knowget/library` typecheck/lint/format/build clean, **83 tests** (19 files); `apps/api` typecheck/lint/build clean + library DI-graph spec (2 tests) in the 213-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on the Prisma build in-sandbox). |
-| **Depends on** | P2-D01-M02 (Person — the borrower base), P2-D01-M01 (Organization), P2-D14 (Finance, ADR-0033 — where fines live), P2-D15 (Procurement & Assets, ADR-0034 — where acquisition/valuation live), P2-D17 (Residential, ADR-0036 — the operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                                               |
-| **Date**       | 19 December 2026                                                                                                                                                                                                                                                                                                                                                                      |
-| **Next**       | P2-D19 — Integrated Health Centre & Clinical Services (next Program C contract)                                                                                                                                                                                                                                                                                                       |
+|                |                                                                                                                                                                                                                                                                                                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D18 — Knowledge Resource, Library & Digital Learning Asset Platform                                                                                                                                                                                                                                                                                                |
+| **Status**     | ✅ Complete — CI green; merged to `main` (`0ff2d96`). In-sandbox: `@knowget/library` typecheck/lint/format/build clean, **83 tests** (19 files); `apps/api` typecheck/lint/build clean + library DI-graph spec (2 tests) in the 213-test api suite; RLS verified on live PostgreSQL. Full monorepo typecheck/lint/tests green (TD-12 on the Prisma build in-sandbox). |
+| **Depends on** | P2-D01-M02 (Person — the borrower base), P2-D01-M01 (Organization), P2-D14 (Finance, ADR-0033 — where fines live), P2-D15 (Procurement & Assets, ADR-0034 — where acquisition/valuation live), P2-D17 (Residential, ADR-0036 — the operational-domain precedent), P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`)                                                               |
+| **Date**       | 19 December 2026                                                                                                                                                                                                                                                                                                                                                      |
+| **Next**       | P2-D19 — Integrated Health Centre & Clinical Services (next Program C contract)                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -123,14 +123,13 @@ invariants service-enforced (**TD-38**).
 - **TD-01 (standing).** Event delivery is in-process (outbox store in-memory); the library events ride the
   same bus.
 
-## 7. Outcome — feature branch pushed, awaiting CI + merge
+## 7. Outcome — merged to `main`, proceed to P2-D19
 
 The Knowledge Resource, Library & Digital Learning Asset Platform is complete behind its gates: title
 availability and loan status are derived consistently by pure engines, a copy holds one active loan and a
 member one open reservation per title, an org runs one active circulation policy that is the single source
 of lending terms, the fine/valuation boundary is held structurally (no money in the domain), and all eight
 tables are FORCE-RLS tenant-isolated (verified live, JSONB/INTEGER/nullable-ISBN round-tripping exactly);
-both independent audits were resolved clean. All in-sandbox gates are green on `feat/p2-d18-library`;
-**awaiting CI green to merge to `main`**, after which this report flips to ✅ with the merge commit. Next
-is **P2-D19 — Integrated Health Centre & Clinical Services**. **Reminder: rotate the GitHub PAT** used for
-pushes at this milestone boundary.
+both independent audits were resolved clean. CI is green and the milestone is **merged to `main`
+(`0ff2d96`)**; next is **P2-D19 — Integrated Health Centre & Clinical Services**. **Reminder: rotate the
+GitHub PAT** used for pushes at this milestone boundary.
