@@ -132,6 +132,9 @@ importers:
       '@knowget/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@knowget/decision-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/decision-intelligence
       '@knowget/diagnostics':
         specifier: workspace:*
         version: link:../../packages/diagnostics
