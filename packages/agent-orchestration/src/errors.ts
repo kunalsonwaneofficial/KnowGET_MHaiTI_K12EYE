@@ -415,6 +415,27 @@ export class AnonymousApprovalDecisionError extends PlatformError {
   }
 }
 
+/**
+ * A human gate was raised over something no human decision could change. Authorization has exactly three
+ * outcomes, and only one of them is a question: `allowed` needs no approval, and `denied` is a *grant* failure
+ * that no approval can rescue. Raising a request in either case would put a person in front of a decision that
+ * has already been made — and the approver, seeing a real prompt, would reasonably believe their answer mattered.
+ * A gate that appears to be enforceable but is not is worse than no gate at all.
+ */
+export class ApprovalNotRequiredError extends PlatformError {
+  constructor(agentId: string, capabilityKey: string, outcome: string) {
+    super(
+      `Authorization for "${capabilityKey}" resolved to "${outcome}", so there is nothing to approve`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { agentId, capabilityKey, outcome },
+      },
+    );
+  }
+}
+
 /** The request has already been decided; a decision is made once and stands. */
 export class ApprovalAlreadyDecidedError extends PlatformError {
   constructor(id: string, decision: string) {
@@ -509,6 +530,22 @@ export class ReasoningSessionNotFoundError extends PlatformError {
       httpStatus: 404,
       isOperational: true,
       details: { id },
+    });
+  }
+}
+
+/**
+ * A session tried to claim a plan its own agent did not draft. The session-to-plan link is the whole of "this is
+ * why the agent proposed that", so a session claiming another agent's plan would not merely be untidy — it would
+ * attach one agent's reasoning to another agent's actions, and the audit trail would read as an explanation.
+ */
+export class PlanAgentMismatchError extends PlatformError {
+  constructor(executionPlanId: string, sessionAgentId: string, planAgentId: string) {
+    super(`Execution plan "${executionPlanId}" was not drafted by this session's agent`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { executionPlanId, sessionAgentId, planAgentId },
     });
   }
 }

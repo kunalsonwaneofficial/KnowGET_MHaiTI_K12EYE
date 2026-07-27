@@ -16,3 +16,15 @@ export * from "./execution-plan";
 export * from "./approval-request";
 export * from "./tool-invocation";
 export * from "./reasoning-session";
+// domain events (ids, keys, statuses and counts only — never content)
+export * from "./ai-events";
+// storage + directory ports, with in-memory implementations
+export * from "./ports";
+// application services (composition of engines, aggregates and ports)
+export * from "./agent-service";
+export * from "./tool-service";
+export * from "./execution-plan-service";
+export * from "./approval-service";
+export * from "./invocation-service";
+export * from "./reasoning-service";
+export * from "./operations-service";
