@@ -498,3 +498,165 @@ export class InvocationNotCompensatableError extends PlatformError {
     });
   }
 }
+
+// --- Reasoning sessions ----------------------------------------------------------
+
+/** The requested reasoning session does not exist in the current tenant. */
+export class ReasoningSessionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Reasoning session "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A session must say what it was reasoning about. */
+export class EmptySessionPurposeError extends PlatformError {
+  constructor() {
+    super("A reasoning session must state the question it is reasoning about", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A session must say what it settled on when it concludes. */
+export class EmptySessionConclusionError extends PlatformError {
+  constructor() {
+    super("A concluded reasoning session must state what it settled on", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The attempted session lifecycle transition is not allowed from its current status. */
+export class InvalidSessionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A reasoning session cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * Something tried to add to a session that has already ended. A reasoning record that can be extended after the
+ * fact is not a record of reasoning — it is a document, and it would say whatever the last writer wanted.
+ */
+export class SessionClosedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Reasoning session "${id}" is "${status}" and can no longer be added to`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * A session was concluded while some of what it concluded rested on nothing. Concluding is the moment the
+ * session's reasoning is claimed to be sound, so it is the moment the claim is checked.
+ */
+export class UngroundedSessionError extends PlatformError {
+  constructor(id: string, ungroundedTraceIds: readonly string[]) {
+    super(
+      `Reasoning session "${id}" has ${ungroundedTraceIds.length} conclusion(s) resting on nothing`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { id, ungroundedTraceIds },
+      },
+    );
+  }
+}
+
+// --- Reasoning traces ------------------------------------------------------------
+
+/** The requested reasoning step does not exist in this session. */
+export class ReasoningTraceNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Reasoning trace "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A recorded step must say something. */
+export class EmptyTraceStatementError extends PlatformError {
+  constructor() {
+    super("A reasoning step must carry a statement", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A retrieval step brought nothing back from the knowledge graph. A retrieval that cites no graph reference has
+ * not retrieved institutional knowledge; it has asserted something, and the session should say so.
+ */
+export class UnsourcedRetrievalError extends PlatformError {
+  constructor() {
+    super("A retrieval step must cite at least one knowledge-graph reference", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A non-retrieval step tried to bring knowledge in. Knowledge enters a session through retrieval and nowhere
+ * else, which is what "knowledge retrieval originates from D25" means once it is a rule rather than a sentence.
+ */
+export class KnowledgeOutsideRetrievalError extends PlatformError {
+  constructor(kind: string) {
+    super(`A "${kind}" step cannot cite knowledge-graph references; only a retrieval may`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}
+
+/** A step cited evidence that is not in this session. Evidence is what the session itself recorded earlier. */
+export class UnknownEvidenceError extends PlatformError {
+  constructor(traceId: string) {
+    super(`Reasoning step "${traceId}" is not in this session and cannot be cited as evidence`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { traceId },
+    });
+  }
+}
+
+/**
+ * A conclusion was recorded that rests on nothing. An inference or a decision citing no earlier step is the
+ * failure mode the whole reasoning model exists to make impossible, so it is refused at the point of recording.
+ */
+export class UngroundedConclusionError extends PlatformError {
+  constructor(kind: string) {
+    super(`A "${kind}" step must rest on at least one earlier step in the session`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}

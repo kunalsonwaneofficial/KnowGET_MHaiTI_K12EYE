@@ -15,3 +15,4 @@ export * from "./tool";
 export * from "./execution-plan";
 export * from "./approval-request";
 export * from "./tool-invocation";
+export * from "./reasoning-session";
