@@ -26,3 +26,7 @@ export * from "./workflow";
 export * from "./workflow-instance";
 export * from "./automation-rule";
 export * from "./automation-run";
+
+// --- Events and ports ------------------------------------------------------------
+export * from "./decision-events";
+export * from "./ports";
