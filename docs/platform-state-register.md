@@ -1322,3 +1322,49 @@ re-validating endpoints — polished before merge with regression tests); relati
 advisory and merge is single-hop (**TD-45**). All six service tokens are exported for **in-process cross-domain
 use**. The semantic layer that **opens Program E** — the AI operating system (P2-D26), decision intelligence
 (P2-D27), predictive intelligence (P2-D28) and executive intelligence (P2-D29) build on it.
+
+## Enterprise AI Operating System, Agent Orchestration & Reasoning (P2-D26, Program: Intelligence Core · ADR-0045)
+
+The `@knowget/agent-orchestration` package is the institution's **AI runtime**, and the **second contract of
+Program E** (D25–D30), built on P2-D25's semantic layer and the operational base **D01–D24** whose capabilities
+agents invoke by key. It follows the domain architecture (ADR-0010): a pure package — **six aggregates plus five
+pure engines** — behind repository ports, Prisma/RLS adapters at the `apps/api` composition root, application
+services on the platform event bus, and permission-gated, tenant-scoped REST controllers. The design problem the
+contract poses is **authority, not orchestration**: what may an agent do unattended, on whose authority, what can
+be undone, and what is the evidence. Two contract rules define it and both are held structurally. **Agents
+invoke capabilities, never databases directly** — an agent's whole reach is a set of catalogued capability keys,
+and the package holds no database client, no HTTP client and no vocabulary for a query (verified by absence: no
+`@prisma`, `PrismaClient`, `openai`, `anthropic`, `axios`, `node-fetch`, `langchain`, embedding, vector or
+`fetch(` reference anywhere; its only dependencies are `@knowget/types`, `@knowget/shared`, `@knowget/exceptions`,
+`@knowget/events`). **Knowledge retrieval originates from D25** — `RETRIEVAL_SOURCES` is the one-member union
+`["knowledge_graph"]`, so there is no word for another source. A third boundary comes from the phase plan:
+**external AI providers are reached only through the Phase-3 AI integration adapter (P3-D09)** — the AI OS never
+calls a provider itself and holds no SDK to do it with. Five **pure, deterministic, clock-free engines** compute
+what is derived, built and tested first: **authorization** (the autonomy × effect × risk × reversibility matrix,
+three-way outcome, stable reason codes), **planning** (a plan made inspectable before it moves),
+**reasoning** (the session evidence chain, cycle-safe, weakest-support confidence), **rollback**
+(`compensationPlan` over what actually happened, in reverse) and **metrics** (descriptive counts only). Six
+aggregates: `AgentDefinition` (autonomy + the granted capability keys that are its whole reach), `ToolDefinition`
+(the **capability catalog**: effect, risk, reversibility, compensating capability), `ExecutionPlan` (goal +
+ordered dependency-linked steps **inside the aggregate**, an unknown dependency refused at add time so a cycle is
+impossible by construction), `ApprovalRequest` (the human gate — subject, expiry, a recorded decider, and
+**single-use consumption**), `ToolInvocation` (created **only** authorized, settled writes `compensated`) and
+`ReasoningSession` (purpose + ordered trace chain). The gate cannot be routed around: `DENYING_REASONS` are
+**grant** failures no approval rescues (approval raises a gate, it never mints authority), `MAX_UNATTENDED_RISK`
+and `UNATTENDED_EFFECTS` cap what runs unattended so **nothing `critical` or irreversible ever executes
+unattended at any autonomy level**, `decidedByUserId` comes from the authenticated principal and is never
+accepted from a body, spending an approval is scope-checked to this agent and this capability, and **one human yes
+buys exactly one act** — `isApprovalSpendable` (granted _and_ unspent) is checked in the service and
+independently in the aggregate constructor, the grant spent before the invocation is stored so a crash fails
+closed. Six **FORCE-RLS** tables, each `tenant_isolation` (USING + WITH CHECK, fail-closed), tenant-indexed, with
+the absolute uniques DB-backed (agent key per tenant; capability key per tenant); **three tables deliberately
+carry no soft-delete column** (approval, invocation, reasoning session — accountability records with no discard
+path). **Three permission scope groups** split the surface — `agent:*` for registry and catalog governance,
+`ai:read`+`ai:operate` for the runtime, and `ai:approve` for the human gate alone (including `expire-due`, since
+closing gates without a decision has the same effect on the queue as rejecting them). Prose- and PII-free `ai.*`
+events publish onto the shared bus. A consistency pass audited the delivery against the 30 sibling domains, and
+the documentation pass that followed it **found and closed a real authority hole** (an approval that was never
+consumed) rather than describing one; the residual check-then-act window under true concurrency is **TD-46**. All
+seven service tokens are exported for **in-process cross-domain use**. The runtime through which decision
+intelligence (P2-D27), predictive intelligence (P2-D28) and executive intelligence (P2-D29) will make their
+recommendations act — behind plans, permissions and the human gate.

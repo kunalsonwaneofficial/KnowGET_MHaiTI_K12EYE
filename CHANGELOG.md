@@ -3,7 +3,50 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D25 · Program: Intelligence Core · Institutional Knowledge Graph, Semantic Intelligence & Digital Memory
+## [Unreleased] — P2-D26 · Program: Intelligence Core · Enterprise AI Operating System, Agent Orchestration & Reasoning
+
+The **second contract of Program E — the intelligence core** (D25–D30) — built on P2-D25's semantic layer and the
+operational base **D01–D24** whose capabilities agents invoke by key. The institution's **AI runtime**, delivered
+as one `@knowget/agent-orchestration` package (ADR-0045): an agent registry with declared autonomy, a capability
+catalog that says what each action costs, **inspectable execution plans**, **permission-controlled tool invocation
+with rollback**, **enforceable human approval**, and reasoning sessions that record how a conclusion was reached.
+The design problem is **authority, not orchestration** — what may an agent do unattended, on whose authority, what
+can be undone, and what is the evidence.
+
+### Added
+
+- **`@knowget/agent-orchestration`** — six aggregates (`AgentDefinition`, `ToolDefinition`, `ExecutionPlan` with
+  its steps inside the aggregate, `ApprovalRequest`, `ToolInvocation`, `ReasoningSession`) plus five pure,
+  deterministic, clock-free engines — **authorization** (the autonomy × effect × risk × reversibility matrix,
+  three-way outcome, stable reason codes), **planning** (a plan made inspectable before it moves), **reasoning**
+  (the session evidence chain, cycle-safe, weakest-support confidence), **rollback** (`compensationPlan` over what
+  actually happened, in reverse) and **metrics** (descriptive counts only) — with seven application services and
+  37 `ai.*` events on the platform bus.
+- **Authority, held structurally** — `DENYING_REASONS` are **grant** failures no approval rescues (approval raises
+  a gate, it never mints authority); `MAX_UNATTENDED_RISK` and `UNATTENDED_EFFECTS` cap unattended execution so
+  **nothing `critical` or irreversible ever runs unattended at any autonomy level**; `decidedByUserId` comes from
+  the authenticated principal and is never accepted from a body; an invocation cannot be constructed except by
+  running the decision, so no caller can hand in a verdict it made up.
+- **A single-use human gate** — `consumeApproval` stamps `consumedAt` + `consumedByInvocationId`, and
+  `isApprovalSpendable` (granted _and_ unspent) is enforced in the service **and** independently in the
+  `authorizeToolInvocation` aggregate constructor, so **one human yes buys exactly one act**. The grant is spent
+  before the invocation is stored, so a crash wastes an approval rather than leaving one re-spendable.
+  `ai.approval.spent` names the invocation the grant became.
+- **Persistence** — six FORCE-RLS tables (`agent_definition`, `tool_definition`, `execution_plan` with JSONB
+  steps, `approval_request`, `tool_invocation`, `reasoning_session` with JSONB traces), migration
+  `20261227000000_add_agent_orchestration`, `tenant_isolation` (USING + WITH CHECK, fail-closed) on every table,
+  absolute uniques DB-backed (agent key, capability key, each per tenant). **Three tables deliberately carry no
+  soft-delete column** — an approval decision, an invocation and a reasoning chain are the record of what the
+  platform did and on whose authority.
+- **API** — seven permission-gated controllers / 85 endpoints under `apps/api/src/domains/agent-orchestration`,
+  split `agent:*` (registry + catalog governance) / `ai:read`+`ai:operate` (runtime) / `ai:approve` (the human
+  gate alone, including `expire-due`); module registered in `app.module`.
+- **Boundaries** — **agents invoke capabilities, never databases** (no DB or HTTP client anywhere in the package);
+  **knowledge retrieval originates from D25** (`RETRIEVAL_SOURCES` is a one-member union); **external AI providers
+  are reached only through P3-D09's adapter** — the runtime holds no provider SDK. No domain→domain import; events
+  carry ids/keys/statuses/counts only. ADR-0045, TD-46.
+
+## P2-D25 · Program: Intelligence Core · Institutional Knowledge Graph, Semantic Intelligence & Digital Memory
 
 The **first contract of Program E — the intelligence core** (D25–D30) — on the certified `v0.2.0` baseline and
 the now-complete operational base **D01–D24**. The institution's **semantic layer and digital memory**,
