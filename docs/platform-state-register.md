@@ -1368,3 +1368,58 @@ consumed) rather than describing one; the residual check-then-act window under t
 seven service tokens are exported for **in-process cross-domain use**. The runtime through which decision
 intelligence (P2-D27), predictive intelligence (P2-D28) and executive intelligence (P2-D29) will make their
 recommendations act — behind plans, permissions and the human gate.
+
+## Institutional Decision Intelligence, Workflow Orchestration & Autonomous Operations (P2-D27, Program: Intelligence Core · ADR-0046)
+
+The `@knowget/decision-intelligence` package is the institution's **decision layer**, and the **third contract of
+Program E** (D25–D30) — what P2-D25's semantic memory and P2-D26's governed AI runtime were built for. It follows
+the domain architecture (ADR-0010): a pure package — **six aggregates plus six pure engines** — behind repository
+ports, Prisma/RLS adapters at the `apps/api` composition root, application services on the platform event bus, and
+permission-gated, tenant-scoped REST controllers. Three contract rules define it, and each is engineered as
+**structure rather than procedure**, because a rule expressed as a review comment survives until someone is in a
+hurry. **Only low-risk actions auto-execute** — `AUTO_EXECUTION_RISK_CEILING` is the constant `low`, and nothing
+in the package can raise it (no tenant setting, no autonomy mode, no policy record); an `AutonomyMode`
+(`propose_only → auto_with_approval → auto_execute`) is a **ceiling on ambition, never a grant**, since
+`auto_execute` only means the rule _asks_ to run unattended and the gate still applies the risk ceiling, the
+reversibility rule and the human-subject rule. The gate's outcome is three-way (`auto_execute`,
+`requires_approval`, `blocked`) with eight **stable reason codes**, and `BLOCKING_AUTONOMY_REASONS`
+(`rule_not_active`, `irreversible_action`, `compensation_not_declared`, `recommendation_not_open`,
+`evidence_missing`) refuse rather than gate — an irreversible or uncompensated action is not something a person
+can wave through _as a standing automation_. **Recommendations always ship with evidence chains** —
+`createRecommendation` refuses an ungrounded chain, so an ungrounded recommendation is not a bad record but **not
+a record**; `EVIDENCE_SOURCES` is the two-member union `["knowledge_graph", "reasoning_session"]`, both upstream
+contracts of this same program, and a chain must reach a graph root with confidence as an **integer 0–100 index
+capped by the weakest link**. **Automation carries rollback/compensation** — `planReversal` and
+`compensationStateFor` derive what an unwind takes from what _actually ran_, never asserted, and
+`compensateDecision` refuses unless compensation was genuinely available, so a status update cannot stand in for
+the world being put back. Six **pure, deterministic, clock-free engines** compute what is derived, built and
+tested first: **autonomy**, **evidence**, **reversal**, **orchestration** (a workflow definition made checkable
+before publication, with `dependency_cycle` and `unreachable_stage` deliberately distinct — the bug versus the
+blast radius — and cycle detection settling layer by layer rather than recursing), **prioritization** (backlog
+ordering from declared facts) and **metrics** (descriptive counts and rates only; forecasting is P2-D28). Six
+aggregates: `Recommendation` (only `proposed` is open, every other landing terminal), `DecisionRecord` (a separate
+aggregate with a **non-nullable `recommendationId`**, so every decision points through its recommendation at a
+grounded chain, and with the decision-time snapshot — `confidenceAtDecision`, `riskLevelAtDecision`,
+`impactBandAtDecision`, `evidenceIds`, `autonomyReasons` — because an audit must ask what was in front of the
+decider, not what the record says today), `Workflow` (a **versioned** DAG whose stages live inside the aggregate;
+editing a published definition mints a new version so cases in flight keep their meaning), `WorkflowInstance`,
+`AutomationRule` and `AutomationRun` (written **whatever the gate decided**, including a refusal, so an
+institution can ask what its automation _wanted_ to do and was not allowed to). The rules reach the record and not
+only the gate: `recordDecision` refuses an `auto_executed` disposition that names a decider, carries no evidence,
+lands on a human-judgement subject, or whose risk — the worse of the recommendation's and the action's — exceeds
+the ceiling, so a service that skipped the gate cannot write the decision anyway. Six **FORCE-RLS** tables, each
+`tenant_isolation` (USING + WITH CHECK, fail-closed), tenant-indexed, with the absolute uniques DB-backed
+(workflow `(tenant, key, version)`; rule `(tenant, key)`); **four tables deliberately carry no soft-delete column**
+(recommendation, decision record, workflow instance, automation run — the record of what was proposed, decided,
+run and refused). **Four permission scopes** split the surface across 84 endpoints — `decision:manage`
+(governance), `decision:operate` (runtime), `decision:read` (every read, deliberately wide) and **`decision:decide`
+standing alone**, because a platform where only low-risk actions auto-execute has bought nothing if the operator
+who fired a rule can also clear the approval it stopped for. No endpoint accepts a script or executable payload;
+actions and conditions are minted through the domain, and accountable identity always comes from the
+authenticated principal. Prose- and PII-free `decision.*` events (41) publish onto the shared bus; three directory
+ports resolve the organization owner, the **P2-D26 capability catalog** and the **P2-D25 evidence sources**, and
+the DI-graph spec asserts all three bind — a directory that silently failed to bind would turn every "checked"
+here into "assumed". All seven service tokens are exported for **in-process cross-domain use**. Residual
+deferrals are **TD-47**. The layer through which predictive intelligence (P2-D28) and executive intelligence
+(P2-D29) will express what they conclude — as recommendations that carry their grounds, decisions the institution
+answers for, and automation that never exceeds what it can undo.

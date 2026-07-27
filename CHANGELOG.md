@@ -3,7 +3,59 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D26 · Program: Intelligence Core · Enterprise AI Operating System, Agent Orchestration & Reasoning
+## [Unreleased] — P2-D27 · Program: Intelligence Core · Institutional Decision Intelligence, Workflow Orchestration & Autonomous Operations
+
+The **third contract of Program E — the intelligence core** (D25–D30), and the thing D25 and D26 were built for:
+D25 gave the institution a semantic memory, D26 gave it a governed AI runtime, and D27 is the **decision layer**
+that turns that knowledge into recommendations a person can weigh, decisions the institution can answer for,
+workflows that carry cases through their stages, and standing automation that acts within a boundary — one
+`@knowget/decision-intelligence` package (ADR-0046). Three rules define the contract, and the whole of the
+engineering judgement was to make each **structural rather than procedural**: only low-risk actions auto-execute,
+recommendations always ship with evidence chains, and automation carries rollback. The design problem is
+**restraint, not capability** — making the platform structurally unable to act beyond what it can justify, undo
+and be held to.
+
+### Added
+
+- **`@knowget/decision-intelligence`** — six aggregates (`Recommendation`, `DecisionRecord`, `Workflow` with its
+  stages inside the aggregate, `WorkflowInstance` with its stage runs, `AutomationRule`, `AutomationRun`) plus six
+  pure, deterministic, clock-free engines — **autonomy** (the risk × reversibility × subject gate, three-way
+  outcome, eight stable reason codes), **evidence** (chain inspection, cycle-safe, weakest-link confidence),
+  **reversal** (`planReversal` over what actually ran, in reverse), **orchestration** (DAG inspection, execution
+  layers, instance progress), **prioritization** (backlog ordering from declared facts) and **metrics**
+  (descriptive counts and rates only) — with seven application services, **41 `decision.*` events** and 64 typed
+  errors.
+- **Only low-risk actions auto-execute, as a constant** — `AUTO_EXECUTION_RISK_CEILING` is `low` and **nothing in
+  the package can raise it**: no tenant setting, no autonomy mode, no policy record. An `AutonomyMode` is a
+  **ceiling on ambition, never a grant** — `auto_execute` only means the rule _asks_ to run unattended. Blocking
+  reasons refuse rather than gate, so an irreversible or uncompensated action is never armed as automation at all.
+  `recordDecision` independently refuses an `auto_executed` decision that names a decider, carries no evidence,
+  lands on a human-judgement subject, or whose risk (**the worse of the recommendation's and the action's**) sits
+  above the ceiling — so skipping the gate is an error rather than a shortcut.
+- **Evidence as a precondition of existing** — `createRecommendation` throws `UngroundedRecommendationError` if the
+  chain does not hold up: an ungrounded recommendation is **not a record**. `EVIDENCE_SOURCES` is a two-member
+  union (`knowledge_graph`, `reasoning_session`), both upstream contracts of this program, and a decision's
+  `recommendationId` is **not nullable**, so every decision points through its recommendation at a grounded chain.
+- **Reversal derived, never asserted** — `compensationStateFor` reads the action's declared reversibility and how
+  far execution actually got; `compensateDecision` refuses unless compensation was genuinely available, so a status
+  update cannot stand in for the world being put back.
+- **Persistence** — six FORCE-RLS tables (`decision_recommendation`, `decision_record`, `workflow_definition`,
+  `workflow_instance`, `automation_rule`, `automation_run`), migration `20261228000000_add_decision_intelligence`,
+  `tenant_isolation` (USING + WITH CHECK, fail-closed) on every table, both absolute uniques DB-backed (workflow
+  `(tenant, key, version)`; rule `(tenant, key)`). **Four tables deliberately carry no soft-delete column** — a
+  recommendation, a decision, a case and a firing are the record of what the institution proposed, decided, ran
+  and refused.
+- **API** — seven permission-gated controllers / 84 endpoints under `apps/api/src/domains/decision-intelligence`,
+  split `decision:manage` (governance) / `decision:operate` (runtime) / **`decision:decide` (the human answer,
+  standing alone — the operator who fired a rule cannot clear the approval it stopped for)** / `decision:read`
+  (every read, deliberately wide); accountable identity always from the authenticated principal, never a body;
+  module registered in `app.module`.
+- **Boundaries** — **D27 names capabilities; it never invokes them** (execution is the P2-D26 runtime's, and the
+  capability's implementation stays in the domain that owns it, with one shared risk vocabulary so the two gates
+  cannot disagree); **forecasting is P2-D28** (the metrics engine is descriptive only). No domain→domain import;
+  the organization owner, capability catalog and evidence sources enter through directory ports. ADR-0046, TD-47.
+
+## P2-D26 · Program: Intelligence Core · Enterprise AI Operating System, Agent Orchestration & Reasoning
 
 The **second contract of Program E — the intelligence core** (D25–D30) — built on P2-D25's semantic layer and the
 operational base **D01–D24** whose capabilities agents invoke by key. The institution's **AI runtime**, delivered
