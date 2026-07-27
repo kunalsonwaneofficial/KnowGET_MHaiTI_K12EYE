@@ -30,3 +30,12 @@ export * from "./automation-run";
 // --- Events and ports ------------------------------------------------------------
 export * from "./decision-events";
 export * from "./ports";
+
+// --- Application services --------------------------------------------------------
+export * from "./recommendation-service";
+export * from "./decision-service";
+export * from "./workflow-service";
+export * from "./workflow-run-service";
+export * from "./automation-service";
+export * from "./automation-run-service";
+export * from "./decision-operations-service";

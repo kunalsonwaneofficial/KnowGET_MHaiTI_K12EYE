@@ -35,6 +35,45 @@ export class OrganizationNotFoundForDecisionError extends PlatformError {
   }
 }
 
+/**
+ * An action names a capability the AI catalog (P2-D26) will not invoke — unregistered, never activated, or
+ * since deprecated.
+ *
+ * This is the refusal that keeps rule three from being nominal. A rule armed against a missing capability does
+ * not fail when somebody could fix it; it fails at three in the morning, unattended, on a live student. The
+ * same check guards the compensating key, because a declared way back that names nothing is not a way back at
+ * all — and rule three is worth exactly as much as the compensating capability actually being there.
+ */
+export class CapabilityNotInvocableError extends PlatformError {
+  constructor(capabilityKey: string, role: string) {
+    super(`Capability "${capabilityKey}" is not invocable; it cannot be used as the ${role}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { capabilityKey, role },
+    });
+  }
+}
+
+/**
+ * A citation points at a record that is not there — a knowledge graph entity (P2-D25) or a reasoning session
+ * (P2-D26) that does not exist in this tenant.
+ *
+ * Rule two says a recommendation ships with an evidence chain. A chain of references to things that are not
+ * there satisfies the letter of that and none of its point, so citations are checked as they are made rather
+ * than believed and discovered broken by whoever is asked to act on them.
+ */
+export class EvidenceSourceNotFoundError extends PlatformError {
+  constructor(source: string, ref: string) {
+    super(`No ${source} record "${ref}" exists in this tenant; the citation cannot be made`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { source, ref },
+    });
+  }
+}
+
 // --- Recommendations -------------------------------------------------------------
 
 /** The requested recommendation does not exist in the current tenant. */
