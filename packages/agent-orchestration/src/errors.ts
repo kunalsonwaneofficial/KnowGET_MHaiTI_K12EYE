@@ -230,3 +230,148 @@ export class InvalidToolTransitionError extends PlatformError {
     });
   }
 }
+
+// --- Execution plans -------------------------------------------------------------
+
+/** The requested execution plan does not exist in the current tenant. */
+export class ExecutionPlanNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Execution plan "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A plan must say what it is for. A plan with no goal cannot be inspected by a human, which is the point of it. */
+export class EmptyPlanGoalError extends PlatformError {
+  constructor() {
+    super("An execution plan must state the goal it pursues", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The attempted plan lifecycle transition is not allowed from its current status. */
+export class InvalidPlanTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An execution plan cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * The plan was submitted with something structurally wrong with it. Carries every issue inspection found, not
+ * just the first, because a plan is fixed by an author who wants the whole list.
+ */
+export class UnsoundPlanError extends PlatformError {
+  constructor(issues: readonly { readonly stepId: string | null; readonly code: string }[]) {
+    super(`This execution plan is not sound: ${issues.map((issue) => issue.code).join(", ")}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { issues },
+    });
+  }
+}
+
+/**
+ * Execution was attempted on a plan that is waiting for a human. This is the enforceable approval gate: not a
+ * warning, not a policy an executor is trusted to honour, but a refusal from the plan itself.
+ */
+export class PlanApprovalRequiredError extends PlatformError {
+  constructor(id: string) {
+    super(`Execution plan "${id}" cannot start until a human has approved it`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The plan still has steps that have not settled, so it cannot be declared finished. */
+export class PlanNotSettledError extends PlatformError {
+  constructor(id: string, outstanding: number) {
+    super(`Execution plan "${id}" still has ${outstanding} step(s) outstanding`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, outstanding },
+    });
+  }
+}
+
+// --- Plan steps ------------------------------------------------------------------
+
+/** The requested step is not part of this plan. */
+export class PlanStepNotFoundError extends PlatformError {
+  constructor(stepId: string) {
+    super(`Step "${stepId}" is not part of this execution plan`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { stepId },
+    });
+  }
+}
+
+/** The attempted step lifecycle transition is not allowed from its current status. */
+export class InvalidStepTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A plan step cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * A step declared a dependency on something that is not a step of this plan. Refused when the step is added,
+ * so a plan cannot be *built* with a dangling edge — the inspection engine still checks, because a plan can also
+ * arrive from a store or an import.
+ */
+export class UnknownStepDependencyError extends PlatformError {
+  constructor(dependencyId: string) {
+    super(`Step dependency "${dependencyId}" is not a step of this execution plan`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { dependencyId },
+    });
+  }
+}
+
+/** A step cannot begin while something it waits on has not succeeded. */
+export class StepDependencyNotMetError extends PlatformError {
+  constructor(stepId: string, dependencyId: string) {
+    super(`Step "${stepId}" waits on "${dependencyId}", which has not succeeded`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stepId, dependencyId },
+    });
+  }
+}
+
+/** A step cannot be removed while another step waits on it. */
+export class StepDependedUponError extends PlatformError {
+  constructor(stepId: string, dependentStepId: string) {
+    super(`Step "${stepId}" cannot be removed while step "${dependentStepId}" waits on it`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stepId, dependentStepId },
+    });
+  }
+}
