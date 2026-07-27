@@ -93,6 +93,9 @@ importers:
       '@knowget/admissions':
         specifier: workspace:*
         version: link:../../packages/admissions
+      '@knowget/agent-orchestration':
+        specifier: workspace:*
+        version: link:../../packages/agent-orchestration
       '@knowget/alerting':
         specifier: workspace:*
         version: link:../../packages/alerting
