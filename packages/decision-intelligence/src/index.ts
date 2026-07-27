@@ -13,3 +13,4 @@ export * from "./decision-view";
 // --- Pure engines ----------------------------------------------------------------
 export * from "./autonomy";
 export * from "./evidence";
+export * from "./orchestration";
