@@ -22,3 +22,5 @@ export * from "./metrics";
 export * from "./errors";
 export * from "./recommendation";
 export * from "./decision-record";
+export * from "./workflow";
+export * from "./workflow-instance";

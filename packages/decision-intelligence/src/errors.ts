@@ -350,3 +350,302 @@ export class DecisionNotCompensatableError extends PlatformError {
     });
   }
 }
+
+// --- Workflow definitions --------------------------------------------------------
+
+/** The requested workflow definition version does not exist in the current tenant. */
+export class WorkflowNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Workflow definition "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A workflow definition is addressed by key across its versions, so the key cannot be blank. */
+export class EmptyWorkflowKeyError extends PlatformError {
+  constructor() {
+    super("A workflow definition must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A workflow definition must have a name a person can recognise it by. */
+export class EmptyWorkflowNameError extends PlatformError {
+  constructor() {
+    super("A workflow definition must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** That version of this workflow key already exists; a revision takes the next version number. */
+export class DuplicateWorkflowVersionError extends PlatformError {
+  constructor(key: string, version: number) {
+    super(`Workflow "${key}" already has a version ${version}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key, version },
+    });
+  }
+}
+
+/** A signal-triggered workflow must name the signal that starts it; a key of nothing starts nothing. */
+export class WorkflowTriggerSignalMissingError extends PlatformError {
+  constructor() {
+    super("A signal-triggered workflow must name the signal key that starts it", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Only a signal-triggered workflow carries a signal key. A manual or automation-started workflow that also names
+ * a signal is ambiguous about what starts it, and an orchestrator should never be guessing that.
+ */
+export class WorkflowTriggerSignalNotAllowedError extends PlatformError {
+  constructor(trigger: string) {
+    super(`A "${trigger}"-triggered workflow cannot also name a trigger signal`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { trigger },
+    });
+  }
+}
+
+/**
+ * A published definition version is frozen. The instances running under it must keep meaning what they meant
+ * when they started, and there is no way to repair a live case that has already passed a stage which has since
+ * changed underneath it. Revise the workflow into a new draft version instead.
+ */
+export class PublishedWorkflowImmutableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(
+      `Workflow definition "${id}" is "${status}" and can no longer be edited; revise it into a new version`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, status },
+      },
+    );
+  }
+}
+
+/**
+ * Publication is the gate. A definition carrying any structural issue at all — a cycle, a dangling dependency,
+ * an acting stage naming no capability, a compensatable stage naming no way back — cannot be published, because
+ * every one of those is a route to a state nobody designed once live cases are moving through it.
+ */
+export class UnsoundWorkflowError extends PlatformError {
+  constructor(id: string, issues: readonly string[]) {
+    super(
+      `Workflow definition "${id}" cannot be published while it is unsound (${issues.join(", ")})`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { id, issues: [...issues] },
+      },
+    );
+  }
+}
+
+/** The attempted workflow-definition transition is not allowed from where the definition currently stands. */
+export class InvalidWorkflowTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A workflow definition cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Instances start from a published version only — never from a draft, a suspended one or a retired one. */
+export class WorkflowNotPublishedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(
+      `Workflow definition "${id}" is "${status}"; instances start from a published version only`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, status },
+      },
+    );
+  }
+}
+
+/** A stage is addressed by key within its definition, so the key cannot be blank. */
+export class EmptyStageKeyError extends PlatformError {
+  constructor() {
+    super("A workflow stage must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A workflow stage must have a name a person can recognise it by. */
+export class EmptyStageNameError extends PlatformError {
+  constructor() {
+    super("A workflow stage must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Stage keys address stages, and two stages answering to one key make every dependency naming it ambiguous. It
+ * is refused at the point the mistake is made rather than discovered later at the publication gate.
+ */
+export class DuplicateStageKeyError extends PlatformError {
+  constructor(stageKey: string) {
+    super(`Workflow stage "${stageKey}" is already part of this definition`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey },
+    });
+  }
+}
+
+/** The named stage is not part of this workflow definition. */
+export class StageNotFoundError extends PlatformError {
+  constructor(workflowId: string, stageKey: string) {
+    super(`Workflow stage "${stageKey}" is not part of definition "${workflowId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { workflowId, stageKey },
+    });
+  }
+}
+
+// --- Workflow instances ----------------------------------------------------------
+
+/** The requested workflow instance does not exist in the current tenant. */
+export class WorkflowInstanceNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Workflow instance "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An instance must name what it is running about, exactly as a recommendation names what it is about. */
+export class EmptyWorkflowSubjectError extends PlatformError {
+  constructor() {
+    super("A workflow instance must name the domain and record it is running about", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Starting a workflow by hand and cancelling one mid-flight are both acts a person is accountable for, and an
+ * accountability record with nobody in it is not accountability. A signal or an automation rule starting a
+ * workflow names itself instead; silence names nothing.
+ */
+export class AnonymousWorkflowActionError extends PlatformError {
+  constructor(action: string) {
+    super(`A workflow cannot be ${action} without naming the person accountable for it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { action },
+    });
+  }
+}
+
+/** The instance has already settled, and a settled instance does not move again. */
+export class WorkflowInstanceNotRunningError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Workflow instance "${id}" is "${status}" and is no longer running`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** The named stage is not part of this instance's snapshot of its definition. */
+export class StageRunNotFoundError extends PlatformError {
+  constructor(instanceId: string, stageKey: string) {
+    super(`Stage "${stageKey}" is not part of workflow instance "${instanceId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { instanceId, stageKey },
+    });
+  }
+}
+
+/** The attempted stage transition is not allowed from where that stage currently stands. */
+export class InvalidStageTransitionError extends PlatformError {
+  constructor(stageKey: string, from: string, to: string) {
+    super(`Stage "${stageKey}" cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey, from, to },
+    });
+  }
+}
+
+/**
+ * A stage begins only once everything it depends on has completed or been skipped. A *failed* dependency
+ * releases nothing: the instance stops at the part that did not work rather than carrying on past it, which is
+ * the difference between an orchestrator and a queue.
+ */
+export class StageDependenciesUnsettledError extends PlatformError {
+  constructor(stageKey: string, unsatisfied: readonly string[]) {
+    super(
+      `Stage "${stageKey}" cannot begin until ${unsatisfied.join(", ")} complete or are skipped`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { stageKey, unsatisfied: [...unsatisfied] },
+      },
+    );
+  }
+}
+
+/**
+ * Only a stage the definition declared optional may be skipped. Skipping a required stage would let an instance
+ * report completion having never done the thing the workflow exists to do.
+ */
+export class RequiredStageNotSkippableError extends PlatformError {
+  constructor(stageKey: string) {
+    super(`Stage "${stageKey}" is required and cannot be skipped`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey },
+    });
+  }
+}
