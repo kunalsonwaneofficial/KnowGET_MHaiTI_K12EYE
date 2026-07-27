@@ -7,3 +7,8 @@ export * from "./planning";
 export * from "./rollback";
 export * from "./reasoning";
 export * from "./metrics";
+// domain errors
+export * from "./errors";
+// aggregates (agent registry, capability catalog)
+export * from "./agent";
+export * from "./tool";

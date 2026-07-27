@@ -11,6 +11,21 @@
  * adapter (P3-D09) — the AI OS never calls a provider itself.
  */
 
+// --- Keys ------------------------------------------------------------------------
+
+/**
+ * The canonical form of a registry key: trimmed and lower-cased. Agent keys and capability keys share one
+ * grammar — dotted, lower-case, stable — because a grant is matched to a catalog entry by exact string, and a
+ * grant that fails to match because of a stray capital is a security hole, not a typo.
+ */
+const normalizeKey = (key: string): string => key.trim().toLowerCase();
+
+/** Normalize an agent key. */
+export const normalizeAgentKey = (key: string): string => normalizeKey(key);
+
+/** Normalize a capability key — the key a grant, a plan step and an invocation all refer to. */
+export const normalizeCapabilityKey = (key: string): string => normalizeKey(key);
+
 // --- Agent registry --------------------------------------------------------------
 
 /**
