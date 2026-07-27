@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AcademicSchedulingModule } from "./domains/academic-scheduling/academic-scheduling.module";
 import { AcademicStructureModule } from "./domains/academic-structure/academic-structure.module";
 import { AdmissionsModule } from "./domains/admissions/admissions.module";
+import { AgentOrchestrationModule } from "./domains/agent-orchestration/agent-orchestration.module";
 import { AlumniModule } from "./domains/alumni/alumni.module";
 import { AssessmentEvaluationModule } from "./domains/assessment-evaluation/assessment-evaluation.module";
 import { AttendancePresenceModule } from "./domains/attendance-presence/attendance-presence.module";
@@ -116,6 +117,7 @@ const persistedServices =
     AdmissionsModule,
     AlumniModule,
     KnowledgeGraphModule,
+    AgentOrchestrationModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

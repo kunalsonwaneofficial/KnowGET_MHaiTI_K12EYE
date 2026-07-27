@@ -5099,3 +5099,198 @@ model EntityMemory {
   @@index([tenantId, organizationId])
   @@map("entity_memory")
 }
+
+// ============================================================================
+// P2-D26 — Enterprise AI Operating System, Agent Orchestration & Reasoning
+// The AI runtime: the agent registry and its capability grants, the capability
+// catalog agents invoke through, inspectable execution plans, permission-
+// controlled invocations with rollback, the human approval gate, and reasoning
+// sessions whose knowledge comes only from the D25 graph. Agents invoke
+// capabilities, never databases — nothing here names a table or a query.
+// All tenant-isolated by FORCE RLS.
+// ============================================================================
+
+/// AgentDefinition (P2-D26) — a registered agent, its autonomy level and the entirety of its reach.
+/// `granted_capability_keys` is the whole grant set: sorted, unique, and checked on every invocation.
+/// Tenant-owned: FORCE RLS.
+model AgentDefinition {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String    @map("tenant_id") @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  key                   String
+  name                  String
+  purpose               String?
+  autonomyLevel         String    @map("autonomy_level")
+  status                String    @default("draft")
+  grantedCapabilityKeys String[]  @map("granted_capability_keys")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  createdBy             String?   @map("created_by") @db.Uuid
+  updatedBy             String?   @map("updated_by") @db.Uuid
+  deletedAt             DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, status])
+  @@map("agent_definition")
+}
+
+/// ToolDefinition (P2-D26) — a catalogued capability. `capability_domain` routes to a platform capability,
+/// never to a data-access target. The risk classification (effect, risk level, reversibility) is what the
+/// authorization engine reads, and `compensation_key` is what a rollback reaches for. Tenant-owned: FORCE RLS.
+model ToolDefinition {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  key              String
+  name             String
+  description      String?
+  capabilityDomain String    @map("capability_domain")
+  effect           String
+  riskLevel        String    @map("risk_level")
+  reversibility    String
+  compensationKey  String?   @map("compensation_key")
+  requiresApproval Boolean   @default(false) @map("requires_approval")
+  status           String    @default("draft")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, capabilityDomain])
+  @@map("tool_definition")
+}
+
+/// ExecutionPlan (P2-D26) — what an agent proposes to do, before it does any of it, in a form a human can
+/// read. `steps` holds the ordered step list (id, ordinal, capability key, intent, dependsOn, status,
+/// invocation id) as part of the aggregate, loaded and saved whole. Tenant-owned: FORCE RLS.
+model ExecutionPlan {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  agentId            String    @map("agent_id") @db.Uuid
+  reasoningSessionId String?   @map("reasoning_session_id") @db.Uuid
+  goal               String
+  status             String    @default("drafted")
+  steps              Json      @default("[]")
+  requiresApproval   Boolean   @default(false) @map("requires_approval")
+  approvalRequestId  String?   @map("approval_request_id") @db.Uuid
+  inspectedAt        String?   @map("inspected_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  deletedAt          DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, agentId])
+  @@index([tenantId, status])
+  @@map("execution_plan")
+}
+
+/// ApprovalRequest (P2-D26) — the record of a human gate: what was asked, why it was asked, who answered and
+/// when. `subject_id` is TEXT rather than UUID because an invocation-level subject is the composite
+/// agent:capability[:step] the gate stands in front of, not a row id. Never deleted — an approval is the
+/// record of who allowed what. Tenant-owned: FORCE RLS.
+model ApprovalRequest {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  subject         String
+  subjectId       String   @map("subject_id")
+  agentId         String   @map("agent_id") @db.Uuid
+  capabilityKey   String?  @map("capability_key")
+  reasons         String[]
+  riskLevel       String   @map("risk_level")
+  decision        String   @default("pending")
+  decidedByUserId String?  @map("decided_by_user_id") @db.Uuid
+  decidedAt       String?  @map("decided_at")
+  decisionNote    String?  @map("decision_note")
+  expiresAt       String?  @map("expires_at")
+
+  /// When the grant was spent, and on which invocation. Null while unspent — which, for a granted request, is the
+  /// only state in which it authorizes anything. This pair is what makes the human gate single-use rather than a
+  /// standing licence for the agent-and-capability pair the request names.
+  consumedAt             String? @map("consumed_at")
+  consumedByInvocationId String? @map("consumed_by_invocation_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, subject, subjectId])
+  @@index([tenantId, decision])
+  @@map("approval_request")
+}
+
+/// ToolInvocation (P2-D26) — the record of what an agent actually did to an institution: the authorization
+/// that let it exist, the approval that unblocked it, the ordinal a rollback reverses by, and how it settled.
+/// `failure_code` is a stable code, never a message and never a payload. Never deleted. Tenant-owned: FORCE RLS.
+model ToolInvocation {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String   @map("tenant_id") @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  agentId                   String   @map("agent_id") @db.Uuid
+  planId                    String?  @map("plan_id") @db.Uuid
+  stepId                    String?  @map("step_id") @db.Uuid
+  capabilityKey             String   @map("capability_key")
+  ordinal                   Int      @default(1)
+  riskLevel                 String   @map("risk_level")
+  reversibility             String
+  compensationKey           String?  @map("compensation_key")
+  status                    String   @default("authorized")
+  authorizationOutcome      String   @map("authorization_outcome")
+  authorizationReasons      String[] @map("authorization_reasons")
+  approvalRequestId         String?  @map("approval_request_id") @db.Uuid
+  compensatedByInvocationId String?  @map("compensated_by_invocation_id") @db.Uuid
+  failureCode               String?  @map("failure_code")
+  startedAt                 String?  @map("started_at")
+  settledAt                 String?  @map("settled_at")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  createdBy                 String?  @map("created_by") @db.Uuid
+  updatedBy                 String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, agentId])
+  @@index([tenantId, planId])
+  @@index([tenantId, capabilityKey])
+  @@map("tool_invocation")
+}
+
+/// ReasoningSession (P2-D26) — the record of why an agent proposed what it proposed. `traces` holds the
+/// ordered reasoning steps (retrieval, observation, inference, decision) with their knowledge-graph refs and
+/// what each rests on; retrieved knowledge only ever originates from the D25 graph. Free text lives here and
+/// never reaches an event. Never deleted. Tenant-owned: FORCE RLS.
+model ReasoningSession {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  agentId         String   @map("agent_id") @db.Uuid
+  purpose         String
+  status          String   @default("open")
+  traces          Json     @default("[]")
+  executionPlanId String?  @map("execution_plan_id") @db.Uuid
+  conclusion      String?
+  concludedAt     String?  @map("concluded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, agentId])
+  @@index([tenantId, status])
+  @@map("reasoning_session")
+}

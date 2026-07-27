@@ -20,6 +20,7 @@
     "@knowget/academic-scheduling": "workspace:*",
     "@knowget/academic-structure": "workspace:*",
     "@knowget/admissions": "workspace:*",
+    "@knowget/agent-orchestration": "workspace:*",
     "@knowget/alerting": "workspace:*",
     "@knowget/alumni": "workspace:*",
     "@knowget/knowledge-graph": "workspace:*",

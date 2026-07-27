@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/agent-orchestration",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise AI Operating System, Agent Orchestration & Reasoning (P2-D26) — the AI runtime of the intelligence core (Program E), built on the semantic layer P2-D25 delivered. An agent registry declares what each agent is and what it is granted; a capability catalog is the only invocation surface an agent has, so agents invoke capabilities and never databases directly; execution plans are inspectable before they run (steps, dependencies, risk, reversibility); reasoning sessions record an auditable trace whose retrieval originates exclusively from the knowledge graph (P2-D25); tool invocation is permission-controlled and carries rollback (compensation) for anything not naturally reversible; and human approval is enforceable — a denied capability can never be approved into existence, and an approval-gated action cannot execute without one. Pure engines derive authorization decisions, plan inspection, compensation plans, reasoning grounding and operations metrics. External AI providers are reached only through the Phase-3 AI integration adapter (P3-D09) — nothing here calls a provider. Domain events carry ids, keys, statuses and counts only — no prompts, no reasoning text, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
