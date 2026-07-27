@@ -5199,25 +5199,24 @@ model ExecutionPlan {
 /// agent:capability[:step] the gate stands in front of, not a row id. Never deleted — an approval is the
 /// record of who allowed what. Tenant-owned: FORCE RLS.
 model ApprovalRequest {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
   subject         String
-  subjectId       String    @map("subject_id")
-  agentId         String    @map("agent_id") @db.Uuid
-  capabilityKey   String?   @map("capability_key")
+  subjectId       String   @map("subject_id")
+  agentId         String   @map("agent_id") @db.Uuid
+  capabilityKey   String?  @map("capability_key")
   reasons         String[]
-  riskLevel       String    @map("risk_level")
-  decision        String    @default("pending")
-  decidedByUserId String?   @map("decided_by_user_id") @db.Uuid
-  decidedAt       String?   @map("decided_at")
-  decisionNote    String?   @map("decision_note")
-  expiresAt       String?   @map("expires_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  createdBy       String?   @map("created_by") @db.Uuid
-  updatedBy       String?   @map("updated_by") @db.Uuid
-  deletedAt       DateTime? @map("deleted_at")
+  riskLevel       String   @map("risk_level")
+  decision        String   @default("pending")
+  decidedByUserId String?  @map("decided_by_user_id") @db.Uuid
+  decidedAt       String?  @map("decided_at")
+  decisionNote    String?  @map("decision_note")
+  expiresAt       String?  @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
 
   @@index([tenantId])
   @@index([tenantId, organizationId])
@@ -5230,30 +5229,29 @@ model ApprovalRequest {
 /// that let it exist, the approval that unblocked it, the ordinal a rollback reverses by, and how it settled.
 /// `failure_code` is a stable code, never a message and never a payload. Never deleted. Tenant-owned: FORCE RLS.
 model ToolInvocation {
-  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId                  String    @map("tenant_id") @db.Uuid
-  organizationId            String    @map("organization_id") @db.Uuid
-  agentId                   String    @map("agent_id") @db.Uuid
-  planId                    String?   @map("plan_id") @db.Uuid
-  stepId                    String?   @map("step_id") @db.Uuid
-  capabilityKey             String    @map("capability_key")
-  ordinal                   Int       @default(1)
-  riskLevel                 String    @map("risk_level")
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String   @map("tenant_id") @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  agentId                   String   @map("agent_id") @db.Uuid
+  planId                    String?  @map("plan_id") @db.Uuid
+  stepId                    String?  @map("step_id") @db.Uuid
+  capabilityKey             String   @map("capability_key")
+  ordinal                   Int      @default(1)
+  riskLevel                 String   @map("risk_level")
   reversibility             String
-  compensationKey           String?   @map("compensation_key")
-  status                    String    @default("authorized")
-  authorizationOutcome      String    @map("authorization_outcome")
-  authorizationReasons      String[]  @map("authorization_reasons")
-  approvalRequestId         String?   @map("approval_request_id") @db.Uuid
-  compensatedByInvocationId String?   @map("compensated_by_invocation_id") @db.Uuid
-  failureCode               String?   @map("failure_code")
-  startedAt                 String?   @map("started_at")
-  settledAt                 String?   @map("settled_at")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
-  createdBy                 String?   @map("created_by") @db.Uuid
-  updatedBy                 String?   @map("updated_by") @db.Uuid
-  deletedAt                 DateTime? @map("deleted_at")
+  compensationKey           String?  @map("compensation_key")
+  status                    String   @default("authorized")
+  authorizationOutcome      String   @map("authorization_outcome")
+  authorizationReasons      String[] @map("authorization_reasons")
+  approvalRequestId         String?  @map("approval_request_id") @db.Uuid
+  compensatedByInvocationId String?  @map("compensated_by_invocation_id") @db.Uuid
+  failureCode               String?  @map("failure_code")
+  startedAt                 String?  @map("started_at")
+  settledAt                 String?  @map("settled_at")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  createdBy                 String?  @map("created_by") @db.Uuid
+  updatedBy                 String?  @map("updated_by") @db.Uuid
 
   @@index([tenantId])
   @@index([tenantId, organizationId])
@@ -5268,21 +5266,20 @@ model ToolInvocation {
 /// what each rests on; retrieved knowledge only ever originates from the D25 graph. Free text lives here and
 /// never reaches an event. Never deleted. Tenant-owned: FORCE RLS.
 model ReasoningSession {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String    @map("tenant_id") @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
-  agentId         String    @map("agent_id") @db.Uuid
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  agentId         String   @map("agent_id") @db.Uuid
   purpose         String
-  status          String    @default("open")
-  traces          Json      @default("[]")
-  executionPlanId String?   @map("execution_plan_id") @db.Uuid
+  status          String   @default("open")
+  traces          Json     @default("[]")
+  executionPlanId String?  @map("execution_plan_id") @db.Uuid
   conclusion      String?
-  concludedAt     String?   @map("concluded_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  createdBy       String?   @map("created_by") @db.Uuid
-  updatedBy       String?   @map("updated_by") @db.Uuid
-  deletedAt       DateTime? @map("deleted_at")
+  concludedAt     String?  @map("concluded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
 
   @@index([tenantId])
   @@index([tenantId, organizationId])

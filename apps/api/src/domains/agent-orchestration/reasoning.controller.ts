@@ -172,6 +172,21 @@ export class ReasoningController {
   }
 
   @RequirePermissions(AI_READ)
+  @Get()
+  async list(@CurrentPrincipal() principal: Principal): Promise<ReasoningSession[]> {
+    return this.service.list(tenantOf(principal));
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get("by-agent/:agentId")
+  async listByAgent(
+    @CurrentPrincipal() principal: Principal,
+    @Param("agentId") agentId: string,
+  ): Promise<ReasoningSession[]> {
+    return this.service.listByAgent(tenantOf(principal), agentId);
+  }
+
+  @RequirePermissions(AI_READ)
   @Get(":id/grounding")
   async grounding(
     @CurrentPrincipal() principal: Principal,
@@ -206,21 +221,6 @@ export class ReasoningController {
     @Param("traceId") traceId: string,
   ): Promise<ReasoningTrace> {
     return this.service.trace(tenantOf(principal), id as Uuid, traceId);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get("by-agent/:agentId")
-  async listByAgent(
-    @CurrentPrincipal() principal: Principal,
-    @Param("agentId") agentId: string,
-  ): Promise<ReasoningSession[]> {
-    return this.service.listByAgent(tenantOf(principal), agentId);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get()
-  async list(@CurrentPrincipal() principal: Principal): Promise<ReasoningSession[]> {
-    return this.service.list(tenantOf(principal));
   }
 
   @RequirePermissions(AI_READ)

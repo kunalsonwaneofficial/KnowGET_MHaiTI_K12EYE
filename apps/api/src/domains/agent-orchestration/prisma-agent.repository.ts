@@ -91,16 +91,10 @@ export class PrismaAgentRepository implements AgentRepository {
     });
   }
 
-  /**
-   * Soft-delete. `updateMany` rather than `update` on purpose: the port's contract is that removing something
-   * this tenant cannot see is a no-op, not an error, and RLS makes another tenant's row exactly that — invisible.
-   */
+  /** Soft-delete. */
   remove(tenantId: TenantId, id: Uuid): Promise<void> {
     return withTenant(this.db, tenantId, async (tx: TransactionClient) => {
-      await tx.agentDefinition.updateMany({
-        where: { id, deletedAt: null },
-        data: { deletedAt: new Date() },
-      });
+      await tx.agentDefinition.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }
 }

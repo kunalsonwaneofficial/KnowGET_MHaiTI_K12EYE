@@ -30,34 +30,6 @@ import { AI_INVOCATION_SERVICE } from "./agent-orchestration.tokens";
 export class InvocationController {
   constructor(@Inject(AI_INVOCATION_SERVICE) private readonly service: InvocationService) {}
 
-  @RequirePermissions(AI_READ)
-  @Get("decision/:agentId/:capabilityKey")
-  async decide(
-    @CurrentPrincipal() principal: Principal,
-    @Param("agentId") agentId: string,
-    @Param("capabilityKey") capabilityKey: string,
-  ): Promise<AuthorizationDecision> {
-    return this.service.decide(tenantOf(principal), agentId, capabilityKey);
-  }
-
-  @RequirePermissions(AI_OPERATE)
-  @Post("approval-requests")
-  @HttpCode(201)
-  async requestApproval(
-    @CurrentPrincipal() principal: Principal,
-    @Body() body: unknown,
-  ): Promise<ApprovalRequest> {
-    const dto = parseBody(requestInvocationApprovalSchema, body);
-    return this.service.requestApproval({
-      tenantId: tenantOf(principal),
-      organizationId: dto.organizationId as Uuid,
-      agentId: dto.agentId,
-      capabilityKey: dto.capabilityKey,
-      stepId: dto.stepId ?? null,
-      expiresAt: (dto.expiresAt ?? null) as ISODateString | null,
-    });
-  }
-
   @RequirePermissions(AI_OPERATE)
   @Post()
   @HttpCode(201)
@@ -75,6 +47,24 @@ export class InvocationController {
       stepId: dto.stepId ?? null,
       ordinal: dto.ordinal,
       approvalRequestId: dto.approvalRequestId ?? null,
+    });
+  }
+
+  @RequirePermissions(AI_OPERATE)
+  @Post("approval-requests")
+  @HttpCode(201)
+  async requestApproval(
+    @CurrentPrincipal() principal: Principal,
+    @Body() body: unknown,
+  ): Promise<ApprovalRequest> {
+    const dto = parseBody(requestInvocationApprovalSchema, body);
+    return this.service.requestApproval({
+      tenantId: tenantOf(principal),
+      organizationId: dto.organizationId as Uuid,
+      agentId: dto.agentId,
+      capabilityKey: dto.capabilityKey,
+      stepId: dto.stepId ?? null,
+      expiresAt: (dto.expiresAt ?? null) as ISODateString | null,
     });
   }
 
@@ -122,6 +112,22 @@ export class InvocationController {
     return this.service.compensate(tenantOf(principal), id as Uuid, dto.compensatingInvocationId);
   }
 
+  @RequirePermissions(AI_READ)
+  @Get()
+  async list(@CurrentPrincipal() principal: Principal): Promise<ToolInvocation[]> {
+    return this.service.list(tenantOf(principal));
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get("decision/:agentId/:capabilityKey")
+  async decide(
+    @CurrentPrincipal() principal: Principal,
+    @Param("agentId") agentId: string,
+    @Param("capabilityKey") capabilityKey: string,
+  ): Promise<AuthorizationDecision> {
+    return this.service.decide(tenantOf(principal), agentId, capabilityKey);
+  }
+
   /** The reversal order for a plan's effects — read before rolling one back, not written by reading it. */
   @RequirePermissions(AI_READ)
   @Get("rollback-plan/:planId")
@@ -148,12 +154,6 @@ export class InvocationController {
     @Param("agentId") agentId: string,
   ): Promise<ToolInvocation[]> {
     return this.service.listByAgent(tenantOf(principal), agentId);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get()
-  async list(@CurrentPrincipal() principal: Principal): Promise<ToolInvocation[]> {
-    return this.service.list(tenantOf(principal));
   }
 
   @RequirePermissions(AI_READ)

@@ -110,13 +110,10 @@ export class PrismaExecutionPlanRepository implements ExecutionPlanRepository {
     });
   }
 
-  /** Soft-delete; `updateMany` so removing a row this tenant cannot see is a no-op rather than an error. */
+  /** Soft-delete. */
   remove(tenantId: TenantId, id: Uuid): Promise<void> {
     return withTenant(this.db, tenantId, async (tx: TransactionClient) => {
-      await tx.executionPlan.updateMany({
-        where: { id, deletedAt: null },
-        data: { deletedAt: new Date() },
-      });
+      await tx.executionPlan.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }
 }

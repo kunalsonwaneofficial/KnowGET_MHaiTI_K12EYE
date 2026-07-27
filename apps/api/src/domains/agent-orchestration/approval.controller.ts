@@ -2,7 +2,7 @@ import { type ApprovalRequest, ApprovalService } from "@knowget/agent-orchestrat
 import type { Principal } from "@knowget/auth";
 import { nowIso } from "@knowget/shared";
 import type { ISODateString, Uuid } from "@knowget/types";
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
 import { CurrentPrincipal, RequirePermissions } from "../../platform/security/decorators";
 import { AI_APPROVE, AI_READ, deciderOf, parseBody, tenantOf } from "./agent-orchestration-http";
 import { decisionSchema, expireDueSchema } from "./agent-orchestration.dto";
@@ -21,26 +21,19 @@ import { AI_APPROVAL_SERVICE } from "./agent-orchestration.tokens";
 export class ApprovalController {
   constructor(@Inject(AI_APPROVAL_SERVICE) private readonly service: ApprovalService) {}
 
-  @RequirePermissions(AI_READ)
-  @Get("pending")
-  async listPending(@CurrentPrincipal() principal: Principal): Promise<ApprovalRequest[]> {
-    return this.service.listPending(tenantOf(principal));
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get("by-subject/:subject/:subjectId")
-  async listBySubject(
+  /**
+   * Expire every pending request whose deadline has passed. Requires `ai:approve` rather than `ai:operate`:
+   * expiry closes gates without a decision, which is the same effect on the queue as rejecting them.
+   */
+  @RequirePermissions(AI_APPROVE)
+  @Post("expire-due")
+  @HttpCode(200)
+  async expireDue(
     @CurrentPrincipal() principal: Principal,
-    @Param("subject") subject: string,
-    @Param("subjectId") subjectId: string,
-    @Query("openOnly") openOnly?: string,
+    @Body() body: unknown,
   ): Promise<ApprovalRequest[]> {
-    const tenantId = tenantOf(principal);
-    if (openOnly === "true") {
-      const open = await this.service.findOpenFor(tenantId, subject, subjectId);
-      return open ? [open] : [];
-    }
-    return this.service.listBySubject(tenantId, subject, subjectId);
+    const dto = parseBody(expireDueSchema, body);
+    return this.service.expireDue(tenantOf(principal), (dto.at as ISODateString) ?? nowIso());
   }
 
   @RequirePermissions(AI_APPROVE)
@@ -73,25 +66,41 @@ export class ApprovalController {
     });
   }
 
-  /**
-   * Expire every pending request whose deadline has passed. Requires `ai:approve` rather than `ai:operate`:
-   * expiry closes gates without a decision, which is the same effect on the queue as rejecting them.
-   */
-  @RequirePermissions(AI_APPROVE)
-  @Post("expire-due")
-  @HttpCode(200)
-  async expireDue(
-    @CurrentPrincipal() principal: Principal,
-    @Body() body: unknown,
-  ): Promise<ApprovalRequest[]> {
-    const dto = parseBody(expireDueSchema, body ?? {});
-    return this.service.expireDue(tenantOf(principal), (dto.at as ISODateString) ?? nowIso());
-  }
-
   @RequirePermissions(AI_READ)
   @Get()
   async list(@CurrentPrincipal() principal: Principal): Promise<ApprovalRequest[]> {
     return this.service.list(tenantOf(principal));
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get("pending")
+  async listPending(@CurrentPrincipal() principal: Principal): Promise<ApprovalRequest[]> {
+    return this.service.listPending(tenantOf(principal));
+  }
+
+  /**
+   * The one request currently blocking this subject, or `null`. Separate from the history read below rather than
+   * a flag on it: "what is holding this plan up" and "what has ever been asked about this plan" are different
+   * questions, and a caller polling the gate should not have to filter a growing list to answer the first.
+   */
+  @RequirePermissions(AI_READ)
+  @Get("by-subject/:subject/:subjectId/open")
+  async findOpen(
+    @CurrentPrincipal() principal: Principal,
+    @Param("subject") subject: string,
+    @Param("subjectId") subjectId: string,
+  ): Promise<ApprovalRequest | null> {
+    return this.service.findOpenFor(tenantOf(principal), subject, subjectId);
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get("by-subject/:subject/:subjectId")
+  async listBySubject(
+    @CurrentPrincipal() principal: Principal,
+    @Param("subject") subject: string,
+    @Param("subjectId") subjectId: string,
+  ): Promise<ApprovalRequest[]> {
+    return this.service.listBySubject(tenantOf(principal), subject, subjectId);
   }
 
   @RequirePermissions(AI_READ)

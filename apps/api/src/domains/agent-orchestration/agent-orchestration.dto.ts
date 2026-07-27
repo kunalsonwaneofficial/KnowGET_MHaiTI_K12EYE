@@ -70,7 +70,8 @@ export const stepOutcomeSchema = z.object({ invocationId: uuid });
 export const stepFailureSchema = z.object({ invocationId: uuid.nullable().optional() });
 
 // --- Human approval (ai:approve) ---------------------------------------------------
-export const expireDueSchema = z.object({ at: nonEmpty.optional() });
+/** Defaulted so a bodyless `POST expire-due` — the common case, meaning "as of now" — parses like any other. */
+export const expireDueSchema = z.object({ at: nonEmpty.optional() }).default({});
 
 // --- Tool invocation (ai:*) --------------------------------------------------------
 export const authorizeInvocationSchema = z.object({

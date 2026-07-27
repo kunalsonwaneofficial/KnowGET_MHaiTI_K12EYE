@@ -90,26 +90,6 @@ export class ExecutionPlanController {
   }
 
   @RequirePermissions(AI_OPERATE)
-  @Delete(":id/steps/:stepId")
-  @HttpCode(200)
-  async removeStep(
-    @CurrentPrincipal() principal: Principal,
-    @Param("id") id: string,
-    @Param("stepId") stepId: string,
-  ): Promise<ExecutionPlan> {
-    return this.service.removeStep(tenantOf(principal), id as Uuid, stepId);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get(":id/inspect")
-  async inspect(
-    @CurrentPrincipal() principal: Principal,
-    @Param("id") id: string,
-  ): Promise<PlanInspection> {
-    return this.service.inspect(tenantOf(principal), id as Uuid);
-  }
-
-  @RequirePermissions(AI_OPERATE)
   @Post(":id/submit")
   @HttpCode(200)
   async submit(
@@ -163,24 +143,6 @@ export class ExecutionPlanController {
     @Param("id") id: string,
   ): Promise<ExecutionPlan> {
     return this.service.start(tenantOf(principal), id as Uuid);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get(":id/next-steps")
-  async nextSteps(
-    @CurrentPrincipal() principal: Principal,
-    @Param("id") id: string,
-  ): Promise<readonly PlanStepView[]> {
-    return this.service.nextSteps(tenantOf(principal), id as Uuid);
-  }
-
-  @RequirePermissions(AI_READ)
-  @Get(":id/progress")
-  async progress(
-    @CurrentPrincipal() principal: Principal,
-    @Param("id") id: string,
-  ): Promise<PlanProgress> {
-    return this.service.progress(tenantOf(principal), id as Uuid);
   }
 
   @RequirePermissions(AI_OPERATE)
@@ -307,12 +269,50 @@ export class ExecutionPlanController {
   }
 
   @RequirePermissions(AI_READ)
+  @Get(":id/inspect")
+  async inspect(
+    @CurrentPrincipal() principal: Principal,
+    @Param("id") id: string,
+  ): Promise<PlanInspection> {
+    return this.service.inspect(tenantOf(principal), id as Uuid);
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get(":id/next-steps")
+  async nextSteps(
+    @CurrentPrincipal() principal: Principal,
+    @Param("id") id: string,
+  ): Promise<readonly PlanStepView[]> {
+    return this.service.nextSteps(tenantOf(principal), id as Uuid);
+  }
+
+  @RequirePermissions(AI_READ)
+  @Get(":id/progress")
+  async progress(
+    @CurrentPrincipal() principal: Principal,
+    @Param("id") id: string,
+  ): Promise<PlanProgress> {
+    return this.service.progress(tenantOf(principal), id as Uuid);
+  }
+
+  @RequirePermissions(AI_READ)
   @Get(":id")
   async getById(
     @CurrentPrincipal() principal: Principal,
     @Param("id") id: string,
   ): Promise<ExecutionPlan> {
     return this.service.get(tenantOf(principal), id as Uuid);
+  }
+
+  @RequirePermissions(AI_OPERATE)
+  @Delete(":id/steps/:stepId")
+  @HttpCode(200)
+  async removeStep(
+    @CurrentPrincipal() principal: Principal,
+    @Param("id") id: string,
+    @Param("stepId") stepId: string,
+  ): Promise<ExecutionPlan> {
+    return this.service.removeStep(tenantOf(principal), id as Uuid, stepId);
   }
 
   @RequirePermissions(AI_OPERATE)

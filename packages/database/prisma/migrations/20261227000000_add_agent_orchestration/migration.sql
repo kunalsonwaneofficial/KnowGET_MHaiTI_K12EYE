@@ -137,7 +137,6 @@ CREATE TABLE "approval_request" (
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by" UUID,
     "updated_by" UUID,
-    "deleted_at" TIMESTAMP(3),
     CONSTRAINT "approval_request_pkey" PRIMARY KEY ("id")
 );
 CREATE INDEX "approval_request_tenant_id_idx" ON "approval_request"("tenant_id");
@@ -175,7 +174,6 @@ CREATE TABLE "tool_invocation" (
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by" UUID,
     "updated_by" UUID,
-    "deleted_at" TIMESTAMP(3),
     CONSTRAINT "tool_invocation_pkey" PRIMARY KEY ("id")
 );
 CREATE INDEX "tool_invocation_tenant_id_idx" ON "tool_invocation"("tenant_id");
@@ -205,7 +203,6 @@ CREATE TABLE "reasoning_session" (
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by" UUID,
     "updated_by" UUID,
-    "deleted_at" TIMESTAMP(3),
     CONSTRAINT "reasoning_session_pkey" PRIMARY KEY ("id")
 );
 CREATE INDEX "reasoning_session_tenant_id_idx" ON "reasoning_session"("tenant_id");

@@ -114,13 +114,10 @@ export class PrismaToolRepository implements ToolRepository {
     });
   }
 
-  /** Soft-delete; `updateMany` so removing a row this tenant cannot see is a no-op rather than an error. */
+  /** Soft-delete. */
   remove(tenantId: TenantId, id: Uuid): Promise<void> {
     return withTenant(this.db, tenantId, async (tx: TransactionClient) => {
-      await tx.toolDefinition.updateMany({
-        where: { id, deletedAt: null },
-        data: { deletedAt: new Date() },
-      });
+      await tx.toolDefinition.update({ where: { id }, data: { deletedAt: new Date() } });
     });
   }
 }
