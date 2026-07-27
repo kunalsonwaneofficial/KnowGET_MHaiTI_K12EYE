@@ -9,7 +9,9 @@ export * from "./reasoning";
 export * from "./metrics";
 // domain errors
 export * from "./errors";
-// aggregates (agent registry, capability catalog, execution plans)
+// aggregates (agent registry, capability catalog, execution plans, human approval, invocations)
 export * from "./agent";
 export * from "./tool";
 export * from "./execution-plan";
+export * from "./approval-request";
+export * from "./tool-invocation";

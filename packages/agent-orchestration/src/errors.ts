@@ -375,3 +375,126 @@ export class StepDependedUponError extends PlatformError {
     });
   }
 }
+
+// --- Human approval --------------------------------------------------------------
+
+/** The requested approval does not exist in the current tenant. */
+export class ApprovalRequestNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Approval request "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An approval request must name what it is about. */
+export class EmptyApprovalSubjectError extends PlatformError {
+  constructor() {
+    super("An approval request must name the plan or invocation it is about", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A decision was recorded without saying who made it. An anonymous approval is not an approval: the whole value
+ * of the human gate is that a named person is accountable for what came through it.
+ */
+export class AnonymousApprovalDecisionError extends PlatformError {
+  constructor() {
+    super("An approval decision must record the person who made it", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The request has already been decided; a decision is made once and stands. */
+export class ApprovalAlreadyDecidedError extends PlatformError {
+  constructor(id: string, decision: string) {
+    super(`Approval request "${id}" was already "${decision}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, decision },
+    });
+  }
+}
+
+// --- Tool invocation -------------------------------------------------------------
+
+/** The requested invocation does not exist in the current tenant. */
+export class ToolInvocationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Tool invocation "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * The runtime refused to create an invocation because authorization did not open. Carries the decision's stable
+ * reason codes, so the caller learns whether a grant is missing (nothing will fix that but a grant) or a human
+ * has yet to approve.
+ */
+export class InvocationNotAuthorizedError extends PlatformError {
+  constructor(agentId: string, capabilityKey: string, reasons: readonly string[]) {
+    super(`Agent "${agentId}" is not authorized to invoke "${capabilityKey}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 403,
+      isOperational: true,
+      details: { agentId, capabilityKey, reasons },
+    });
+  }
+}
+
+/**
+ * An approval was offered for a different agent or a different capability. Approvals are not transferable: one
+ * that could be spent on anything would be a hole straight through the human gate.
+ */
+export class ApprovalSubjectMismatchError extends PlatformError {
+  constructor(approvalRequestId: string, expected: string, actual: string) {
+    super(`Approval request "${approvalRequestId}" does not cover "${expected}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { approvalRequestId, expected, actual },
+    });
+  }
+}
+
+/** The attempted invocation lifecycle transition is not allowed from its current status. */
+export class InvalidInvocationTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A tool invocation cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * An invocation was marked compensated when nothing about it can be compensated — either it changed nothing
+ * (`reversible`) or nothing can undo it (`irreversible`). The runtime does not record undo that did not happen.
+ */
+export class InvocationNotCompensatableError extends PlatformError {
+  constructor(id: string, reversibility: string) {
+    super(`Invocation "${id}" is "${reversibility}" and cannot be compensated`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, reversibility },
+    });
+  }
+}
