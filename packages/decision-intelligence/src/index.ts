@@ -24,3 +24,5 @@ export * from "./recommendation";
 export * from "./decision-record";
 export * from "./workflow";
 export * from "./workflow-instance";
+export * from "./automation-rule";
+export * from "./automation-run";

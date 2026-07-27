@@ -649,3 +649,249 @@ export class RequiredStageNotSkippableError extends PlatformError {
     });
   }
 }
+
+// --- Automation rules ------------------------------------------------------------
+
+/** The requested automation rule does not exist in the current tenant. */
+export class AutomationRuleNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Automation rule "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A rule is addressed by key, so the key has to be something. */
+export class EmptyRuleKeyError extends PlatformError {
+  constructor() {
+    super("An automation rule must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A rule that fires unattended has to be nameable by the people accountable for it. */
+export class EmptyRuleNameError extends PlatformError {
+  constructor() {
+    super("An automation rule must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** Rule keys are unique within an organization, so an operator naming one always means one. */
+export class DuplicateRuleKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Automation rule "${key}" already exists in this organization`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** A rule fires on a signal, and an unnamed signal is a rule that would fire on everything or nothing. */
+export class EmptyRuleSignalKeyError extends PlatformError {
+  constructor() {
+    super("An automation rule must name the signal it fires on", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A condition examines a named fact; an unnamed one examines nothing. */
+export class EmptyConditionKeyError extends PlatformError {
+  constructor() {
+    super("An automation condition must name the fact it examines", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A condition carries the wrong number of operands for its operator. The grammar is closed and each operator's
+ * arity is fixed, so an ill-formed condition is refused where it is written rather than silently never matching.
+ */
+export class ConditionArityError extends PlatformError {
+  constructor(operator: string, expected: string, received: number) {
+    super(`Operator "${operator}" takes ${expected} operand(s), received ${received}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { operator, expected, received },
+    });
+  }
+}
+
+/** An action that changes institutional state has to say what it would change. */
+export class ActionTargetRequiredError extends PlatformError {
+  constructor(kind: string) {
+    super(`Action "${kind}" must name the capability or workflow it targets`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}
+
+/** Raising a recommendation targets nothing — it puts a proposal in front of a person. */
+export class ActionTargetNotAllowedError extends PlatformError {
+  constructor(kind: string) {
+    super(`Action "${kind}" does not target a capability or workflow`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}
+
+/** The attempted rule transition is not allowed from where the rule currently stands. */
+export class InvalidRuleTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An automation rule cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * Activation is the gate a standing rule passes through, and this is it refusing. The autonomy engine judged
+ * the rule as if it were already live and found reasons that no human approval can repair — an action that can
+ * never be recalled, or one that is compensatable but names nothing that would compensate it. A rule may be
+ * *drafted* in that state, so its author can see exactly what is wrong; it may not be turned on in it.
+ */
+export class UnsafeAutomationRuleError extends PlatformError {
+  constructor(id: string, reasons: readonly string[]) {
+    super(`Automation rule "${id}" cannot be activated: ${reasons.join(", ")}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id, reasons: [...reasons] },
+    });
+  }
+}
+
+/**
+ * An active rule is what is actually firing in the institution right now, so it is not edited underneath the
+ * people accountable for it. Pause it, change it, and turn it back on — which puts it through the activation
+ * gate a second time, exactly as the first version was.
+ */
+export class ActiveRuleImmutableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Automation rule "${id}" is "${status}" and must be paused before it is changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** Only an active rule fires. A draft, a paused rule and a retired rule are all silent, by design. */
+export class RuleNotActiveError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Automation rule "${id}" is "${status}" and does not fire`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+// --- Automation runs -------------------------------------------------------------
+
+/** The requested automation run does not exist in the current tenant. */
+export class AutomationRunNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Automation run "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A firing acts on something, and the something has to be named. */
+export class EmptyRunSubjectError extends PlatformError {
+  constructor() {
+    super("An automation run must name the subject it acts on", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * The human gate exists so that a person owns what the machine was not allowed to do alone. An approval or a
+ * refusal with nobody behind it is the gate being opened by nobody, which is the gate not existing.
+ */
+export class AnonymousRunApprovalError extends PlatformError {
+  constructor(action: string) {
+    super(`An automation run cannot be ${action} without naming the person accountable for it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { action },
+    });
+  }
+}
+
+/** The attempted run transition is not allowed from where the run currently stands. */
+export class InvalidRunTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An automation run cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * Execution asked for on a firing the gate did not authorize. A blocked run is never authorized, and a run the
+ * gate referred to a human is authorized only once that human has actually approved it — an approval is a
+ * recorded act, not an assumption the executor is free to make.
+ */
+export class RunNotAuthorizedError extends PlatformError {
+  constructor(id: string, disposition: string) {
+    super(`Automation run "${id}" is "${disposition}" and is not authorized to execute`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, disposition },
+    });
+  }
+}
+
+/** Rule three refuses to be satisfied by a status update: compensation has to have been genuinely available. */
+export class RunNotCompensatableError extends PlatformError {
+  constructor(id: string, compensationState: string) {
+    super(`Automation run "${id}" has compensation state "${compensationState}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, compensationState },
+    });
+  }
+}
