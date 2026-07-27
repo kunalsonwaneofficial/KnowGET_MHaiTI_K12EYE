@@ -17,3 +17,8 @@ export * from "./orchestration";
 export * from "./reversal";
 export * from "./prioritization";
 export * from "./metrics";
+
+// --- Aggregates ------------------------------------------------------------------
+export * from "./errors";
+export * from "./recommendation";
+export * from "./decision-record";
