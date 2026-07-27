@@ -3,7 +3,37 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D24 · Program: Campus & Engagement · Alumni, Community & Relationship Platform
+## [Unreleased] — P2-D25 · Program: Intelligence Core · Institutional Knowledge Graph, Semantic Intelligence & Digital Memory
+
+The **first contract of Program E — the intelligence core** (D25–D30) — on the certified `v0.2.0` baseline and
+the now-complete operational base **D01–D24**. The institution's **semantic layer and digital memory**,
+delivered as one `@knowget/knowledge-graph` package (ADR-0044): an extensible ontology (entity + relationship
+types with a source/target edge grammar), knowledge entities that carry global ids and reference domain records
+by `sourceDomain` + `sourceRef` (never re-modelling them), directed **versioned and time-aware** semantic
+relationships (`asserted → superseded | retracted`, the prior version kept), an **evidence chain on every
+assertion**, and a re-derivable per-entity digital-memory read model.
+
+### Added
+
+- **`@knowget/knowledge-graph`** — six aggregates (`EntityType`, `RelationshipType`, `KnowledgeEntity`,
+  `SemanticRelationship`, immutable `Assertion`, `EntityMemory`) plus four pure engines — **temporal**
+  (as-of resolution over versioned/time-windowed edges), **traversal** (neighbourhood/degree/bounded
+  reachability), **provenance** (derivation tree, explainability, cycle- and retraction-safe, weakest-link
+  confidence), **metrics** (graph summary + per-entity memory) — and the `KnowledgeMemoryService` refresh spine.
+- **The defining rule, enforced structurally** — every assertion carries an evidence chain and is explainable:
+  a grounded assertion must name its source, a derived one must cite standing antecedents, and retracting a fact
+  breaks the explainability (and zeroes the confidence) of everything derived from it. Exposed at
+  `GET /knowledge/assertions/:id/explain`.
+- **Persistence** — six FORCE-RLS tables (`entity_type`, `relationship_type`, `knowledge_entity`,
+  `semantic_relationship`, `assertion` with a `derived_from` UUID[], `entity_memory`), migration
+  `20261226000000_add_knowledge_graph`, verified on live PostgreSQL 16 (isolation, unset=0, cross-tenant
+  `42501`, absolute uniques `23505`, INTEGER + UUID[] round-trips).
+- **API** — six permission-gated controllers under `apps/api/src/domains/knowledge-graph`, split `ontology:*`
+  (schema) / `knowledge:*` (content + memory spine); module registered in `app.module`.
+- **Boundaries** — LLMs, agents, vector embeddings and RAG are **deferred out** of this contract (to P2-D26+),
+  enforced by absence; no domain→domain import; events carry ids/keys/statuses/counts only (no content). ADR-0044.
+
+## P2-D24 · Program: Campus & Engagement · Alumni, Community & Relationship Platform
 
 The sixth and final contract of **Program D (Campus & Engagement)** — on the certified `v0.2.0` baseline, the
 frozen Phase-1 core, and the P2-D01-M01 organization and P2-D01-M02 person bases. The institution's **alumni-

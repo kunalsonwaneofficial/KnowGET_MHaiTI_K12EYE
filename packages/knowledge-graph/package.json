@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/knowledge-graph",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Institutional Knowledge Graph, Semantic Intelligence & Digital Memory (P2-D25) — the first contract of the intelligence core (Program E) and the semantic layer the later intelligence domains build on. Knowledge entities carry global ids and represent domain records (person, organization, student, …) referenced by id; an extensible ontology registers the allowed entity types and relationship types; semantic relationships are directed, versioned and time-aware (valid-from/valid-to, superseding prior versions) — the graph's digital memory. Its defining rule: every assertion carries an evidence chain (source + method + confidence + what it was derived from) and is explainable. Pure engines derive temporal resolution (as-of), traversal (neighbourhood/degree), provenance (evidence-chain explanation + confidence) and graph metrics. LLMs, agents, vector embeddings and RAG are deferred out of this contract into the later intelligence domains (P2-D26+). Domain events carry ids, keys and statuses only — no free text, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1284,3 +1284,41 @@ and untracked capacity — polished before merge with regression tests); event c
 hard cap deferred (**TD-44**). All eight service tokens are exported for **in-process cross-domain use**. The
 operational alumni base — closing **Program D** and the operational core **D01–D24** — the intelligence-core
 domains (Program E, D25–D30) build on.
+
+## Institutional Knowledge Graph, Semantic Intelligence & Digital Memory (P2-D25, Program: Intelligence Core · ADR-0044)
+
+The `@knowget/knowledge-graph` package is the institution's **semantic layer and digital memory**, and the
+**first contract of Program E — the intelligence core** (D25–D30), on the certified `v0.2.0` baseline and the
+now-complete operational base **D01–D24**. It follows the domain architecture (ADR-0010): a pure package —
+**six aggregates plus four pure engines and a refresh spine** — behind repository ports, Prisma/RLS adapters at
+the `apps/api` composition root, application services on the platform event bus, and permission-gated,
+tenant-scoped REST controllers. Two boundaries define it, both held structurally. **LLMs, agents, vector
+embeddings and RAG are deferred _out_ of this contract** into the later intelligence domains (P2-D26+) — D25 is
+the structural, semantic and provenance layer, not a model runtime; nothing in the package imports or
+implements any of them. And the graph **references domain records, never re-models them** — a knowledge entity
+points at a domain record by `sourceDomain` + `sourceRef`, opaquely; no domain→domain import (only the
+organization owner via a directory port). Four **pure engines** compute what is derived, built and tested
+first: **temporal** (as-of resolution over versioned, time-windowed edges), **traversal** (neighbourhood,
+degree, bounded reachability), **provenance** (the derivation tree, explainability, cycle- and retraction-safe,
+weakest-link confidence), and **metrics** (descriptive graph summary + per-entity digital memory). Six
+aggregates: `EntityType` + `RelationshipType` (the extensible ontology with the source/target edge grammar),
+`KnowledgeEntity` (a node with a global id and `active → merged | archived` identity resolution),
+`SemanticRelationship` (a directed, **versioned, time-aware** edge, `asserted → superseded | retracted`, the
+prior version kept), `Assertion` (an **immutable** claim carrying method + confidence + evidence + antecedents),
+and `EntityMemory` (the re-derivable digital-memory read model, maintained by the `KnowledgeMemoryService`
+spine). The contract's **defining rule — every assertion carries an evidence chain and is explainable** — is
+enforced twice: the aggregate refuses a grounded assertion with no source and a derived one with no antecedents,
+and the service requires every cited antecedent to be _standing_; the provenance engine treats a
+retracted/absent antecedent as withdrawn, so retracting a fact breaks the explainability and zeroes the
+confidence of everything derived from it (exposed at `GET /knowledge/assertions/:id/explain`). Six **FORCE-RLS**
+tables (`entity_type`, `relationship_type`, `knowledge_entity`, `semantic_relationship`, `assertion` with a
+`derived_from` UUID[], `entity_memory`), each `tenant_isolation` (USING + WITH CHECK, fail-closed), verified on
+live PostgreSQL 16 (isolation, unset=0, cross-tenant `42501`, absolute uniques `23505`, INTEGER + UUID[]
+round-trips). **Two permission scope pairs** split the surface — `ontology:*` for the schema (entity +
+relationship types) and `knowledge:*` for the content (entities, relationships, assertions, the memory spine).
+Both independent adversarial audits were **clean of functional defects** (three low/medium notes — a free-text
+`predicate` on the assertion event, `summarizeGraph` counting retracted assertions, `supersede` not
+re-validating endpoints — polished before merge with regression tests); relationship-type cardinality is
+advisory and merge is single-hop (**TD-45**). All six service tokens are exported for **in-process cross-domain
+use**. The semantic layer that **opens Program E** — the AI operating system (P2-D26), decision intelligence
+(P2-D27), predictive intelligence (P2-D28) and executive intelligence (P2-D29) build on it.

@@ -4952,3 +4952,150 @@ model AlumniEngagementProfile {
   @@index([tenantId, organizationId])
   @@map("alumni_engagement_profile")
 }
+
+// ============================================================================
+// P2-D25 — Institutional Knowledge Graph, Semantic Intelligence & Digital Memory
+// The semantic layer: an extensible ontology (entity + relationship types), the
+// graph nodes (knowledge entities referencing domain records) and its versioned,
+// time-aware edges (semantic relationships), the evidence chain (assertions) and
+// the per-entity digital-memory read model. All tenant-isolated by FORCE RLS.
+// ============================================================================
+
+model EntityType {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  key            String
+  label          String
+  description    String?
+  status         String    @default("draft")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("entity_type")
+}
+
+model RelationshipType {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  key                 String
+  label               String
+  sourceEntityTypeKey String    @map("source_entity_type_key")
+  targetEntityTypeKey String    @map("target_entity_type_key")
+  cardinality         String
+  description         String?
+  status              String    @default("draft")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("relationship_type")
+}
+
+model KnowledgeEntity {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  entityTypeKey  String    @map("entity_type_key")
+  sourceDomain   String    @map("source_domain")
+  sourceRef      String    @map("source_ref")
+  label          String?
+  status         String    @default("active")
+  mergedIntoId   String?   @map("merged_into_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, sourceDomain, sourceRef])
+  @@index([tenantId])
+  @@index([tenantId, entityTypeKey])
+  @@map("knowledge_entity")
+}
+
+model SemanticRelationship {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String    @map("tenant_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  relationshipTypeKey String    @map("relationship_type_key")
+  sourceEntityId      String    @map("source_entity_id") @db.Uuid
+  targetEntityId      String    @map("target_entity_id") @db.Uuid
+  validFrom           String    @map("valid_from")
+  validTo             String?   @map("valid_to")
+  version             Int       @default(1)
+  supersedesId        String?   @map("supersedes_id") @db.Uuid
+  status              String    @default("asserted")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  createdBy           String?   @map("created_by") @db.Uuid
+  updatedBy           String?   @map("updated_by") @db.Uuid
+  deletedAt           DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, sourceEntityId])
+  @@index([tenantId, targetEntityId])
+  @@map("semantic_relationship")
+}
+
+model Assertion {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  subjectKind    String    @map("subject_kind")
+  subjectId      String    @map("subject_id") @db.Uuid
+  predicate      String
+  value          String
+  method         String
+  confidence     Int       @default(0)
+  evidenceSource String?   @map("evidence_source")
+  evidenceRef    String?   @map("evidence_ref")
+  derivedFrom    String[]  @map("derived_from") @db.Uuid
+  assertedOn     String    @map("asserted_on")
+  status         String    @default("asserted")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([tenantId])
+  @@index([tenantId, subjectKind, subjectId])
+  @@map("assertion")
+}
+
+model EntityMemory {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String    @map("tenant_id") @db.Uuid
+  organizationId         String    @map("organization_id") @db.Uuid
+  entityId               String    @map("entity_id") @db.Uuid
+  outDegree              Int       @default(0) @map("out_degree")
+  inDegree               Int       @default(0) @map("in_degree")
+  degree                 Int       @default(0)
+  assertionCount         Int       @default(0) @map("assertion_count")
+  groundedAssertionCount Int       @default(0) @map("grounded_assertion_count")
+  aggregateConfidence    Int       @default(0) @map("aggregate_confidence")
+  refreshedAt            String    @map("refreshed_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  createdBy              String?   @map("created_by") @db.Uuid
+  updatedBy              String?   @map("updated_by") @db.Uuid
+  deletedAt              DateTime? @map("deleted_at")
+
+  @@unique([tenantId, entityId])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("entity_memory")
+}
