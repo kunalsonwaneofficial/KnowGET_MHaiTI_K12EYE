@@ -25,6 +25,8 @@ interface ApprovalRequestRow {
   decidedAt: string | null;
   decisionNote: string | null;
   expiresAt: string | null;
+  consumedAt: string | null;
+  consumedByInvocationId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +47,8 @@ function toDomain(row: ApprovalRequestRow): ApprovalRequest {
     decidedAt: (row.decidedAt as ISODateString | null) ?? null,
     decisionNote: row.decisionNote,
     expiresAt: (row.expiresAt as ISODateString | null) ?? null,
+    consumedAt: (row.consumedAt as ISODateString | null) ?? null,
+    consumedByInvocationId: row.consumedByInvocationId,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
@@ -65,6 +69,8 @@ function toFields(request: ApprovalRequest) {
     decidedAt: request.decidedAt,
     decisionNote: request.decisionNote,
     expiresAt: request.expiresAt,
+    consumedAt: request.consumedAt,
+    consumedByInvocationId: request.consumedByInvocationId,
   };
 }
 
@@ -75,6 +81,9 @@ function toFields(request: ApprovalRequest) {
  * decided request is the record of who allowed what, and a request nobody answered is the record of that too.
  * `findOpenForSubject` is what stops the runtime asking the same question twice — it finds the *pending* request
  * standing in front of a subject, so a second attempt joins the queue rather than duplicating it.
+ *
+ * `consumedAt`/`consumedByInvocationId` round-trip like any other column and are never cleared once set, which is
+ * what makes the gate single-use: the row that granted permission goes on to record that the permission was used up.
  */
 export class PrismaApprovalRequestRepository implements ApprovalRequestRepository {
   constructor(private readonly db: PrismaService) {}

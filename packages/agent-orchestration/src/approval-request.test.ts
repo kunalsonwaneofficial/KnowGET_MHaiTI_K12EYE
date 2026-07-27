@@ -3,11 +3,14 @@ import type { ISODateString, TenantId, Uuid } from "@knowget/types";
 import {
   type CreateApprovalRequestParams,
   approveRequest,
+  consumeApproval,
   coversInvocation,
   createApprovalRequest,
   expireRequest,
   isApprovalGranted,
   isApprovalOpen,
+  isApprovalSpendable,
+  isApprovalSpent,
   isExpiredAt,
   rejectRequest,
   requestApprovalFor,
@@ -17,6 +20,8 @@ import { authorizeInvocation } from "./authorization";
 import {
   AnonymousApprovalDecisionError,
   ApprovalAlreadyDecidedError,
+  ApprovalAlreadySpentError,
+  ApprovalNotGrantedError,
   EmptyApprovalSubjectError,
 } from "./errors";
 
@@ -157,6 +162,51 @@ describe("deciding — once, by a named person, and it stands", () => {
     expect(expired.decidedAt).not.toBeNull();
     expect(isApprovalGranted(expired)).toBe(false);
     expect(isApprovalOpen(expired)).toBe(false);
+  });
+});
+
+describe("spending the grant — one yes, one act", () => {
+  const granted = () => approveRequest(createApprovalRequest(base), { decidedByUserId: "user-9" });
+
+  it("is unspent when granted, and only then authorizes anything", () => {
+    const request = granted();
+    expect(request.consumedAt).toBeNull();
+    expect(request.consumedByInvocationId).toBeNull();
+    expect(isApprovalSpent(request)).toBe(false);
+    expect(isApprovalSpendable(request)).toBe(true);
+  });
+
+  it("records which invocation spent it, and stops being spendable", () => {
+    const spent = consumeApproval(granted(), "inv-77");
+    expect(spent.consumedAt).not.toBeNull();
+    expect(spent.consumedByInvocationId).toBe("inv-77");
+    expect(isApprovalSpent(spent)).toBe(true);
+    expect(isApprovalSpendable(spent)).toBe(false);
+    // Still a granted approval — spending it does not un-decide it. It is now history, not permission.
+    expect(isApprovalGranted(spent)).toBe(true);
+    expect(spent.decision).toBe("approved");
+  });
+
+  it("refuses a second spend, naming the invocation that already took it", () => {
+    const spent = consumeApproval(granted(), "inv-77");
+    expect(() => consumeApproval(spent, "inv-78")).toThrow(ApprovalAlreadySpentError);
+    try {
+      consumeApproval(spent, "inv-78");
+    } catch (error) {
+      expect((error as ApprovalAlreadySpentError).details).toMatchObject({
+        consumedByInvocationId: "inv-77",
+      });
+    }
+  });
+
+  it("cannot be spent while pending, once rejected, or after expiry", () => {
+    const pending = createApprovalRequest(base);
+    expect(() => consumeApproval(pending, "inv-1")).toThrow(ApprovalNotGrantedError);
+    expect(() =>
+      consumeApproval(rejectRequest(pending, { decidedByUserId: "user-9" }), "inv-1"),
+    ).toThrow(ApprovalNotGrantedError);
+    expect(() => consumeApproval(expireRequest(pending), "inv-1")).toThrow(ApprovalNotGrantedError);
+    expect(isApprovalSpendable(pending)).toBe(false);
   });
 });
 

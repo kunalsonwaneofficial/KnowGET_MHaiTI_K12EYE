@@ -6,6 +6,7 @@ import { ApprovalService } from "./approval-service";
 import { ExecutionPlanService } from "./execution-plan-service";
 import { ToolService } from "./tool-service";
 import {
+  ApprovalAlreadySpentError,
   ApprovalNotRequiredError,
   ApprovalRequestNotFoundError,
   ApprovalSubjectMismatchError,
@@ -261,6 +262,77 @@ describe("InvocationService", () => {
     expect(invocation.authorizationOutcome).toBe("requires_approval");
     expect(invocation.approvalRequestId).toBe(request.id);
     expect(invocation.authorizationReasons).toContain("risk_exceeds_autonomy");
+
+    // "Spends" is literal: the grant is stamped with the invocation it was converted into, and announced as used.
+    const after = await approvalSvc.get(TENANT, request.id);
+    expect(after.consumedAt).not.toBeNull();
+    expect(after.consumedByInvocationId).toBe(invocation.id);
+    expect(published.map((event) => event.type)).toEqual([
+      "ai.approval.requested",
+      "ai.invocation.authorized",
+      "ai.approval.spent",
+    ]);
+    expect(published.at(-1)?.payload).toMatchObject({
+      approvalRequestId: request.id,
+      consumedByInvocationId: invocation.id,
+    });
+  });
+
+  /**
+   * The gate is single-use, and this is the test that says so.
+   *
+   * Outside a plan an approval's subject is the agent-and-capability pair, not a step that can only run once — so
+   * a grant that stayed spendable would let one human "yes" authorize that same call again, indefinitely. That is
+   * not a gate; it is a door propped open. The second attempt must land exactly where an ungranted one does.
+   */
+  it("will not let one human yes authorize the same call twice", async () => {
+    await reachable("guardian.notify", { effect: "write", riskLevel: "high" });
+    const request = await svc.requestApproval({
+      tenantId: TENANT,
+      organizationId: ORG,
+      agentId,
+      capabilityKey: "guardian.notify",
+    });
+    await approvalSvc.approve(TENANT, request.id, { decidedByUserId: "user-3" });
+
+    await authorize("guardian.notify");
+
+    await expect(authorize("guardian.notify")).rejects.toThrow(InvocationNotAuthorizedError);
+    expect(await svc.list(TENANT)).toHaveLength(1);
+    expect(published.at(-1)?.type).toBe("ai.invocation.denied");
+
+    // And naming the spent grant explicitly does not get round it either.
+    await expect(authorize("guardian.notify", { approvalRequestId: request.id })).rejects.toThrow(
+      ApprovalAlreadySpentError,
+    );
+    expect(await svc.list(TENANT)).toHaveLength(1);
+  });
+
+  /** A fresh question, freshly answered, is what a second call takes — the gate is asked again, not reused. */
+  it("lets the same call through again only on a second grant", async () => {
+    await reachable("guardian.notify", { effect: "write", riskLevel: "high" });
+    const first = await svc.requestApproval({
+      tenantId: TENANT,
+      organizationId: ORG,
+      agentId,
+      capabilityKey: "guardian.notify",
+    });
+    await approvalSvc.approve(TENANT, first.id, { decidedByUserId: "user-3" });
+    await authorize("guardian.notify");
+
+    // The spent grant no longer blocks a new question being raised for the same subject.
+    const second = await svc.requestApproval({
+      tenantId: TENANT,
+      organizationId: ORG,
+      agentId,
+      capabilityKey: "guardian.notify",
+    });
+    expect(second.id).not.toBe(first.id);
+    await approvalSvc.approve(TENANT, second.id, { decidedByUserId: "user-4" });
+
+    const invocation = await authorize("guardian.notify");
+    expect(invocation.approvalRequestId).toBe(second.id);
+    expect(await svc.list(TENANT)).toHaveLength(2);
   });
 
   /** A pending request is a question, not an answer, so it is deliberately not picked up as one. */

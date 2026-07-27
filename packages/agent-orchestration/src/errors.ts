@@ -448,6 +448,33 @@ export class ApprovalAlreadyDecidedError extends PlatformError {
   }
 }
 
+/**
+ * The grant was already spent. A human decision authorizes one act; a grant that could be spent twice would turn
+ * a single "yes" into a standing licence, so the second attempt fails rather than quietly succeeding.
+ */
+export class ApprovalAlreadySpentError extends PlatformError {
+  constructor(id: string, consumedByInvocationId: string | null) {
+    super(`Approval request "${id}" was already spent`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, consumedByInvocationId },
+    });
+  }
+}
+
+/** The grant cannot be spent because a human never let it through (it is pending, refused, or expired). */
+export class ApprovalNotGrantedError extends PlatformError {
+  constructor(id: string, decision: string) {
+    super(`Approval request "${id}" is "${decision}", not "approved"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, decision },
+    });
+  }
+}
+
 // --- Tool invocation -------------------------------------------------------------
 
 /** The requested invocation does not exist in the current tenant. */

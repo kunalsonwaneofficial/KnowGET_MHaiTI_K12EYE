@@ -6,6 +6,7 @@ import { normalizeCapabilityKey } from "./ai-value";
 import { toAgentView } from "./agent";
 import {
   approvalRequested,
+  approvalSpent,
   invocationAuthorized,
   invocationCompensated,
   invocationDenied,
@@ -13,7 +14,13 @@ import {
   invocationStarted,
   invocationSucceeded,
 } from "./ai-events";
-import { type ApprovalRequest, isApprovalGranted, requestApprovalFor } from "./approval-request";
+import {
+  type ApprovalRequest,
+  consumeApproval,
+  isApprovalSpendable,
+  isApprovalSpent,
+  requestApprovalFor,
+} from "./approval-request";
 import { authorizeInvocation } from "./authorization";
 import { compensationPlan } from "./rollback";
 import { toToolView } from "./tool";
@@ -28,6 +35,7 @@ import {
 } from "./tool-invocation";
 import {
   AgentNotFoundError,
+  ApprovalAlreadySpentError,
   ApprovalNotRequiredError,
   ApprovalRequestNotFoundError,
   ExecutionPlanNotFoundError,
@@ -189,6 +197,11 @@ export class InvocationService {
    * The decision is computed before anything is written, the approval in hand is checked to be this agent's and
    * this capability's, and only a decision that opens produces a record. Anything else emits the denial and
    * throws.
+   *
+   * A grant is spent *before* the invocation is stored, and deliberately in that order. If storing the invocation
+   * then fails, a human's approval has been consumed without the call happening — an inconvenience, resolved by
+   * asking again. The reverse order would leave a recorded invocation beside a grant still marked unspent, which
+   * is the failure that matters: the same "yes" available to authorize the next call too.
    */
   async authorize(input: AuthorizeInvocationInput): Promise<ToolInvocation> {
     if (!(await this.organizations.exists(input.tenantId, input.organizationId))) {
@@ -228,8 +241,19 @@ export class InvocationService {
       throw error;
     }
 
+    const spent =
+      approval !== null && invocation.approvalRequestId !== null
+        ? consumeApproval(approval, invocation.id)
+        : null;
+    if (spent) {
+      await this.approvals.save(spent);
+    }
+
     await this.repository.save(invocation);
     await this.emit(invocationAuthorized(invocation));
+    if (spent) {
+      await this.emit(approvalSpent(spent, invocation.id));
+    }
     return invocation;
   }
 
@@ -340,8 +364,17 @@ export class InvocationService {
   }
 
   /**
-   * The approval to spend on this call: the one named, or the granted one already raised for this subject. A
-   * request that is still pending is not an approval — it is a question — so it is deliberately not picked up.
+   * The approval to spend on this call: the one named, or an unspent granted one already raised for this subject.
+   *
+   * Two things are deliberately not picked up. A request that is still pending is not an approval — it is a
+   * question. And a grant that has already been spent is not an approval either; it is the record of a decision
+   * that was already converted into an act. That second exclusion is what keeps a single "yes" from becoming a
+   * standing licence, and it matters most for a call outside any plan, whose subject is the agent-and-capability
+   * pair rather than a step that can only be run once: without it, one approval of such a pair would authorize that
+   * call again for as long as the record stood.
+   *
+   * A named request that is spent is refused here rather than at the moment of consumption, so no invocation is
+   * ever written on the strength of a grant that had nothing left to give.
    */
   private async resolveApproval(
     input: AuthorizeInvocationInput,
@@ -351,6 +384,9 @@ export class InvocationService {
       const named = await this.approvals.findById(input.tenantId, toUuid(input.approvalRequestId));
       if (!named) {
         throw new ApprovalRequestNotFoundError(input.approvalRequestId);
+      }
+      if (isApprovalSpent(named)) {
+        throw new ApprovalAlreadySpentError(named.id, named.consumedByInvocationId);
       }
       return named;
     }
@@ -363,7 +399,7 @@ export class InvocationService {
       input.stepId ?? null,
     );
     const raised = await this.approvals.listBySubject(input.tenantId, "tool_invocation", subjectId);
-    return raised.find(isApprovalGranted) ?? null;
+    return raised.find(isApprovalSpendable) ?? null;
   }
 
   private async emit(event: DomainEvent): Promise<void> {

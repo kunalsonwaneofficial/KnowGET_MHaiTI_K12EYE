@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { TenantId, Uuid } from "@knowget/types";
 import type { AgentView, ToolView } from "./ai-view";
-import { approveRequest, createApprovalRequest, rejectRequest } from "./approval-request";
+import {
+  approveRequest,
+  consumeApproval,
+  createApprovalRequest,
+  rejectRequest,
+} from "./approval-request";
 import { compensationPlan, isFullyReversible } from "./rollback";
 import {
   ApprovalSubjectMismatchError,
@@ -189,6 +194,18 @@ describe("the human gate — an approval is an aggregate, not a string", () => {
       { decidedByUserId: "user-9" },
     );
     expect(() => authorizeToolInvocation(params({ tool: NOTIFY, approval: rejected }))).toThrow(
+      InvocationNotAuthorizedError,
+    );
+  });
+
+  /**
+   * The single-use rule lives here, in the constructor, and not only in the service that calls it. A spent grant
+   * reaching this function is refused on its own terms — so the rule holds for any caller, not just the one that
+   * remembered to check first.
+   */
+  it("does not accept a grant that has already been spent", () => {
+    const spent = consumeApproval(approvalFor("guardian.notify"), "inv-earlier");
+    expect(() => authorizeToolInvocation(params({ tool: NOTIFY, approval: spent }))).toThrow(
       InvocationNotAuthorizedError,
     );
   });

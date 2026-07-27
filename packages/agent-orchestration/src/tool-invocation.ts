@@ -8,7 +8,7 @@ import type {
   RiskLevel,
 } from "./ai-value";
 import type { AgentView, InvocationSummaryView, InvocationView, ToolView } from "./ai-view";
-import { coversInvocation, isApprovalGranted, type ApprovalRequest } from "./approval-request";
+import { coversInvocation, isApprovalSpendable, type ApprovalRequest } from "./approval-request";
 import { authorizeInvocation, isExecutable } from "./authorization";
 import {
   ApprovalSubjectMismatchError,
@@ -85,10 +85,11 @@ export interface AuthorizeToolInvocationParams {
  * Authorize and record an invocation, or refuse to create one at all.
  *
  * The order matters. The decision is computed here from the agent and the capability; a supplied approval is then
- * checked to be *this* agent's and *this* capability's, and to have actually been granted; and only if the
+ * checked to be *this* agent's and *this* capability's, and to be a grant that is still unspent; and only if the
  * decision opens with what is in hand does a record appear. An approval for something else is not a near miss to
  * be tolerated — it is rejected outright, because an approval that could be spent anywhere would be a hole
- * straight through the human gate.
+ * straight through the human gate. An approval already spent is refused for the same reason: it is the record of
+ * a decision that was converted into an act, not a licence to repeat that act.
  */
 export function authorizeToolInvocation(params: AuthorizeToolInvocationParams): ToolInvocation {
   const decision = authorizeInvocation(params.agent, params.tool);
@@ -102,7 +103,7 @@ export function authorizeToolInvocation(params: AuthorizeToolInvocationParams): 
     );
   }
 
-  const granted = approval !== null && isApprovalGranted(approval);
+  const granted = approval !== null && isApprovalSpendable(approval);
   if (!isExecutable(decision, granted)) {
     throw new InvocationNotAuthorizedError(
       decision.agentId,

@@ -246,6 +246,7 @@ export const APPROVAL_REQUESTED = "ai.approval.requested";
 export const APPROVAL_GRANTED = "ai.approval.granted";
 export const APPROVAL_REJECTED = "ai.approval.rejected";
 export const APPROVAL_EXPIRED = "ai.approval.expired";
+export const APPROVAL_SPENT = "ai.approval.spent";
 
 export interface ApprovalEventPayload {
   readonly approvalRequestId: Uuid;
@@ -259,10 +260,20 @@ export interface ApprovalEventPayload {
   readonly decision: string;
 }
 
+/**
+ * What a grant being spent broadcasts. Carries the invocation the grant was spent on, which the other approval
+ * events cannot: a subscriber auditing the gate needs to know not only that a human said yes, but which single
+ * act that yes was ultimately converted into.
+ */
+export interface ApprovalSpentEventPayload extends ApprovalEventPayload {
+  readonly consumedByInvocationId: string;
+}
+
 export type ApprovalRequestedEvent = DomainEvent<typeof APPROVAL_REQUESTED, ApprovalEventPayload>;
 export type ApprovalGrantedEvent = DomainEvent<typeof APPROVAL_GRANTED, ApprovalEventPayload>;
 export type ApprovalRejectedEvent = DomainEvent<typeof APPROVAL_REJECTED, ApprovalEventPayload>;
 export type ApprovalExpiredEvent = DomainEvent<typeof APPROVAL_EXPIRED, ApprovalEventPayload>;
+export type ApprovalSpentEvent = DomainEvent<typeof APPROVAL_SPENT, ApprovalSpentEventPayload>;
 
 // NB: `decidedByUserId` and `decisionNote` are deliberately absent. Who approved and what they wrote about it
 // are on the record, which is read within-tenant and on purpose; an event is a broadcast, and a broadcast that
@@ -288,6 +299,20 @@ export const approvalRejected = (r: ApprovalRequest): ApprovalRejectedEvent =>
   createEvent(APPROVAL_REJECTED, approvalPayload(r), { tenantId: r.tenantId });
 export const approvalExpired = (r: ApprovalRequest): ApprovalExpiredEvent =>
   createEvent(APPROVAL_EXPIRED, approvalPayload(r), { tenantId: r.tenantId });
+
+/**
+ * A grant has been spent and authorizes nothing further. Emitted only for a consumed request, so the invocation id
+ * on the payload is always present — an unspent request has no act to name.
+ */
+export const approvalSpent = (
+  r: ApprovalRequest,
+  consumedByInvocationId: string,
+): ApprovalSpentEvent =>
+  createEvent(
+    APPROVAL_SPENT,
+    { ...approvalPayload(r), consumedByInvocationId },
+    { tenantId: r.tenantId },
+  );
 
 // --- Tool invocation -------------------------------------------------------------
 export const INVOCATION_AUTHORIZED = "ai.invocation.authorized";

@@ -133,6 +133,11 @@ CREATE TABLE "approval_request" (
     "decided_at" TEXT,
     "decision_note" TEXT,
     "expires_at" TEXT,
+    -- consumed_at + consumed_by_invocation_id make the gate single-use. A granted request authorizes an invocation
+    -- only while consumed_at IS NULL; spending it stamps both. Nullable and unconstrained by a foreign key, because
+    -- the invocation is written after the grant is spent (spend-then-record fails closed).
+    "consumed_at" TEXT,
+    "consumed_by_invocation_id" UUID,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "created_by" UUID,

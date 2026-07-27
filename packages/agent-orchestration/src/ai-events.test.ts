@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import { activateAgent, createAgentDefinition, grantCapability } from "./agent";
-import { approveRequest, createApprovalRequest, rejectRequest } from "./approval-request";
+import {
+  approveRequest,
+  consumeApproval,
+  createApprovalRequest,
+  rejectRequest,
+} from "./approval-request";
 import {
   AGENT_CAPABILITY_GRANTED,
   APPROVAL_GRANTED,
+  APPROVAL_SPENT,
   INVOCATION_DENIED,
   PLAN_SUBMITTED,
   SESSION_TRACE_RECORDED,
@@ -13,6 +19,7 @@ import {
   approvalGranted,
   approvalRejected,
   approvalRequested,
+  approvalSpent,
   capabilityRegistered,
   invocationAuthorized,
   invocationDenied,
@@ -141,6 +148,7 @@ const everyEvent: readonly DomainEvent[] = [
   approvalRequested(request),
   approvalGranted(decided),
   approvalRejected(rejectRequest(request, { decidedByUserId: APPROVER, note: NOTE })),
+  approvalSpent(consumeApproval(decided, invocation.id), invocation.id),
   invocationAuthorized(invocation),
   invocationDenied({
     tenantId: TENANT,
@@ -238,6 +246,20 @@ describe("ai events: what each one does say", () => {
 
   it("carries the reason codes a request was raised for, because codes are safe", () => {
     expect(approvalRequested(request).payload.reasons).toEqual(["irreversible_action"]);
+  });
+
+  /**
+   * The one approval event that names an invocation. An auditor of the gate needs to know not merely that a human
+   * said yes, but which single act that yes was converted into — otherwise "approved" and "used" are the same fact.
+   */
+  it("says which invocation a grant was ultimately spent on", () => {
+    const spent = consumeApproval(decided, invocation.id);
+    const event = approvalSpent(spent, invocation.id);
+    expect(event.type).toBe(APPROVAL_SPENT);
+    expect(event.payload.consumedByInvocationId).toBe(invocation.id);
+    expect(event.payload.approvalRequestId).toBe(decided.id);
+    expect(event.payload.decision).toBe("approved");
+    expect(event.payload).not.toHaveProperty("decidedByUserId");
   });
 
   it("announces a refusal even though no invocation record exists for it", () => {

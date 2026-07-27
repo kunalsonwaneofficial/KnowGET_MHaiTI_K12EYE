@@ -5,6 +5,8 @@ import type { ApprovalView, AuthorizationDecision } from "./ai-view";
 import {
   AnonymousApprovalDecisionError,
   ApprovalAlreadyDecidedError,
+  ApprovalAlreadySpentError,
+  ApprovalNotGrantedError,
   EmptyApprovalSubjectError,
 } from "./errors";
 
@@ -47,6 +49,13 @@ export interface ApprovalRequest {
   readonly decisionNote: string | null;
   /** When the request stops being answerable. Null means it waits indefinitely. */
   readonly expiresAt: ISODateString | null;
+  /**
+   * When the grant was spent. Null while it is still unspent — which, for a granted request, is the only state
+   * in which it authorizes anything. This is what makes the approval single-use rather than a standing licence.
+   */
+  readonly consumedAt: ISODateString | null;
+  /** The invocation that spent the grant. Set together with {@link ApprovalRequest.consumedAt}. */
+  readonly consumedByInvocationId: string | null;
   readonly createdAt: ISODateString;
   readonly updatedAt: ISODateString;
 }
@@ -96,6 +105,8 @@ export function createApprovalRequest(params: CreateApprovalRequestParams): Appr
     decidedAt: null,
     decisionNote: null,
     expiresAt: params.expiresAt ?? null,
+    consumedAt: null,
+    consumedByInvocationId: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -176,12 +187,41 @@ export function expireRequest(request: ApprovalRequest): ApprovalRequest {
   return touch(request, { decision: "expired", decidedAt: nowIso() });
 }
 
+/**
+ * Spend the grant on the invocation it authorized.
+ *
+ * A grant is for one act. Without this, a single "yes" to an agent-and-capability pair outside a plan would keep
+ * authorizing that call for as long as the record stood — one human decision silently becoming a standing
+ * licence, which is the difference between a gate and a door left open. Refused unless the request was granted
+ * and is still unspent, so the second attempt to spend it fails rather than quietly succeeding.
+ */
+export function consumeApproval(request: ApprovalRequest, invocationId: string): ApprovalRequest {
+  if (request.decision !== "approved") {
+    throw new ApprovalNotGrantedError(request.id, request.decision);
+  }
+  if (request.consumedAt !== null) {
+    throw new ApprovalAlreadySpentError(request.id, request.consumedByInvocationId);
+  }
+  return touch(request, { consumedAt: nowIso(), consumedByInvocationId: invocationId });
+}
+
 /** Whether the request is still waiting on a person. */
 export const isApprovalOpen = (request: ApprovalRequest): boolean => request.decision === "pending";
 
-/** Whether a human actually let this through. The only state that unblocks an invocation. */
+/** Whether a human actually let this through. Necessary to unblock an invocation, but not sufficient. */
 export const isApprovalGranted = (request: ApprovalRequest): boolean =>
   request.decision === "approved";
+
+/** Whether the grant has already been spent, and so authorizes nothing further. */
+export const isApprovalSpent = (request: ApprovalRequest): boolean => request.consumedAt !== null;
+
+/**
+ * Whether this grant can authorize an invocation right now — granted *and* unspent. This, not
+ * {@link isApprovalGranted}, is what the invocation path checks: a spent approval is a historical record of a
+ * decision, not a live permission.
+ */
+export const isApprovalSpendable = (request: ApprovalRequest): boolean =>
+  isApprovalGranted(request) && !isApprovalSpent(request);
 
 /**
  * Whether the request has passed its deadline at the given instant. ISO-8601 UTC timestamps compare correctly as

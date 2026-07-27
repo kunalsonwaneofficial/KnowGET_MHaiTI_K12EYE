@@ -5213,10 +5213,17 @@ model ApprovalRequest {
   decidedAt       String?  @map("decided_at")
   decisionNote    String?  @map("decision_note")
   expiresAt       String?  @map("expires_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  createdBy       String?  @map("created_by") @db.Uuid
-  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  /// When the grant was spent, and on which invocation. Null while unspent — which, for a granted request, is the
+  /// only state in which it authorizes anything. This pair is what makes the human gate single-use rather than a
+  /// standing licence for the agent-and-capability pair the request names.
+  consumedAt             String? @map("consumed_at")
+  consumedByInvocationId String? @map("consumed_by_invocation_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedBy String?  @map("updated_by") @db.Uuid
 
   @@index([tenantId])
   @@index([tenantId, organizationId])
