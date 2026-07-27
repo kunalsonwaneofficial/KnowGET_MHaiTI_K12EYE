@@ -2,13 +2,13 @@
 
 **Enterprise AI Operating System, Agent Orchestration & Reasoning** · Phase 2 (Enterprise Domain Engineering) · Program: Intelligence Core
 
-|                |                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Contract**   | P2-D26 — Enterprise AI Operating System, Agent Orchestration & Reasoning                                                                                                                                                                                                                                                                                                                                                                     |
-| **Status**     | 🟡 Engineered on `feat/p2-d26-agent-orchestration`, awaiting CI green + merge to `main`. In-sandbox: `@knowget/agent-orchestration` typecheck/lint/format/build clean, **368 tests** (20 files); `apps/api` typecheck/lint/build clean + agent-orchestration DI-graph spec (2 tests) in the **220-test** api suite. Full monorepo typecheck/lint/tests green (**269** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
-| **Depends on** | **P2-D25 (Institutional Knowledge Graph — the sole source of retrieved knowledge)**, P2-D01-M01 (Organization, via a directory port), the operational base **D01–D24** whose capabilities agents invoke by key, P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`). Second contract of **Program E** (D25–D30).                                                                                                                                           |
-| **Date**       | 27 December 2026                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **Next**       | P2-D27 — Decision Intelligence (third Program E contract)                                                                                                                                                                                                                                                                                                                                                                                    |
+|                |                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Contract**   | P2-D26 — Enterprise AI Operating System, Agent Orchestration & Reasoning                                                                                                                                                                                                                                                                                                                                   |
+| **Status**     | ✅ Merged to `main` (`8bf7ac9`, no-ff) after CI green. In-sandbox: `@knowget/agent-orchestration` typecheck/lint/format/build clean, **368 tests** (20 files); `apps/api` typecheck/lint/build clean + agent-orchestration DI-graph spec (2 tests) in the **220-test** api suite. Full monorepo typecheck/lint/tests green (**269** prisma-independent turbo tasks; TD-12 on the Prisma build in-sandbox). |
+| **Depends on** | **P2-D25 (Institutional Knowledge Graph — the sole source of retrieved knowledge)**, P2-D01-M01 (Organization, via a directory port), the operational base **D01–D24** whose capabilities agents invoke by key, P2-D01 (`v0.2.0`), Phase 1 (`v0.1.0`). Second contract of **Program E** (D25–D30).                                                                                                         |
+| **Date**       | 27 December 2026                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Next**       | P2-D27 — Decision Intelligence (third Program E contract)                                                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
@@ -139,7 +139,7 @@ paragraph is the honest residue, now TD-46: the check-then-act window under true
 - **TD-21 (standing).** Domain Prisma adapters live at the `apps/api` composition root.
 - **TD-01 (standing).** Event delivery is in-process; the 37 `ai.*` events ride the same bus.
 
-## 7. Outcome — pending CI green + merge to `main`
+## 7. Outcome — CI green, merged to `main`
 
 The Enterprise AI Operating System is complete behind its gates: the runtime is a pure, deterministic core (five
 engines, six aggregates, **368 tests**, no model, no clock, no network), authority is answered from declared
@@ -148,10 +148,10 @@ can manufacture a grant that was never given, **one human yes buys exactly one a
 they move and rollbacks are honest about what cannot be undone, knowledge enters only from the Institutional
 Knowledge Graph, and all six tables are FORCE-RLS tenant-isolated — with three of them deliberately carrying no
 soft-delete column, because an approval decision, an invocation and a reasoning chain are the record of what the
-platform did and on whose authority. Twelve increments, each verified and pushed; a dedicated consistency
-increment aligned the delivery with the 30 sibling domains and dropped the three misleading soft-delete columns,
-and the documentation pass that followed it found and closed a real authority hole rather than describing one.
-Next is **P2-D27 — Decision Intelligence**,
+platform did and on whose authority. Twelve increments, each verified and pushed, merged to `main` as `8bf7ac9`
+(no-ff) after CI green; a dedicated consistency increment aligned the delivery with the 30 sibling domains and
+dropped the three misleading soft-delete columns, and the documentation pass that followed it found and closed a
+real authority hole rather than describing one. Next is **P2-D27 — Decision Intelligence**,
 which reasons over D25's graph and will make its recommendations through this runtime's plans and its human gate.
 **Reminder: rotate the GitHub PAT** used for pushes at this milestone boundary — it has not yet been rotated
 across the P2-D18…D26 boundaries.
