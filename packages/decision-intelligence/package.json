@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/decision-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Institutional Decision Intelligence, Workflow Orchestration & Autonomous Operations (P2-D27) — the third contract of the intelligence core (Program E), built on the semantic layer (P2-D25) and the AI runtime (P2-D26). Recommendations carry a mandatory, cycle-safe evidence chain rooted in the knowledge graph, so a recommendation that cannot say why it exists cannot be constructed; the autonomy gate lets only low-risk, undoable actions execute unattended and routes everything else to a human; workflow definitions are versioned, inspected before publication and run as append-only instances; automation rules must declare how they are undone before they may act at all. Six pure engines derive the autonomy disposition, the evidence chain, workflow inspection and progress, the reversal plan, the descriptive priority order and operations metrics. Nothing here invokes a capability, calls a provider or reaches a database — execution is requested through P2-D26, and prediction is deferred to P2-D28. Domain events carry ids, keys, statuses, stable reason codes and counts only — no rationale prose, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
