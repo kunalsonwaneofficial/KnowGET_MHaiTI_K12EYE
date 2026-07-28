@@ -1423,3 +1423,67 @@ here into "assumed". All seven service tokens are exported for **in-process cros
 deferrals are **TD-47**. The layer through which predictive intelligence (P2-D28) and executive intelligence
 (P2-D29) will express what they conclude — as recommendations that carry their grounds, decisions the institution
 answers for, and automation that never exceeds what it can undo.
+
+## Predictive Intelligence, Simulation & Strategic Planning (P2-D28, Program: Intelligence Core · ADR-0047)
+
+The `@knowget/predictive-intelligence` package is the institution's **prediction layer**, and the **fourth
+contract of Program E** (D25–D30) — where the platform stops describing what the institution has done and states
+what it expects to happen. It is not one domain's forecasting need: **all twenty-four operational domains
+deferred their prediction here** rather than each growing a private projector, because twenty-four independently
+reasonable projectors produce twenty-four incompatible answers and an institution holding two numbers for next
+term's enrolment holds neither. It follows the domain architecture (ADR-0010): a pure package — **seven
+aggregates plus eight pure engines** — behind repository ports, Prisma/RLS adapters at the `apps/api` composition
+root, application services on the platform event bus, and permission-gated, tenant-scoped REST controllers. One
+contract rule defines it and it is four requirements in one sentence — **every forecast must include confidence
+intervals, assumptions, uncertainty, and be reproducible/versioned** — and each is engineered as **structure
+rather than procedure**, because the pressure to negotiate each requirement is exactly proportional to how badly
+the answer is wanted. **Intervals** — `REQUIRED_CONFIDENCE_LEVEL` is `80` and every forecast point carries at
+least that band, so a point estimate is not a weaker forecast but a claim the package cannot express;
+`CONFIDENCE_LEVELS` is closed at `[50, 80, 95]` because an arbitrary level invites the level to be chosen after
+the interval is seen. **Assumptions** — `produce` refuses with `UndeclaredAssumptionsError`, so a run on unstated
+assumptions is not a poorly documented run but **not a run**; `expert_judgement` demands a named holder and
+`declared_policy`/`upstream_forecast` demand a reference, which is why the `PersonDirectory` is load-bearing (an
+assumption attributed to a person who does not exist declares nothing while looking like it declares something).
+**Uncertainty** — four grades (`tight`, `moderate`, `wide`, `unusable`) and six **stable reason codes**, with
+`unusable` a verdict the domain is willing to reach rather than a floor it avoids, and `judgeCalibration` closing
+the loop by checking observed coverage against nominal. **Reproducibility** — `reproducibilityKeyOf` canonicalizes
+and **sha256-digests** the exact inputs a run stood on (observations, method, version, resolved parameters, seed,
+horizon, confidence levels), `diffInputs` names **which** of six drift codes moved when two runs disagree, and
+`FORECAST_PRECISION = 6` with `VALUE_TOLERANCE = 10⁻⁶` is what makes reproduction testable rather than a
+bit-equality that fails for reasons unrelated to the forecast. Holding those four up is a fifth thing that is not
+in the sentence: **`MAX_HORIZON_RATIO` is the constant `0.5`** and nothing in the package can raise it — twelve
+observed months buy six forecast months and not a thirteenth, and below `MIN_OBSERVATIONS_FOR_FORECAST` (4) the
+admissible horizon is zero. Eight **pure, deterministic, clock-free and seedless engines** compute what is
+derived, built and tested first: **series**, **projection** (six methods), **uncertainty**, **assumptions**,
+**reproducibility**, **accuracy**, **simulation** and **planning**. Seven aggregates: `ObservationSeries` (the
+measured history, its grain and declared cycle), `ForecastModel` (**versioned**; `publish` refuses with
+`ModelNotPublishableError` unless a backtest scored it publishable — **positive skill against the naive baseline
+and non-overconfident intervals**, both required, on a non-empty holdout, since either alone can be gamed by a
+model wrong in a comfortable direction), `ForecastRun`, `Backtest` (verdict frozen at scoring so it and its
+evidence cannot drift apart), `Scenario`, `SimulationRun` (separate from the scenario, so "what did we simulate in
+March" stays answerable once the scenario is amended; `orderLevers` makes application order deterministic and
+`MAX_LEVER_FACTOR = 10` bounds how far a lever may move a projection) and `StrategicPlan` (**objectives freeze at
+activation**, because a plan whose targets track its performance always meets them; reviews keep the variance they
+saw and the plan version behind it; progress readings are kept in **arrival order rather than sorted by period**,
+since a correction arriving after a later reading is exactly what a sort would silently reorder into the wrong
+answer; abandoned plans are kept, because deleting one turns a decision into an omission). Seven **FORCE-RLS**
+tables, each `tenant_isolation` (USING + WITH CHECK, fail-closed), tenant-indexed, with all four absolute uniques
+DB-backed (series `(tenant, org, series_key)`; model `(tenant, model_key, version)`; scenario `(tenant, org,
+scenario_key)`; plan `(tenant, org, plan_key)`); **five tables deliberately carry no soft-delete column** (series,
+run, backtest, simulation run, plan — the measured history, what was projected from it, how it scored, what was
+simulated and what was committed to). **Five permission scopes** split the surface across 77 endpoints —
+`forecast:record` (the evidence, separate because a corrected observation retroactively edits the history every
+published model was fitted against), `forecast:manage` (methods and cases), `forecast:operate` (the runtime),
+`forecast:read` (every read, deliberately wide, because a forecast nobody may inspect fails this contract as
+surely as one carrying no intervals) and **`forecast:plan` standing alone**, because the ability to project is not
+the ability to commit. Accountable identity always comes from the authenticated principal and is never read from a
+body. Value-, prose- and PII-free `forecast.*` events (30) publish onto the shared bus — forecast values do not
+travel, because a number detached from its interval, assumptions and grade is precisely the artifact this contract
+exists to prevent. Three directory ports resolve the organization owner, the person behind every attributed act
+and every assumption holder, and **the subject a series is actually about** — organizations, people and students
+directly, and the other twenty-one domains through the **P2-D25 knowledge graph** by `(sourceDomain, sourceRef)`;
+an unresolvable subject answers `false` and the series is refused, because a permissive directory would leave the
+guard running on every request and checking nothing on most of them. The DI-graph spec asserts all three bind. All
+seven service tokens are exported for **in-process cross-domain use**. Residual deferrals are **TD-48**. The layer
+that gives the platform one definition of what a forecast is, so the number an institution plans against carries
+its interval, its assumptions, its grade and the digest that lets anyone recompute it.
