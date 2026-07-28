@@ -5294,3 +5294,257 @@ model ReasoningSession {
   @@index([tenantId, status])
   @@map("reasoning_session")
 }
+
+// ============================================================================
+// P2-D27 — Institutional Decision Intelligence, Workflow Orchestration &
+// Autonomous Operations
+// The decision layer of the intelligence core (Program E), built on the AI
+// runtime P2-D26 laid down. Three rules are structural here rather than
+// procedural: only low-risk actions may execute unattended, every
+// recommendation carries the evidence chain it stands on, and anything
+// automation does keeps a way back until it is taken. Recommendations,
+// decisions, cases and firings are the record of what was proposed, decided,
+// done and undone — none of them has a delete path anywhere above it. Only
+// definitions (a workflow version, a rule) can be taken away.
+// All tenant-isolated by FORCE RLS.
+// ============================================================================
+
+/// DecisionRecommendation (P2-D27) — an institutional recommendation about a subject in another domain,
+/// carrying the evidence chain it stands on (`evidence` JSONB) and the confidence derived from that chain's
+/// weakest link; proposed -> accepted | rejected | superseded | expired | withdrawn. Named for the contract
+/// rather than plainly, because `recommendation` is P2-D11's learner-scoped suggestion — a different thing
+/// about a different subject. Never deleted: a rejection is the record that somebody looked and said no.
+/// Tenant-owned: FORCE RLS.
+model DecisionRecommendation {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId               String   @map("tenant_id") @db.Uuid
+  organizationId         String   @map("organization_id") @db.Uuid
+  title                  String
+  summary                String?
+  subjectDomain          String   @map("subject_domain")
+  subjectId              String   @map("subject_id")
+  impactBand             String   @map("impact_band")
+  riskLevel              String   @map("risk_level")
+  requiresHumanJudgement Boolean  @default(false) @map("requires_human_judgement")
+  status                 String   @default("proposed")
+  evidence               Json     @default("[]")
+  confidence             Int      @default(0)
+  proposedByUserId       String?  @map("proposed_by_user_id") @db.Uuid
+  raisedByRuleId         String?  @map("raised_by_rule_id") @db.Uuid
+  resolvedByUserId       String?  @map("resolved_by_user_id") @db.Uuid
+  resolvedAt             String?  @map("resolved_at")
+  resolutionNote         String?  @map("resolution_note")
+  supersededById         String?  @map("superseded_by_id") @db.Uuid
+  expiresAt              String?  @map("expires_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+  createdBy              String?  @map("created_by") @db.Uuid
+  updatedBy              String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, status])
+  @@index([tenantId, subjectDomain, subjectId])
+  @@map("decision_recommendation")
+}
+
+/// DecisionRecord (P2-D27) — the answer to a recommendation and everything that followed from it: who was
+/// accountable, the gate's reason codes as they stood, the evidence ids the decision rested on, and how the
+/// authorized act settled. `action` is null when the decision authorizes nothing — a judgement, not an act.
+/// `compensation_state` is derived by the reversal engine, never asserted by a caller. Never deleted.
+/// Tenant-owned: FORCE RLS.
+model DecisionRecord {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  recommendationId     String   @map("recommendation_id") @db.Uuid
+  disposition          String
+  decidedByUserId      String?  @map("decided_by_user_id") @db.Uuid
+  decidedAt            String   @map("decided_at")
+  decisionNote         String?  @map("decision_note")
+  confidenceAtDecision Int      @default(0) @map("confidence_at_decision")
+  riskLevelAtDecision  String   @map("risk_level_at_decision")
+  impactBandAtDecision String   @map("impact_band_at_decision")
+  evidenceIds          String[] @map("evidence_ids")
+  autonomyReasons      String[] @map("autonomy_reasons")
+  action               Json?
+  executionOutcome     String   @default("not_started") @map("execution_outcome")
+  executionRef         String?  @map("execution_ref")
+  executionRequestedAt String?  @map("execution_requested_at")
+  executionSettledAt   String?  @map("execution_settled_at")
+  executionError       String?  @map("execution_error")
+  compensationState    String   @default("not_required") @map("compensation_state")
+  compensationRef      String?  @map("compensation_ref")
+  compensatedAt        String?  @map("compensated_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by") @db.Uuid
+  updatedBy            String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, recommendationId])
+  @@index([tenantId, compensationState])
+  @@map("decision_record")
+}
+
+/// WorkflowDefinition (P2-D27) — one version of a named institutional process. A key does not identify a
+/// workflow; a key and a version do, because revising a published process creates a new draft beside it rather
+/// than editing the one cases are running under — hence the unique on (tenant, key, version) and no unique on
+/// key alone. `stages` holds the ordered stage list (dependencies, risk, reversibility, SLA, assignee role) as
+/// part of the aggregate, loaded and saved whole: soundness is a property across stages, unenforceable from a
+/// row that can be written on its own. Draft versions are discardable. Tenant-owned: FORCE RLS.
+model WorkflowDefinition {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  key               String
+  version           Int       @default(1)
+  name              String
+  description       String?
+  trigger           String
+  triggerSignalKey  String?   @map("trigger_signal_key")
+  status            String    @default("draft")
+  stages            Json      @default("[]")
+  publishedAt       String?   @map("published_at")
+  publishedByUserId String?   @map("published_by_user_id") @db.Uuid
+  retiredAt         String?   @map("retired_at")
+  createdByUserId   String?   @map("created_by_user_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key, version])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, key])
+  @@index([tenantId, status])
+  @@index([tenantId, triggerSignalKey])
+  @@map("workflow_definition")
+}
+
+/// WorkflowInstance (P2-D27) — one case running (or settled) under one workflow version. The key and version
+/// are snapshotted so a case can name its process after that version is retired. `stage_runs` holds the
+/// per-stage record — who it fell to, when it began and settled, the runtime reference it requested — inside
+/// the aggregate. Never deleted: what an institution did about one subject, stage by stage, is the whole reason
+/// for modelling a process rather than just doing it. Tenant-owned: FORCE RLS.
+model WorkflowInstance {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workflowId         String   @map("workflow_id") @db.Uuid
+  workflowKey        String   @map("workflow_key")
+  workflowVersion    Int      @map("workflow_version")
+  subjectDomain      String   @map("subject_domain")
+  subjectId          String   @map("subject_id")
+  trigger            String
+  triggeredByUserId  String?  @map("triggered_by_user_id") @db.Uuid
+  triggeredByRuleId  String?  @map("triggered_by_rule_id") @db.Uuid
+  recommendationId   String?  @map("recommendation_id") @db.Uuid
+  status             String   @default("running")
+  stageRuns          Json     @default("[]") @map("stage_runs")
+  startedAt          String   @map("started_at")
+  settledAt          String?  @map("settled_at")
+  failureStageKey    String?  @map("failure_stage_key")
+  failureError       String?  @map("failure_error")
+  cancelledByUserId  String?  @map("cancelled_by_user_id") @db.Uuid
+  cancellationReason String?  @map("cancellation_reason")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, workflowId])
+  @@index([tenantId, status])
+  @@index([tenantId, subjectDomain, subjectId])
+  @@map("workflow_instance")
+}
+
+/// AutomationRule (P2-D27) — a standing rule: a signal to watch, conditions that must all hold, one action, and
+/// how much autonomy the institution granted it. `activated_by_user_id` is the institution's answer to "who
+/// allowed this to run" — the one column an unattended platform is asked about afterwards. Editable rules are
+/// discardable; an armed one is retired instead. Tenant-owned: FORCE RLS.
+model AutomationRule {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  key               String
+  name              String
+  description       String?
+  signalKey         String    @map("signal_key")
+  conditions        Json      @default("[]")
+  action            Json
+  autonomyMode      String    @map("autonomy_mode")
+  status            String    @default("draft")
+  createdByUserId   String?   @map("created_by_user_id") @db.Uuid
+  activatedAt       String?   @map("activated_at")
+  activatedByUserId String?   @map("activated_by_user_id") @db.Uuid
+  pausedAt          String?   @map("paused_at")
+  retiredAt         String?   @map("retired_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedBy         String?   @map("updated_by") @db.Uuid
+  deletedAt         DateTime? @map("deleted_at")
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, status])
+  @@index([tenantId, signalKey, status])
+  @@map("automation_rule")
+}
+
+/// AutomationRun (P2-D27) — one firing of one rule: the gate's verdict and its reason codes, taken before this
+/// record existed, the action as it stood, and the operands of the comparisons the rule actually made
+/// (`observed_facts` — never the whole signal payload). Who approved a referred firing, or refused it, is here
+/// too. `compensation_state` is derived by the reversal engine from the action and how far execution got.
+/// Never deleted — the record of what the platform did while nobody was watching is exactly what must not be
+/// deletable. Tenant-owned: FORCE RLS.
+model AutomationRun {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  ruleId               String   @map("rule_id") @db.Uuid
+  ruleKey              String   @map("rule_key")
+  signalKey            String   @map("signal_key")
+  subjectDomain        String   @map("subject_domain")
+  subjectId            String   @map("subject_id")
+  recommendationId     String?  @map("recommendation_id") @db.Uuid
+  action               Json
+  autonomyMode         String   @map("autonomy_mode")
+  disposition          String
+  reasons              String[]
+  observedFacts        Json     @default("[]") @map("observed_facts")
+  status               String   @default("gated")
+  approvedByUserId     String?  @map("approved_by_user_id") @db.Uuid
+  approvedAt           String?  @map("approved_at")
+  approvalNote         String?  @map("approval_note")
+  rejectedByUserId     String?  @map("rejected_by_user_id") @db.Uuid
+  rejectedAt           String?  @map("rejected_at")
+  rejectionReason      String?  @map("rejection_reason")
+  executionRef         String?  @map("execution_ref")
+  executionRequestedAt String?  @map("execution_requested_at")
+  executionError       String?  @map("execution_error")
+  compensationState    String   @default("not_required") @map("compensation_state")
+  compensationRef      String?  @map("compensation_ref")
+  compensatedAt        String?  @map("compensated_at")
+  firedAt              String   @map("fired_at")
+  settledAt            String?  @map("settled_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by") @db.Uuid
+  updatedBy            String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, ruleId])
+  @@index([tenantId, status])
+  @@index([tenantId, compensationState])
+  @@index([tenantId, subjectDomain, subjectId])
+  @@map("automation_run")
+}

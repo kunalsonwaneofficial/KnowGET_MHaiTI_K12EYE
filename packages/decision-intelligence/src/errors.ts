@@ -1,0 +1,936 @@
+import { PlatformError } from "@knowget/exceptions";
+
+/**
+ * The domain error model for institutional decision intelligence. Every failure this contract can produce is a
+ * typed, operational error carrying a stable code, an HTTP status and structured details — never a bare string,
+ * and never free text an API consumer has to parse.
+ *
+ * Most of these are refusals rather than faults, and the refusals are where the contract's three rules become
+ * unavoidable rather than merely intended:
+ *
+ * - {@link UngroundedRecommendationError} and {@link EvidenceRetractionUngroundsError} mean there is no code path
+ *   that produces or preserves an *open* recommendation without a sound evidence chain underneath it. Rule two
+ *   is not a validation someone remembered to call; it is the only way in and the only way to stay.
+ * - {@link AutonomousDecisionAboveCeilingError} and {@link AutonomousDecisionWithoutEvidenceError} mean a record
+ *   claiming the machine decided on its own cannot be written above the risk ceiling or without the evidence
+ *   that justified it. Rule one is enforced at the record, not only at the gate that precedes it.
+ * - {@link DecisionNotCompensatableError} means the way back cannot be *claimed* to have been taken unless it was
+ *   genuinely available. Rule three refuses to be satisfied by a status update.
+ *
+ * A refusal here is a 409 or a 422 with the specifics an operator needs to fix it, because these are the platform
+ * enforcing its contract — not something going wrong inside it.
+ */
+
+// --- Directories -----------------------------------------------------------------
+
+/** The organization (institution node, P2-D01-M01) that would own this decision record does not exist. */
+export class OrganizationNotFoundForDecisionError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" not found; cannot attach the decision record to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}
+
+/**
+ * An action names a capability the AI catalog (P2-D26) will not invoke — unregistered, never activated, or
+ * since deprecated.
+ *
+ * This is the refusal that keeps rule three from being nominal. A rule armed against a missing capability does
+ * not fail when somebody could fix it; it fails at three in the morning, unattended, on a live student. The
+ * same check guards the compensating key, because a declared way back that names nothing is not a way back at
+ * all — and rule three is worth exactly as much as the compensating capability actually being there.
+ */
+export class CapabilityNotInvocableError extends PlatformError {
+  constructor(capabilityKey: string, role: string) {
+    super(`Capability "${capabilityKey}" is not invocable; it cannot be used as the ${role}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { capabilityKey, role },
+    });
+  }
+}
+
+/**
+ * A citation points at a record that is not there — a knowledge graph entity (P2-D25) or a reasoning session
+ * (P2-D26) that does not exist in this tenant.
+ *
+ * Rule two says a recommendation ships with an evidence chain. A chain of references to things that are not
+ * there satisfies the letter of that and none of its point, so citations are checked as they are made rather
+ * than believed and discovered broken by whoever is asked to act on them.
+ */
+export class EvidenceSourceNotFoundError extends PlatformError {
+  constructor(source: string, ref: string) {
+    super(`No ${source} record "${ref}" exists in this tenant; the citation cannot be made`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { source, ref },
+    });
+  }
+}
+
+// --- Recommendations -------------------------------------------------------------
+
+/** The requested recommendation does not exist in the current tenant. */
+export class RecommendationNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Recommendation "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A recommendation must say what it is recommending. */
+export class EmptyRecommendationTitleError extends PlatformError {
+  constructor() {
+    super("A recommendation must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A recommendation must name what it is about. The subject is an opaque reference into an operational domain —
+ * this contract never re-models the record it reasons about — but a reference to nothing is not a subject.
+ */
+export class EmptyRecommendationSubjectError extends PlatformError {
+  constructor() {
+    super("A recommendation must name the domain and record it is about", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * **Rule two, as a refusal.** A recommendation cannot be raised on an evidence chain that does not ground it.
+ * The issue codes come straight from the evidence engine's inspection, so the caller is told exactly what is
+ * wrong — no evidence at all, a support that resolves to nothing, a chain that loops, or a chain that never
+ * reaches the knowledge graph.
+ */
+export class UngroundedRecommendationError extends PlatformError {
+  constructor(issues: readonly string[]) {
+    super(
+      `A recommendation cannot be raised on an evidence chain that does not ground it (${issues.join(", ")})`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { issues: [...issues] },
+      },
+    );
+  }
+}
+
+/** The recommendation has already been answered, and an answered recommendation does not move again. */
+export class RecommendationNotOpenError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Recommendation "${id}" is "${status}" and is no longer open`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * Every answer to a recommendation names the person who gave it. An expiry is the one landing with nobody behind
+ * it, and it has its own transition precisely so that silence is never recorded as though someone weighed it.
+ */
+export class AnonymousResolutionError extends PlatformError {
+  constructor() {
+    super("Answering a recommendation must name the person accountable for the answer", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A recommendation cannot supersede itself; a revision is a different record. */
+export class SelfSupersedingRecommendationError extends PlatformError {
+  constructor(id: string) {
+    super(`Recommendation "${id}" cannot supersede itself`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+// --- Evidence --------------------------------------------------------------------
+
+/** A citation must point at something — an opaque id in the knowledge graph or a reasoning session. */
+export class EmptyEvidenceRefError extends PlatformError {
+  constructor() {
+    super("A piece of evidence must reference a non-empty source record", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** The evidence being retracted is not part of this recommendation's chain. */
+export class EvidenceNotFoundError extends PlatformError {
+  constructor(recommendationId: string, evidenceId: string) {
+    super(`Evidence "${evidenceId}" is not cited by recommendation "${recommendationId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { recommendationId, evidenceId },
+    });
+  }
+}
+
+/**
+ * A new citation may only rest on evidence already in the chain. Wiring a support to an id that is not there
+ * would build a chain the evidence engine reports as unsound the moment anyone inspects it, so it is refused at
+ * the point the mistake is made rather than discovered later at a gate.
+ */
+export class UnknownEvidenceSupportError extends PlatformError {
+  constructor(recommendationId: string, supportId: string) {
+    super(
+      `Evidence support "${supportId}" is not part of recommendation "${recommendationId}"'s chain`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { recommendationId, supportId },
+      },
+    );
+  }
+}
+
+/**
+ * **Rule two, as a refusal, on the way out.** Retracting this evidence would leave an open recommendation
+ * standing on a chain that no longer grounds it. The retraction is refused rather than allowed to quietly
+ * hollow out the justification: the honest move is to withdraw the recommendation, and `dependents` names what
+ * would have lost its footing.
+ */
+export class EvidenceRetractionUngroundsError extends PlatformError {
+  constructor(
+    recommendationId: string,
+    evidenceId: string,
+    issues: readonly string[],
+    dependents: readonly string[],
+  ) {
+    super(
+      `Retracting evidence "${evidenceId}" would leave recommendation "${recommendationId}" ungrounded (${issues.join(", ")}); withdraw it instead`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: {
+          recommendationId,
+          evidenceId,
+          issues: [...issues],
+          dependents: [...dependents],
+        },
+      },
+    );
+  }
+}
+
+// --- Decision records ------------------------------------------------------------
+
+/** The requested decision record does not exist in the current tenant. */
+export class DecisionRecordNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Decision record "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** Every decision a person took names that person. An anonymous decision is not accountability. */
+export class AnonymousDecisionError extends PlatformError {
+  constructor(disposition: string) {
+    super(`A "${disposition}" decision must name the person accountable for it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { disposition },
+    });
+  }
+}
+
+/**
+ * An auto-executed decision is the machine deciding, and so it has nobody behind it by definition. Naming a
+ * person on one would put their name to something they never saw.
+ */
+export class AutonomousDecisionHasDeciderError extends PlatformError {
+  constructor(decidedByUserId: string) {
+    super(
+      `An auto-executed decision cannot name a decider; "${decidedByUserId}" did not take this decision`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { decidedByUserId },
+      },
+    );
+  }
+}
+
+/**
+ * **Rule one, as a refusal.** A decision cannot be recorded as taken by the machine when what it authorizes sits
+ * above the auto-execution risk ceiling. The autonomy gate would never have produced it; this refuses to let one
+ * be written anyway.
+ */
+export class AutonomousDecisionAboveCeilingError extends PlatformError {
+  constructor(riskLevel: string, ceiling: string) {
+    super(
+      `A "${riskLevel}"-risk action cannot be auto-executed; the ceiling for unattended execution is "${ceiling}"`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { riskLevel, ceiling },
+      },
+    );
+  }
+}
+
+/**
+ * **Rule two, reaching the decision record.** The machine may not decide on its own from a justification that
+ * was never recorded. A human decision may be taken on any grounds a person is willing to own; an autonomous one
+ * has only the evidence to stand on, so an empty chain is refused outright.
+ */
+export class AutonomousDecisionWithoutEvidenceError extends PlatformError {
+  constructor(recommendationId: string) {
+    super(
+      `An auto-executed decision on recommendation "${recommendationId}" must carry the evidence it rests on`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { recommendationId },
+      },
+    );
+  }
+}
+
+/**
+ * **Rule one, at the subject rather than at the action.** Some recommendations are marked as needing a person's
+ * judgement regardless of how small the action is — a bursary refusal, a safeguarding note, anything where the
+ * ceiling is beside the point because the *subject* is what requires a human. A low-risk, well-evidenced,
+ * perfectly compensatable action on such a subject is still not the machine's to take.
+ */
+export class AutonomousDecisionOnHumanSubjectError extends PlatformError {
+  constructor(recommendationId: string) {
+    super(
+      `Recommendation "${recommendationId}" requires human judgement and cannot be decided autonomously`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { recommendationId },
+      },
+    );
+  }
+}
+
+/**
+ * A rejected or deferred decision authorizes nothing, and a decision that named no action never authorized one.
+ * Execution is requested from what a decision permitted, not from the fact that a decision happened.
+ */
+export class ExecutionNotAuthorizedByDecisionError extends PlatformError {
+  constructor(id: string, disposition: string) {
+    super(`Decision "${id}" ("${disposition}") does not authorize an execution`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, disposition },
+    });
+  }
+}
+
+/** The attempted execution transition is not allowed from where the execution currently stands. */
+export class InvalidExecutionTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An execution cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * **Rule three, as a refusal.** Compensation can only be recorded when it was genuinely available: the action
+ * changed something, the way back was declared, and it has not already been taken. Anything else would let a
+ * status update stand in for the world actually being put back.
+ */
+export class DecisionNotCompensatableError extends PlatformError {
+  constructor(id: string, compensationState: string) {
+    super(`Decision "${id}" cannot be compensated; its compensation is "${compensationState}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, compensationState },
+    });
+  }
+}
+
+// --- Workflow definitions --------------------------------------------------------
+
+/** The requested workflow definition version does not exist in the current tenant. */
+export class WorkflowNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Workflow definition "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A workflow definition is addressed by key across its versions, so the key cannot be blank. */
+export class EmptyWorkflowKeyError extends PlatformError {
+  constructor() {
+    super("A workflow definition must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A workflow definition must have a name a person can recognise it by. */
+export class EmptyWorkflowNameError extends PlatformError {
+  constructor() {
+    super("A workflow definition must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** That version of this workflow key already exists; a revision takes the next version number. */
+export class DuplicateWorkflowVersionError extends PlatformError {
+  constructor(key: string, version: number) {
+    super(`Workflow "${key}" already has a version ${version}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key, version },
+    });
+  }
+}
+
+/** A signal-triggered workflow must name the signal that starts it; a key of nothing starts nothing. */
+export class WorkflowTriggerSignalMissingError extends PlatformError {
+  constructor() {
+    super("A signal-triggered workflow must name the signal key that starts it", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Only a signal-triggered workflow carries a signal key. A manual or automation-started workflow that also names
+ * a signal is ambiguous about what starts it, and an orchestrator should never be guessing that.
+ */
+export class WorkflowTriggerSignalNotAllowedError extends PlatformError {
+  constructor(trigger: string) {
+    super(`A "${trigger}"-triggered workflow cannot also name a trigger signal`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { trigger },
+    });
+  }
+}
+
+/**
+ * A published definition version is frozen. The instances running under it must keep meaning what they meant
+ * when they started, and there is no way to repair a live case that has already passed a stage which has since
+ * changed underneath it. Revise the workflow into a new draft version instead.
+ */
+export class PublishedWorkflowImmutableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(
+      `Workflow definition "${id}" is "${status}" and can no longer be edited; revise it into a new version`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, status },
+      },
+    );
+  }
+}
+
+/**
+ * Publication is the gate. A definition carrying any structural issue at all — a cycle, a dangling dependency,
+ * an acting stage naming no capability, a compensatable stage naming no way back — cannot be published, because
+ * every one of those is a route to a state nobody designed once live cases are moving through it.
+ */
+export class UnsoundWorkflowError extends PlatformError {
+  constructor(id: string, issues: readonly string[]) {
+    super(
+      `Workflow definition "${id}" cannot be published while it is unsound (${issues.join(", ")})`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { id, issues: [...issues] },
+      },
+    );
+  }
+}
+
+/** The attempted workflow-definition transition is not allowed from where the definition currently stands. */
+export class InvalidWorkflowTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A workflow definition cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/** Instances start from a published version only — never from a draft, a suspended one or a retired one. */
+export class WorkflowNotPublishedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(
+      `Workflow definition "${id}" is "${status}"; instances start from a published version only`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, status },
+      },
+    );
+  }
+}
+
+/** A stage is addressed by key within its definition, so the key cannot be blank. */
+export class EmptyStageKeyError extends PlatformError {
+  constructor() {
+    super("A workflow stage must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A workflow stage must have a name a person can recognise it by. */
+export class EmptyStageNameError extends PlatformError {
+  constructor() {
+    super("A workflow stage must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Stage keys address stages, and two stages answering to one key make every dependency naming it ambiguous. It
+ * is refused at the point the mistake is made rather than discovered later at the publication gate.
+ */
+export class DuplicateStageKeyError extends PlatformError {
+  constructor(stageKey: string) {
+    super(`Workflow stage "${stageKey}" is already part of this definition`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey },
+    });
+  }
+}
+
+/** The named stage is not part of this workflow definition. */
+export class StageNotFoundError extends PlatformError {
+  constructor(workflowId: string, stageKey: string) {
+    super(`Workflow stage "${stageKey}" is not part of definition "${workflowId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { workflowId, stageKey },
+    });
+  }
+}
+
+// --- Workflow instances ----------------------------------------------------------
+
+/** The requested workflow instance does not exist in the current tenant. */
+export class WorkflowInstanceNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Workflow instance "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** An instance must name what it is running about, exactly as a recommendation names what it is about. */
+export class EmptyWorkflowSubjectError extends PlatformError {
+  constructor() {
+    super("A workflow instance must name the domain and record it is running about", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Starting a workflow by hand and cancelling one mid-flight are both acts a person is accountable for, and an
+ * accountability record with nobody in it is not accountability. A signal or an automation rule starting a
+ * workflow names itself instead; silence names nothing.
+ */
+export class AnonymousWorkflowActionError extends PlatformError {
+  constructor(action: string) {
+    super(`A workflow cannot be ${action} without naming the person accountable for it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { action },
+    });
+  }
+}
+
+/** The instance has already settled, and a settled instance does not move again. */
+export class WorkflowInstanceNotRunningError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Workflow instance "${id}" is "${status}" and is no longer running`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** The named stage is not part of this instance's snapshot of its definition. */
+export class StageRunNotFoundError extends PlatformError {
+  constructor(instanceId: string, stageKey: string) {
+    super(`Stage "${stageKey}" is not part of workflow instance "${instanceId}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { instanceId, stageKey },
+    });
+  }
+}
+
+/** The attempted stage transition is not allowed from where that stage currently stands. */
+export class InvalidStageTransitionError extends PlatformError {
+  constructor(stageKey: string, from: string, to: string) {
+    super(`Stage "${stageKey}" cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey, from, to },
+    });
+  }
+}
+
+/**
+ * A stage begins only once everything it depends on has completed or been skipped. A *failed* dependency
+ * releases nothing: the instance stops at the part that did not work rather than carrying on past it, which is
+ * the difference between an orchestrator and a queue.
+ */
+export class StageDependenciesUnsettledError extends PlatformError {
+  constructor(stageKey: string, unsatisfied: readonly string[]) {
+    super(
+      `Stage "${stageKey}" cannot begin until ${unsatisfied.join(", ")} complete or are skipped`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { stageKey, unsatisfied: [...unsatisfied] },
+      },
+    );
+  }
+}
+
+/**
+ * Only a stage the definition declared optional may be skipped. Skipping a required stage would let an instance
+ * report completion having never done the thing the workflow exists to do.
+ */
+export class RequiredStageNotSkippableError extends PlatformError {
+  constructor(stageKey: string) {
+    super(`Stage "${stageKey}" is required and cannot be skipped`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { stageKey },
+    });
+  }
+}
+
+// --- Automation rules ------------------------------------------------------------
+
+/** The requested automation rule does not exist in the current tenant. */
+export class AutomationRuleNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Automation rule "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A rule is addressed by key, so the key has to be something. */
+export class EmptyRuleKeyError extends PlatformError {
+  constructor() {
+    super("An automation rule must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A rule that fires unattended has to be nameable by the people accountable for it. */
+export class EmptyRuleNameError extends PlatformError {
+  constructor() {
+    super("An automation rule must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** Rule keys are unique within an organization, so an operator naming one always means one. */
+export class DuplicateRuleKeyError extends PlatformError {
+  constructor(key: string) {
+    super(`Automation rule "${key}" already exists in this organization`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { key },
+    });
+  }
+}
+
+/** A rule fires on a signal, and an unnamed signal is a rule that would fire on everything or nothing. */
+export class EmptyRuleSignalKeyError extends PlatformError {
+  constructor() {
+    super("An automation rule must name the signal it fires on", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A condition examines a named fact; an unnamed one examines nothing. */
+export class EmptyConditionKeyError extends PlatformError {
+  constructor() {
+    super("An automation condition must name the fact it examines", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A condition carries the wrong number of operands for its operator. The grammar is closed and each operator's
+ * arity is fixed, so an ill-formed condition is refused where it is written rather than silently never matching.
+ */
+export class ConditionArityError extends PlatformError {
+  constructor(operator: string, expected: string, received: number) {
+    super(`Operator "${operator}" takes ${expected} operand(s), received ${received}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { operator, expected, received },
+    });
+  }
+}
+
+/** An action that changes institutional state has to say what it would change. */
+export class ActionTargetRequiredError extends PlatformError {
+  constructor(kind: string) {
+    super(`Action "${kind}" must name the capability or workflow it targets`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}
+
+/** Raising a recommendation targets nothing — it puts a proposal in front of a person. */
+export class ActionTargetNotAllowedError extends PlatformError {
+  constructor(kind: string) {
+    super(`Action "${kind}" does not target a capability or workflow`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { kind },
+    });
+  }
+}
+
+/** The attempted rule transition is not allowed from where the rule currently stands. */
+export class InvalidRuleTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An automation rule cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * Activation is the gate a standing rule passes through, and this is it refusing. The autonomy engine judged
+ * the rule as if it were already live and found reasons that no human approval can repair — an action that can
+ * never be recalled, or one that is compensatable but names nothing that would compensate it. A rule may be
+ * *drafted* in that state, so its author can see exactly what is wrong; it may not be turned on in it.
+ */
+export class UnsafeAutomationRuleError extends PlatformError {
+  constructor(id: string, reasons: readonly string[]) {
+    super(`Automation rule "${id}" cannot be activated: ${reasons.join(", ")}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id, reasons: [...reasons] },
+    });
+  }
+}
+
+/**
+ * An active rule is what is actually firing in the institution right now, so it is not edited underneath the
+ * people accountable for it. Pause it, change it, and turn it back on — which puts it through the activation
+ * gate a second time, exactly as the first version was.
+ */
+export class ActiveRuleImmutableError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Automation rule "${id}" is "${status}" and must be paused before it is changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/** Only an active rule fires. A draft, a paused rule and a retired rule are all silent, by design. */
+export class RuleNotActiveError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Automation rule "${id}" is "${status}" and does not fire`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+// --- Automation runs -------------------------------------------------------------
+
+/** The requested automation run does not exist in the current tenant. */
+export class AutomationRunNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Automation run "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A firing acts on something, and the something has to be named. */
+export class EmptyRunSubjectError extends PlatformError {
+  constructor() {
+    super("An automation run must name the subject it acts on", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * The human gate exists so that a person owns what the machine was not allowed to do alone. An approval or a
+ * refusal with nobody behind it is the gate being opened by nobody, which is the gate not existing.
+ */
+export class AnonymousRunApprovalError extends PlatformError {
+  constructor(action: string) {
+    super(`An automation run cannot be ${action} without naming the person accountable for it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { action },
+    });
+  }
+}
+
+/** The attempted run transition is not allowed from where the run currently stands. */
+export class InvalidRunTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`An automation run cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+/**
+ * Execution asked for on a firing the gate did not authorize. A blocked run is never authorized, and a run the
+ * gate referred to a human is authorized only once that human has actually approved it — an approval is a
+ * recorded act, not an assumption the executor is free to make.
+ */
+export class RunNotAuthorizedError extends PlatformError {
+  constructor(id: string, disposition: string) {
+    super(`Automation run "${id}" is "${disposition}" and is not authorized to execute`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, disposition },
+    });
+  }
+}
+
+/** Rule three refuses to be satisfied by a status update: compensation has to have been genuinely available. */
+export class RunNotCompensatableError extends PlatformError {
+  constructor(id: string, compensationState: string) {
+    super(`Automation run "${id}" has compensation state "${compensationState}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, compensationState },
+    });
+  }
+}

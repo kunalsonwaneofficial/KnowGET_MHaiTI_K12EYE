@@ -9,6 +9,7 @@ import { AttendancePresenceModule } from "./domains/attendance-presence/attendan
 import { GovernanceModule } from "./domains/governance/governance.module";
 import { KnowledgeGraphModule } from "./domains/knowledge-graph/knowledge-graph.module";
 import { CampusSecurityModule } from "./domains/campus-security/campus-security.module";
+import { DecisionIntelligenceModule } from "./domains/decision-intelligence/decision-intelligence.module";
 import { EngagementModule } from "./domains/engagement/engagement.module";
 import { FacilitiesModule } from "./domains/facilities/facilities.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
@@ -118,6 +119,7 @@ const persistedServices =
     AlumniModule,
     KnowledgeGraphModule,
     AgentOrchestrationModule,
+    DecisionIntelligenceModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

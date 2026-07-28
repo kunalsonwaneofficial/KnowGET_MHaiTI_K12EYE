@@ -32,6 +32,7 @@
     "@knowget/configuration": "workspace:*",
     "@knowget/context": "workspace:*",
     "@knowget/database": "workspace:*",
+    "@knowget/decision-intelligence": "workspace:*",
     "@knowget/diagnostics": "workspace:*",
     "@knowget/documents": "workspace:*",
     "@knowget/enterprise-identity": "workspace:*",
