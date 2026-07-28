@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { bandFor } from "./banding";
 import { MAX_NORMALIZED_SCORE, MIN_PILLAR_COVERAGE, type HealthPillar } from "./command-value";
-import type { PillarInput, PillarWeight } from "./command-view";
-import { assessIndex, isCitable, rankByDrag } from "./indexing";
+import type { PillarInput, PillarReport, PillarWeight } from "./command-view";
+import { assessIndex, isCitable, rankByDrag, rollUpPillars } from "./indexing";
 import { validateWeights } from "./weighting";
 
 const w = (pillar: HealthPillar, weight: number): PillarWeight => ({ pillar, weight });
@@ -344,5 +344,122 @@ describe("isCitable", () => {
     );
     expect(bleak.band).toBe("failing");
     expect(isCitable(bleak)).toBe(true);
+  });
+});
+
+describe("rollUpPillars", () => {
+  const report = (pillar: HealthPillar, score: number | null): PillarReport => ({ pillar, score });
+
+  it("averages the indicators that scored", () => {
+    const inputs = rollUpPillars([
+      report("academic_outcomes", 60),
+      report("academic_outcomes", 80),
+      report("academic_outcomes", 70),
+    ]);
+    expect(inputs).toEqual([
+      { pillar: "academic_outcomes", score: 70, kpisRead: 3, kpisDeclared: 3 },
+    ]);
+  });
+
+  it("weights every indicator in a pillar the same, whatever order they arrive in", () => {
+    const forwards = rollUpPillars([
+      report("financial_health", 20),
+      report("financial_health", 80),
+    ]);
+    const backwards = rollUpPillars([
+      report("financial_health", 80),
+      report("financial_health", 20),
+    ]);
+    expect(forwards[0]?.score).toBe(50);
+    expect(backwards[0]?.score).toBe(50);
+  });
+
+  it("counts an unscored indicator against what the pillar declared and not against what it read", () => {
+    const inputs = rollUpPillars([
+      report("teaching_quality", 90),
+      report("teaching_quality", null),
+      report("teaching_quality", null),
+    ]);
+    expect(inputs[0]).toEqual({
+      pillar: "teaching_quality",
+      score: 90,
+      kpisRead: 1,
+      kpisDeclared: 3,
+    });
+  });
+
+  it("does not let an unscored indicator drag the average toward zero", () => {
+    const scored = rollUpPillars([report("learner_wellbeing", 60)]);
+    const halfSilent = rollUpPillars([
+      report("learner_wellbeing", 60),
+      report("learner_wellbeing", null),
+    ]);
+    expect(halfSilent[0]?.score).toBe(scored[0]?.score);
+  });
+
+  it("reports a pillar nothing scored as unread rather than as a zero anybody will see", () => {
+    const inputs = rollUpPillars([
+      report("operational_continuity", null),
+      report("operational_continuity", null),
+    ]);
+    expect(inputs[0]).toEqual({
+      pillar: "operational_continuity",
+      score: 0,
+      kpisRead: 0,
+      kpisDeclared: 2,
+    });
+    expect(assessIndex([w("operational_continuity", 1)], inputs).omissions[0]?.reason).toBe(
+      "kpi_coverage",
+    );
+  });
+
+  it("ignores a score that is not a point on the normalized scale", () => {
+    const inputs = rollUpPillars([
+      report("academic_outcomes", 70),
+      report("academic_outcomes", 140),
+      report("academic_outcomes", Number.NaN),
+    ]);
+    expect(inputs[0]).toEqual({
+      pillar: "academic_outcomes",
+      score: 70,
+      kpisRead: 1,
+      kpisDeclared: 3,
+    });
+  });
+
+  it("keeps the pillars in the order they were first reported", () => {
+    const inputs = rollUpPillars([
+      report("financial_health", 50),
+      report("academic_outcomes", 50),
+      report("financial_health", 50),
+      report("teaching_quality", 50),
+    ]);
+    expect(inputs.map((input) => input.pillar)).toEqual([
+      "financial_health",
+      "academic_outcomes",
+      "teaching_quality",
+    ]);
+  });
+
+  it("rounds the average the way an index value is rounded", () => {
+    const inputs = rollUpPillars([
+      report("workforce_capacity", 70),
+      report("workforce_capacity", 71),
+      report("workforce_capacity", 73),
+    ]);
+    expect(inputs[0]?.score).toBe(71.333333);
+  });
+
+  it("has nothing to roll up when nothing was reported", () => {
+    expect(rollUpPillars([])).toEqual([]);
+  });
+
+  it("produces inputs an assessment accepts unchanged", () => {
+    const inputs = rollUpPillars(
+      definition.flatMap((entry) => [report(entry.pillar, 80), report(entry.pillar, 60)]),
+    );
+    const verdict = assessIndex(definition, inputs);
+    expect(verdict.pillarCoverage).toBe(1);
+    expect(verdict.value).toBe(70);
   });
 });
