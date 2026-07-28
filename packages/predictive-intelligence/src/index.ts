@@ -53,3 +53,7 @@ export * from "./backtest";
 export * from "./scenario";
 export * from "./simulation-run";
 export * from "./strategic-plan";
+
+// --- Events and ports ------------------------------------------------------------
+
+export * from "./forecast-events";
