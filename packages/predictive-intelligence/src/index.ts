@@ -57,3 +57,4 @@ export * from "./strategic-plan";
 // --- Events and ports ------------------------------------------------------------
 
 export * from "./forecast-events";
+export * from "./ports";
