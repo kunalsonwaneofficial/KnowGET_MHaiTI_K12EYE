@@ -61,7 +61,7 @@ import type {
  * migration.
  */
 
-// --- Severity ----------------------------------------------------------------------
+// --- Severity --------------------------------------------------------------------
 
 /** The band at and above which nothing is in breach. A `watch` is; a `healthy` is not. */
 export const BREACH_FLOOR_BAND: PerformanceBand = "healthy";
@@ -124,7 +124,7 @@ const standingSeverity = (standing: ReadingStanding): AttentionSeverity => {
   }
 };
 
-// --- Signals -----------------------------------------------------------------------
+// --- Signals ---------------------------------------------------------------------
 
 /**
  * The stable identity of a finding: what it is about and why it was raised, never how bad it was.
@@ -158,7 +158,7 @@ const signal = (
   observed,
 });
 
-// --- Raising -----------------------------------------------------------------------
+// --- Raising ---------------------------------------------------------------------
 
 /**
  * What the institutional health index itself is asking for.
@@ -283,7 +283,7 @@ export const raiseForKpi = (watch: KpiWatch): readonly AttentionSignal[] => {
   return [signal("target_miss", stateSeverity(bandFor(score)), "kpi", kpiKey, shortfall)];
 };
 
-// --- Reading the queue -------------------------------------------------------------
+// --- Reading the queue -----------------------------------------------------------
 
 /**
  * The signals ordered by how loudly they are asking, loudest first.

@@ -254,7 +254,7 @@ export interface IndexVerdict {
   readonly weightRedistributed: number;
 }
 
-// --- Evidence and traceability -----------------------------------------------------
+// --- Evidence and traceability ---------------------------------------------------
 
 /**
  * One record a reading stands on.
@@ -353,7 +353,7 @@ export interface TraceVerdict {
   readonly standingCounts: Readonly<Record<ReadingStanding, number>>;
 }
 
-// --- Reproducibility ---------------------------------------------------------------
+// --- Reproducibility -------------------------------------------------------------
 
 /**
  * Everything the index arithmetic reads: a weight set and what the pillars reported.
@@ -400,7 +400,7 @@ export interface ReproductionVerdict {
   readonly faults: readonly ReproductionFault[];
 }
 
-// --- Dashboard composition ---------------------------------------------------------
+// --- Dashboard composition -------------------------------------------------------
 
 /**
  * What a binding needs naming before it can be resolved.
@@ -444,7 +444,7 @@ export interface PanelSetVerdict {
   readonly issues: readonly PanelIssue[];
 }
 
-// --- Attention ---------------------------------------------------------------------
+// --- Attention -------------------------------------------------------------------
 
 /** What an attention signal is about. */
 export type AttentionSubjectKind = "index" | "pillar" | "kpi";

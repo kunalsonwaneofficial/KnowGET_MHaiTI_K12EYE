@@ -52,7 +52,7 @@ import { measure, validateScale } from "./measurement";
  * a cache of the reading table, and the first thing a cache does is disagree with what it caches.
  */
 
-// --- The aggregate -----------------------------------------------------------------
+// --- The aggregate ---------------------------------------------------------------
 
 export interface KpiDefinition {
   readonly id: Uuid;
@@ -172,7 +172,7 @@ function requireEditable(definition: KpiDefinition): void {
   if (definition.status === "retired") throw new RetiredKpiImmutableError(definition.id);
 }
 
-// --- Authoring ---------------------------------------------------------------------
+// --- Authoring -------------------------------------------------------------------
 
 /**
  * Re-anchor a draft's scale.
@@ -217,7 +217,7 @@ export function retargetKpi(definition: KpiDefinition, targetScore: number | nul
   return touch(definition, { targetScore });
 }
 
-// --- Lifecycle ---------------------------------------------------------------------
+// --- Lifecycle -------------------------------------------------------------------
 
 /**
  * Put the indicator into service. The scale is inspected here and nowhere else on the way in.
@@ -258,7 +258,7 @@ export function retireKpi(definition: KpiDefinition): KpiDefinition {
   return touch(definition, { status: "retired", retiredAt: nowIso() });
 }
 
-// --- Reading -----------------------------------------------------------------------
+// --- Reading ---------------------------------------------------------------------
 
 /** Whether readings may be filed against this indicator. */
 export const isKpiActive = (definition: KpiDefinition): boolean => definition.status === "active";

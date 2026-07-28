@@ -47,7 +47,7 @@ import { validateEvidence } from "./traceability";
  * and a status column would have thrown the answer away.
  */
 
-// --- The aggregate -----------------------------------------------------------------
+// --- The aggregate ---------------------------------------------------------------
 
 export interface KpiReading {
   readonly id: Uuid;
@@ -175,7 +175,7 @@ export function withdrawKpiReading(reading: KpiReading, reason: string): KpiRead
   });
 }
 
-// --- Reading -----------------------------------------------------------------------
+// --- Reading ---------------------------------------------------------------------
 
 /** Whether the institution has taken this figure back. */
 export const isKpiReadingWithdrawn = (reading: KpiReading): boolean => reading.withdrawnAt !== null;

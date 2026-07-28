@@ -46,5 +46,7 @@ export * from "./weighting";
 // --- Aggregates ------------------------------------------------------------------
 
 export * from "./errors";
+export * from "./health-index-assessment";
+export * from "./health-index-definition";
 export * from "./kpi-definition";
 export * from "./kpi-reading";

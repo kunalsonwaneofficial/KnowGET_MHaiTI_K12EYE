@@ -40,7 +40,7 @@ import { assessIndex } from "./indexing";
  * arithmetic asked at two moments, and two engines would eventually disagree about what "the same" meant.
  */
 
-// --- Fingerprinting ----------------------------------------------------------------
+// --- Fingerprinting --------------------------------------------------------------
 
 /** Hex characters in a fingerprint. A 64-bit digest, rendered fixed-width so records line up. */
 export const FINGERPRINT_LENGTH = 16;
@@ -103,7 +103,7 @@ const canonicalize = (run: IndexRun): string => {
 /** The fingerprint an assessment stores alongside its value, and a re-run recomputes to compare against. */
 export const fingerprintRun = (run: IndexRun): string => digest(canonicalize(run));
 
-// --- Reproduction ------------------------------------------------------------------
+// --- Reproduction ----------------------------------------------------------------
 
 /**
  * Re-run an index and report every way the result failed to agree with the record.

@@ -31,7 +31,7 @@ import type { DashboardPanel, PanelIssue, PanelSetVerdict, PanelSubject } from "
  * of going dark for every viewer at once.
  */
 
-// --- Bindings and subjects ---------------------------------------------------------
+// --- Bindings and subjects -------------------------------------------------------
 
 /**
  * What each binding needs naming.
@@ -50,7 +50,7 @@ export const PANEL_SUBJECTS: Readonly<Record<PanelBinding, PanelSubject>> = Obje
   coverage_report: "none",
 });
 
-// --- Validation --------------------------------------------------------------------
+// --- Validation ------------------------------------------------------------------
 
 /** Stable codes for what can be wrong with a dashboard's declared panels. Reported all at once. */
 export const PANEL_ISSUE_CODES = [
@@ -139,7 +139,7 @@ export const validatePanels = (panels: readonly DashboardPanel[]): PanelSetVerdi
   return { usable: issues.length === 0, issues };
 };
 
-// --- Composition -------------------------------------------------------------------
+// --- Composition -----------------------------------------------------------------
 
 /**
  * The panels a viewer holding these scopes may see, in declaration order.
