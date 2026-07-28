@@ -42,3 +42,9 @@ export * from "./measurement";
 export * from "./reproducibility";
 export * from "./traceability";
 export * from "./weighting";
+
+// --- Aggregates ------------------------------------------------------------------
+
+export * from "./errors";
+export * from "./kpi-definition";
+export * from "./kpi-reading";
