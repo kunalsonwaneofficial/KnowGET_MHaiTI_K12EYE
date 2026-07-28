@@ -61,3 +61,13 @@ export * from "./ports";
 // --- Events ----------------------------------------------------------------------
 
 export * from "./command-events";
+
+// --- Services --------------------------------------------------------------------
+
+export * from "./attention-item-service";
+export * from "./dashboard-service";
+export * from "./executive-briefing-service";
+export * from "./health-index-assessment-service";
+export * from "./health-index-definition-service";
+export * from "./kpi-definition-service";
+export * from "./kpi-reading-service";
