@@ -1,4 +1,11 @@
-import type { HealthPillar, MeasureUnit, MetricPolarity, PerformanceBand } from "./command-value";
+import type {
+  EvidenceKind,
+  HealthPillar,
+  MeasureUnit,
+  MetricPolarity,
+  PerformanceBand,
+  ReadingStanding,
+} from "./command-value";
 
 /**
  * The shapes the engines of Executive Intelligence, Governance & Institutional Command (P2-D29) read and
@@ -242,4 +249,150 @@ export interface IndexVerdict {
   readonly omissions: readonly PillarOmission[];
   /** How much declared weight had to be redistributed across the survivors. `0` for a complete assessment. */
   readonly weightRedistributed: number;
+}
+
+// --- Evidence and traceability -----------------------------------------------------
+
+/**
+ * One record a reading stands on.
+ *
+ * A citation points outward and never inward: `sourceDomain` and `sourceRef` address a row this package does not
+ * own and will not reproduce. That is deliberate — the moment executive intelligence copies the number it is
+ * citing, the copy and the original start to disagree and the citation becomes decoration.
+ */
+export interface EvidenceCitation {
+  readonly kind: EvidenceKind;
+  /** Which operational domain holds the cited record. Normalized. */
+  readonly sourceDomain: string;
+  /** The cited record's identifier inside that domain. Opaque here, and never dereferenced by this package. */
+  readonly sourceRef: string;
+  /** Who stands behind the figure, for the kinds that require it. `null` for the kinds that do not. */
+  readonly attestedBy: string | null;
+}
+
+/** One thing wrong with a set of citations, and the citation it is wrong at when that is meaningful. */
+export interface EvidenceIssue {
+  readonly code: string;
+  /** The offending citation's index, or `null` when the issue is a property of the whole set. */
+  readonly citationIndex: number | null;
+}
+
+/**
+ * The result of inspecting the evidence behind a reading.
+ *
+ * `standing` is `null` whenever the evidence did not pass. A standing is the weakest of what was cited, and
+ * reading one off a set containing a broken citation would be answering "how firm is this number" with a
+ * calculation that skipped the part that was wrong.
+ */
+export interface EvidenceVerdict {
+  readonly usable: boolean;
+  readonly standing: ReadingStanding | null;
+  readonly issues: readonly EvidenceIssue[];
+}
+
+/**
+ * A reading as the traceability engine sees it: what was measured, when, and what it rests on.
+ *
+ * Deliberately without the measured value. Whether a reading may be counted is a question about its evidence and
+ * its period, and an engine that could also see the number would eventually be asked to let a plausible figure
+ * through on thin evidence because it looked about right.
+ */
+export interface TracedReading {
+  readonly kpiKey: string;
+  /** The period ordinal the reading was taken at. */
+  readonly period: number;
+  readonly citations: readonly EvidenceCitation[];
+}
+
+/**
+ * Whether a reading may count toward an assessment, and if not, which kind of not.
+ *
+ * Three refusals rather than one, because each sends somebody somewhere different: `stale` means go and collect
+ * a fresher figure, `out_of_period` means the reading is filed against a period this assessment cannot count
+ * from and somebody's grid arithmetic is wrong, and `untraceable` means stop and find out where the number came
+ * from. Collapsing them into "rejected" would make the commonest response to all three be to re-enter the
+ * number.
+ */
+export type ReadingAdmission = "admitted" | "stale" | "out_of_period" | "untraceable";
+
+/** What became of one reading when an assessment went looking for it. */
+export interface ReadingAudit {
+  readonly kpiKey: string;
+  readonly period: number;
+  readonly admission: ReadingAdmission;
+  /** The standing the reading's evidence confers, or `null` when the evidence did not pass. */
+  readonly standing: ReadingStanding | null;
+  /** Periods between the reading and the assessment. Negative for a reading ahead of the assessment. */
+  readonly age: number;
+}
+
+/**
+ * What an assessment's whole evidence base amounts to.
+ *
+ * `standing` is the weakest across the *admitted* readings only. A stale or untraceable reading contributed
+ * nothing to the arithmetic, and letting it drag the assessment's standing down would punish an institution for
+ * the readings it correctly declined to use.
+ */
+export interface TraceVerdict {
+  readonly standing: ReadingStanding | null;
+  readonly audits: readonly ReadingAudit[];
+  readonly admitted: number;
+  readonly stale: number;
+  readonly outOfPeriod: number;
+  readonly untraceable: number;
+  /**
+   * How the admitted readings divide by standing.
+   *
+   * Counts rather than a single "share resting on somebody's word", because which standing is the interesting
+   * one depends on who is reading: a finance briefing cares that a figure is projected, an inspection response
+   * cares that it is attested, and picking one of those here would have decided for both.
+   */
+  readonly standingCounts: Readonly<Record<ReadingStanding, number>>;
+}
+
+// --- Reproducibility ---------------------------------------------------------------
+
+/**
+ * Everything the index arithmetic reads: a weight set and what the pillars reported.
+ *
+ * Exactly the inputs and nothing else — no period, no author, no timestamp. That exactness is the property the
+ * fingerprint depends on: because the run is the arithmetic's whole input, two runs that fingerprint differently
+ * differ somewhere the value could depend on, and a value that matches across a fingerprint mismatch is a
+ * coincidence rather than a reproduction.
+ */
+export interface IndexRun {
+  readonly weights: readonly PillarWeight[];
+  readonly inputs: readonly PillarInput[];
+}
+
+/** An index as it was stored: the result, and the fingerprint of the run that produced it. */
+export interface RecordedIndex {
+  readonly value: number | null;
+  readonly band: PerformanceBand | null;
+  readonly pillarCoverage: number;
+  readonly fingerprint: string;
+}
+
+/** A way in which a re-run failed to agree with the record. */
+export type ReproductionFault = "inputs_changed" | "value_drift" | "band_drift" | "coverage_drift";
+
+/**
+ * The result of re-running an index against what was recorded.
+ *
+ * `inputsMatch` and the value comparison are reported separately on purpose, because they answer two different
+ * questions with the same call. Re-run against the pinned inputs and a disagreement means the record is wrong.
+ * Re-run against today's inputs and `inputs_changed` is expected — what matters then is `drift`, and whether the
+ * institution moved.
+ */
+export interface ReproductionVerdict {
+  /** True only when nothing diverged at all: same inputs, same value, same band, same coverage. */
+  readonly reproduced: boolean;
+  readonly inputsMatch: boolean;
+  readonly recordedFingerprint: string;
+  readonly recomputedFingerprint: string;
+  readonly recordedValue: number | null;
+  readonly recomputedValue: number | null;
+  /** Recomputed minus recorded, or `null` when either side has no value to compare. */
+  readonly drift: number | null;
+  readonly faults: readonly ReproductionFault[];
 }

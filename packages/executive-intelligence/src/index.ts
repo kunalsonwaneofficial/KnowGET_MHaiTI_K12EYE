@@ -37,4 +37,6 @@ export * from "./command-view";
 export * from "./banding";
 export * from "./indexing";
 export * from "./measurement";
+export * from "./reproducibility";
+export * from "./traceability";
 export * from "./weighting";
