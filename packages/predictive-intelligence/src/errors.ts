@@ -819,6 +819,22 @@ export class EmptyObjectiveKeyError extends PlatformError {
   }
 }
 
+/**
+ * An objective names the metric it tracks.
+ *
+ * Without it an objective is an aim with no measurement behind it — a number somebody committed to that nothing
+ * in the institution's data can confirm or refute, which is how a plan ends up being reviewed on opinion.
+ */
+export class EmptyObjectiveMetricKeyError extends PlatformError {
+  constructor() {
+    super("A plan objective must name the metric it tracks", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
 /** Two objectives answering to one key make every progress reading ambiguous about what it is a reading of. */
 export class DuplicateObjectiveKeyError extends PlatformError {
   constructor(objectiveKey: string) {
@@ -862,6 +878,25 @@ export class ObjectiveTargetPeriodError extends PlatformError {
         details: { objectiveKey, targetPeriod, startPeriod },
       },
     );
+  }
+}
+
+/**
+ * A plan's periods are whole indices on the grid the plan declared.
+ *
+ * The same rule the observation grid runs on, for the same reason: a period is an index the caller defines, and
+ * "period 2.5" names nothing a review could ever be taken at. The trajectory arithmetic would accept it happily
+ * and produce an expected value nobody can reconcile against a reading, so the refusal happens here, where the
+ * fractional index is still visibly a caller's mistake rather than an unexplained figure in a board paper.
+ */
+export class InvalidPlanPeriodError extends PlatformError {
+  constructor(field: string, period: number) {
+    super(`Plan ${field} ${String(period)} is not a whole index on the plan's grid`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { field, period },
+    });
   }
 }
 
