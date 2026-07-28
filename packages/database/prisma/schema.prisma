@@ -5548,3 +5548,301 @@ model AutomationRun {
   @@index([tenantId, subjectDomain, subjectId])
   @@map("automation_run")
 }
+
+// ============================================================================
+// P2-D28 — Predictive Intelligence, Simulation & Strategic Planning
+// The forward-looking layer of the intelligence core (Program E), and where
+// prediction deferred out of all twenty-four operational domains lands. One
+// rule is structural here rather than procedural: every forecast carries its
+// confidence intervals, its declared assumptions, its uncertainty grade and
+// the digest of the inputs it was computed from, so a run made today can be
+// re-verified against the institution's records years from now.
+// A series is the measured history; a run, a backtest, a simulation and a
+// plan are what was projected, scored, explored and committed to. None of
+// them has a delete path. Only a draft model and a draft scenario can be
+// taken away.
+// All tenant-isolated by FORCE RLS.
+// ============================================================================
+
+/// ObservationSeries (P2-D28) — the measured history of one metric about one subject, and the only thing this
+/// domain forecasts from. `observations` holds the readings inside the aggregate, sorted by period, because
+/// `version` identifies that whole set and a reading written on its own would move the history a run pinned
+/// without moving the number that says it moved. `source_domain` and `subject_ref` name a record in another
+/// domain and never re-model it. `cycle_length` is declared, never inferred from the grain — a guessed season
+/// produces a specifically wrong forecast. Never deleted: withdrawing a reading and closing a series exist so
+/// that correcting the history stays visible. Tenant-owned: FORCE RLS.
+model ObservationSeries {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  seriesKey      String   @map("series_key")
+  metricKey      String   @map("metric_key")
+  sourceDomain   String   @map("source_domain")
+  subjectRef     String?  @map("subject_ref")
+  grain          String
+  direction      String
+  cycleLength    Int?     @map("cycle_length")
+  unit           String?
+  observations   Json     @default("[]")
+  version        Int      @default(1)
+  status         String   @default("active")
+  closedAt       String?  @map("closed_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, organizationId, seriesKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, metricKey])
+  @@index([tenantId, status])
+  @@index([tenantId, sourceDomain, subjectRef])
+  @@map("observation_series")
+}
+
+/// ForecastModel (P2-D28) — one version of a named projection method and the parameters it reads. A key does
+/// not identify a model; a key and a version do, because a published model is frozen and revising it opens a
+/// new draft beside the one runs are pinning — hence the unique on (tenant, key, version) and no unique on key
+/// alone. `version` is 0 while a model is a draft and is minted on publication, which is also when the row
+/// becomes immutable in practice. Only one version of a key is published at a time. Draft versions are
+/// discardable; a published one is retired. Tenant-owned: FORCE RLS.
+model ForecastModel {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String    @map("tenant_id") @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  modelKey         String    @map("model_key")
+  name             String
+  description      String?
+  method           String
+  parameters       Json      @default("{}")
+  confidenceLevels Int[]     @map("confidence_levels")
+  version          Int       @default(0)
+  status           String    @default("draft")
+  publishedAt      String?   @map("published_at")
+  retiredAt        String?   @map("retired_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  deletedAt        DateTime? @map("deleted_at")
+
+  @@unique([tenantId, modelKey, version])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, modelKey])
+  @@index([tenantId, status])
+  @@map("forecast_model")
+}
+
+/// ForecastRun (P2-D28) — one forecast, and everything needed to make the same one again. The pinned inputs
+/// (series key and version, model key and version, method, resolved parameters, horizon, confidence levels,
+/// assumptions) are stored as their own columns and JSONB rather than as references, because a reference
+/// resolves to today's answer and reproducibility is a claim about the day the run was made. `digest` is the
+/// hash of exactly those inputs and `canonical` the string it was taken over, kept beside it so a disagreement
+/// is a diff rather than a mystery. `digest` is indexed but not unique: a superseded run and the fresh one
+/// answering the same question share it. Never deleted — superseded and invalidated are the ways out, and both
+/// leave the record of what was projected intact. Tenant-owned: FORCE RLS.
+model ForecastRun {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  seriesId          String   @map("series_id") @db.Uuid
+  seriesKey         String   @map("series_key")
+  seriesVersion     Int      @map("series_version")
+  modelId           String   @map("model_id") @db.Uuid
+  modelKey          String   @map("model_key")
+  modelVersion      Int      @map("model_version")
+  method            String
+  parameters        Json     @default("{}")
+  horizon           Int
+  confidenceLevels  Int[]    @map("confidence_levels")
+  assumptions       Json     @default("[]")
+  points            Json     @default("[]")
+  uncertainty       Json
+  fallbackPeriods   Int[]    @map("fallback_periods")
+  digest            String
+  canonical         String
+  status            String   @default("completed")
+  producedByUserId  String?  @map("produced_by_user_id") @db.Uuid
+  producedAt        String   @map("produced_at")
+  supersededByRunId String?  @map("superseded_by_run_id") @db.Uuid
+  supersededAt      String?  @map("superseded_at")
+  invalidatedAt     String?  @map("invalidated_at")
+  invalidationDrift String[] @map("invalidation_drift")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by") @db.Uuid
+  updatedBy         String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, digest])
+  @@index([tenantId, seriesId])
+  @@index([tenantId, modelId])
+  @@index([tenantId, status])
+  @@map("forecast_run")
+}
+
+/// Backtest (P2-D28) — a model scored against history it was not fitted on, which is what earns publication.
+/// `scored` holds each projected point beside what actually happened: the atoms every score was computed from,
+/// kept so a verdict can be re-derived rather than trusted. `publishable` is frozen at the moment of scoring so
+/// the verdict and its evidence never diverge, and `model_version` is 0 in the ordinary case because a draft is
+/// exactly what is being scored. Never edited and never deleted — a retune is scored beside the first reading,
+/// not over it, so the sequence stays visible. Tenant-owned: FORCE RLS.
+model Backtest {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                  String   @map("tenant_id") @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  seriesId                  String   @map("series_id") @db.Uuid
+  seriesKey                 String   @map("series_key")
+  seriesVersion             Int      @map("series_version")
+  modelId                   String   @map("model_id") @db.Uuid
+  modelKey                  String   @map("model_key")
+  modelVersion              Int      @map("model_version")
+  method                    String
+  parameters                Json     @default("{}")
+  holdoutSize               Int      @map("holdout_size")
+  trainingCount             Int      @map("training_count")
+  firstHoldoutPeriod        Int      @map("first_holdout_period")
+  lastHoldoutPeriod         Int      @map("last_holdout_period")
+  scored                    Json     @default("[]")
+  scores                    Json
+  baselineMeanAbsoluteError Float    @map("baseline_mean_absolute_error")
+  publishable               Boolean  @default(false)
+  ranByUserId               String?  @map("ran_by_user_id") @db.Uuid
+  ranAt                     String   @map("ran_at")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
+  createdBy                 String?  @map("created_by") @db.Uuid
+  updatedBy                 String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, seriesId])
+  @@index([tenantId, modelId])
+  @@index([tenantId, seriesId, modelId])
+  @@map("backtest")
+}
+
+/// Scenario (P2-D28) — a named set of levers to apply to a forecast: what the institution wants to ask "what
+/// if" about. `levers` lives inside the aggregate because `version` identifies the lever set as a whole and a
+/// simulation pins that number; a lever written on its own would move what an outcome claimed to be a
+/// departure from. Editable while a draft, frozen at publication — revising a published case opens a new draft
+/// under a new key rather than editing the one simulations cite. A draft nothing was ever simulated against is
+/// discardable; a published one is archived. Tenant-owned: FORCE RLS.
+model Scenario {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String    @map("tenant_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  scenarioKey    String    @map("scenario_key")
+  name           String
+  description    String?
+  levers         Json      @default("[]")
+  version        Int       @default(1)
+  status         String    @default("draft")
+  publishedAt    String?   @map("published_at")
+  archivedAt     String?   @map("archived_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdBy      String?   @map("created_by") @db.Uuid
+  updatedBy      String?   @map("updated_by") @db.Uuid
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@unique([tenantId, organizationId, scenarioKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, status])
+  @@map("scenario")
+}
+
+/// SimulationRun (P2-D28) — one published scenario measured against one standing forecast. It snapshots both
+/// sides (`scenario_version`, and the baseline's whole pinned identity down to `forecast_run_digest`) because
+/// an outcome has to keep saying what it was a departure from after the baseline is superseded; the digest is
+/// what still identifies the forecast once the run row no longer does. Reading the reverse direction — which
+/// simulations a withdrawn forecast has just called into doubt — is the index on (tenant, forecast_run_id).
+/// Never edited: a newer outcome supersedes the old rather than overwriting it. Tenant-owned: FORCE RLS.
+model SimulationRun {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  scenarioId           String   @map("scenario_id") @db.Uuid
+  scenarioKey          String   @map("scenario_key")
+  scenarioVersion      Int      @map("scenario_version")
+  forecastRunId        String   @map("forecast_run_id") @db.Uuid
+  forecastRunDigest    String   @map("forecast_run_digest")
+  seriesKey            String   @map("series_key")
+  seriesVersion        Int      @map("series_version")
+  modelKey             String   @map("model_key")
+  modelVersion         Int      @map("model_version")
+  method               String
+  horizon              Int
+  levers               Json     @default("[]")
+  variedAssumptionKeys String[] @map("varied_assumption_keys")
+  points               Json     @default("[]")
+  totalBaseline        Float    @map("total_baseline")
+  totalScenario        Float    @map("total_scenario")
+  totalDelta           Float    @map("total_delta")
+  peakDelta            Float    @map("peak_delta")
+  inheritedUncertainty String   @map("inherited_uncertainty")
+  overridden           Boolean  @default(false)
+  unappliedLeverKeys   String[] @map("unapplied_lever_keys")
+  status               String   @default("completed")
+  supersededByRunId    String?  @map("superseded_by_run_id") @db.Uuid
+  supersededAt         String?  @map("superseded_at")
+  ranByUserId          String?  @map("ran_by_user_id") @db.Uuid
+  ranAt                String   @map("ran_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by") @db.Uuid
+  updatedBy            String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, scenarioId])
+  @@index([tenantId, forecastRunId])
+  @@index([tenantId, status])
+  @@map("simulation_run")
+}
+
+/// StrategicPlan (P2-D28) — what an institution committed to, measured against what it is achieving.
+/// `objectives`, `progress` and `reviews` all live inside the aggregate: `version` identifies the objective set
+/// a review's frozen variance was computed against, progress is held in arrival order rather than sorted, and a
+/// review keeps the variance it saw rather than one recomputed later — none of which survives children that can
+/// be written on their own. `metric_keys` is a normalized, GIN-indexed projection of the objectives' metric
+/// keys, and it is the read that finds every plan reviewing itself against a series that has since taken a
+/// correction. Never deleted: an abandoned plan is the record that a course was tried and changed, and deleting
+/// it turns that into an omission. Tenant-owned: FORCE RLS.
+model StrategicPlan {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  planKey           String   @map("plan_key")
+  name              String
+  description       String?
+  startPeriod       Int      @map("start_period")
+  objectives        Json     @default("[]")
+  metricKeys        String[] @map("metric_keys")
+  progress          Json     @default("[]")
+  reviews           Json     @default("[]")
+  version           Int      @default(1)
+  status            String   @default("draft")
+  activatedByUserId String?  @map("activated_by_user_id") @db.Uuid
+  activatedAt       String?  @map("activated_at")
+  closedByUserId    String?  @map("closed_by_user_id") @db.Uuid
+  closedAt          String?  @map("closed_at")
+  abandonmentReason String?  @map("abandonment_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by") @db.Uuid
+  updatedBy         String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, organizationId, planKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, status])
+  // The objective metric-key lookup is served by a GIN index on `metric_keys`,
+  // created in the add_predictive_intelligence migration (like RLS, it is a
+  // migration-only DB feature not expressible in the Prisma schema).
+  @@map("strategic_plan")
+}
