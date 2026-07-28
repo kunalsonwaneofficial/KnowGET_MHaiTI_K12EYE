@@ -60,6 +60,7 @@
     "@knowget/notifications": "workspace:*",
     "@knowget/organization": "workspace:*",
     "@knowget/person": "workspace:*",
+    "@knowget/predictive-intelligence": "workspace:*",
     "@knowget/relationship": "workspace:*",
     "@knowget/residential": "workspace:*",
     "@knowget/resource": "workspace:*",

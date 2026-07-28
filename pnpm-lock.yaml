@@ -222,6 +222,9 @@ importers:
       '@knowget/person':
         specifier: workspace:*
         version: link:../../packages/person
+      '@knowget/predictive-intelligence':
+        specifier: workspace:*
+        version: link:../../packages/predictive-intelligence
       '@knowget/relationship':
         specifier: workspace:*
         version: link:../../packages/relationship
