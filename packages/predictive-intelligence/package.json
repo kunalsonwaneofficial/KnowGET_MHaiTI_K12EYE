@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/predictive-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Predictive Intelligence, Simulation & Strategic Planning (P2-D28) — the fourth contract of the intelligence core (Program E), where the forecasting deferred out of all twenty-four operational domains lands. Every forecast carries a prediction interval, declares its assumptions, grades its own uncertainty, and pins the exact inputs, method version, parameters and seed that produced it, so it can be recomputed and the recomputation compared. Eight pure engines derive the period grid, the projection, the interval, the assumption inspection, the reproducibility digest, the accuracy and calibration verdict, the scenario simulation and the plan variance. Nothing here holds a clock, an unseeded random source, a model runtime or a network client: a forecast that cannot be reproduced is not a forecast, and a forecast whose inputs can move underneath it was never reproducible. Domain events carry ids, keys, statuses, stable reason codes and counts only — no forecast values, no assumption prose, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
