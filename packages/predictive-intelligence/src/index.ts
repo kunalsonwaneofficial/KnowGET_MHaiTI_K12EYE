@@ -51,3 +51,4 @@ export * from "./forecast-model";
 export * from "./forecast-run";
 export * from "./backtest";
 export * from "./scenario";
+export * from "./simulation-run";
