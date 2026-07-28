@@ -1,4 +1,4 @@
-import type { MeasureUnit, MetricPolarity, PerformanceBand } from "./command-value";
+import type { HealthPillar, MeasureUnit, MetricPolarity, PerformanceBand } from "./command-value";
 
 /**
  * The shapes the engines of Executive Intelligence, Governance & Institutional Command (P2-D29) read and
@@ -127,4 +127,119 @@ export interface TrendVerdict {
   readonly sustainedDecline: boolean;
   /** Last score minus first, rounded. `0` when there is nothing to compare. */
   readonly netChange: number;
+}
+
+// --- Weighting -------------------------------------------------------------------
+
+/**
+ * One pillar's declared share of an index.
+ *
+ * The single place an institution's own priorities enter the composite. A trust that weighs financial health at
+ * a fifth and one that weighs it at a twentieth are making a statement about themselves, and the index is
+ * supposed to carry it — which is why the weights are declared data on the definition rather than a platform
+ * default that nobody chose and nobody can point at afterwards.
+ */
+export interface PillarWeight {
+  readonly pillar: HealthPillar;
+  readonly weight: number;
+}
+
+/** One thing wrong with a declared weight set, and the pillar it is wrong at when that is meaningful. */
+export interface WeightIssue {
+  readonly code: string;
+  /** The offending pillar, or `null` when the issue is a property of the whole set. */
+  readonly pillar: HealthPillar | null;
+}
+
+/** The result of inspecting a declared weight set. Every issue, not the first one. */
+export interface WeightVerdict {
+  readonly usable: boolean;
+  readonly issues: readonly WeightIssue[];
+}
+
+// --- Indexing --------------------------------------------------------------------
+
+/**
+ * What one pillar brought to an assessment: its score, and how much of itself it managed to measure.
+ *
+ * The coverage counts travel with the score rather than beside it because they are the only thing that
+ * distinguishes a pillar which is genuinely doing badly from one which barely reported. Those two look identical
+ * on a dashboard and demand opposite responses, and a shape that let a caller take the score without the counts
+ * would make it easy to confuse them exactly once per assessment.
+ */
+export interface PillarInput {
+  readonly pillar: HealthPillar;
+  /** The pillar's normalized score, aggregated from its KPI readings by the caller. */
+  readonly score: number;
+  /** How many of the pillar's declared KPIs had a current reading. */
+  readonly kpisRead: number;
+  /** How many KPIs the pillar declares. */
+  readonly kpisDeclared: number;
+}
+
+/** Why a declared pillar contributed nothing to an index. */
+export type PillarExclusion = "kpi_coverage" | "unscoreable" | "not_weighted";
+
+/**
+ * A pillar that counted, and exactly how much it counted for.
+ *
+ * `effectiveWeight` differing from `declaredWeight` is the visible trace of a pillar elsewhere in the index
+ * having dropped out: the survivors' weights are renormalized over what remains, so an institution reading its
+ * own index can see that finance counted for a quarter this term rather than the fifth it was declared at, and
+ * why. Hiding that renormalization is how a composite quietly changes meaning between two periods that look
+ * comparable.
+ */
+export interface PillarContribution {
+  readonly pillar: HealthPillar;
+  readonly score: number;
+  readonly band: PerformanceBand;
+  /** What the definition declared this pillar at. */
+  readonly declaredWeight: number;
+  /** What it actually counted for, after renormalizing over the pillars that contributed. */
+  readonly effectiveWeight: number;
+  /** The fraction of the pillar's declared KPIs that had a current reading. */
+  readonly kpiCoverage: number;
+  /**
+   * Index points this pillar accounts for. The shares of an assessment sum to its value, to within the rounding
+   * of the individual shares — which is what lets a reader take a composite apart without recomputing it.
+   */
+  readonly share: number;
+  /** Index points lost to this pillar falling short of a perfect score. What ranks attention. */
+  readonly shortfall: number;
+}
+
+/** A declared pillar that contributed nothing, and why. */
+export interface PillarOmission {
+  readonly pillar: HealthPillar;
+  readonly reason: PillarExclusion;
+  /** The weight that had to be redistributed because of the omission. */
+  readonly declaredWeight: number;
+  readonly kpiCoverage: number;
+}
+
+/**
+ * A computed Institutional Health Index, with the whole of its own derivation attached.
+ *
+ * Every field below the value exists so that the value never has to be taken on trust. A reader can see which
+ * pillars were in it, what each counted for after renormalization, how much of the institution went unmeasured,
+ * and whether the result cleared the coverage floor at all — which is what makes the number citable in a
+ * governance setting rather than merely produced.
+ *
+ * `value` is `null` when no pillar contributed. There is no index of nothing, and a zero would read as an
+ * institution in crisis rather than one that did not report.
+ */
+export interface IndexVerdict {
+  /** The composite, or `null` when nothing contributed. */
+  readonly value: number | null;
+  readonly band: PerformanceBand | null;
+  /** Contributing pillars over declared pillars. */
+  readonly pillarCoverage: number;
+  /** Whether coverage cleared the floor. A `false` here does not void the value — it un-finalizes it. */
+  readonly sufficient: boolean;
+  /** Contributing pillars, ordered as the weight set declared them. */
+  readonly contributions: readonly PillarContribution[];
+  /** Declared pillars that contributed nothing, with the reason each was left out. */
+  readonly omissions: readonly PillarOmission[];
+  /** How much declared weight had to be redistributed across the survivors. `0` for a complete assessment. */
+  readonly weightRedistributed: number;
 }

@@ -35,4 +35,6 @@ export * from "./command-view";
 // --- Engines ---------------------------------------------------------------------
 
 export * from "./banding";
+export * from "./indexing";
 export * from "./measurement";
+export * from "./weighting";
