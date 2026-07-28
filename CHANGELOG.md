@@ -3,7 +3,74 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D27 · Program: Intelligence Core · Institutional Decision Intelligence, Workflow Orchestration & Autonomous Operations
+## [Unreleased] — P2-D28 · Program: Intelligence Core · Predictive Intelligence, Simulation & Strategic Planning
+
+The **fourth contract of Program E — the intelligence core** (D25–D30), and where the prediction deferred out of
+**all twenty-four operational domains** finally lands: enrolment projections, cash-flow forecasts, staffing
+demand, transport load, hostel occupancy, library circulation — every domain that recorded history and stopped
+short of extrapolating it now has one place to do so. One `@knowget/predictive-intelligence` package (ADR-0047).
+One rule defines the contract — **every forecast must include confidence intervals, assumptions, uncertainty, and
+be reproducible/versioned** — and the whole of the engineering judgement was to make each of the four **structural
+rather than procedural**: not a field an honest caller fills in, but a shape a dishonest one cannot construct. The
+design problem here is **honesty under pressure, not accuracy** — a platform that will be asked for a number long
+before it has the history to justify one.
+
+### Added
+
+- **`@knowget/predictive-intelligence`** — seven aggregates (`ObservationSeries` with its observations,
+  `ForecastModel`, `ForecastRun` with its points and pinned inputs, `Backtest` with its folds, `Scenario` with its
+  levers, `SimulationRun`, `StrategicPlan` with its objectives, reviews and progress readings) plus eight pure,
+  deterministic, **clock-free and randomness-free** engines — **series** (history shape, gaps, cycles),
+  **projection** (the six methods), **uncertainty** (interval construction and grading), **accuracy** (skill,
+  calibration, publishability), **assumptions** (declaration validity), **reproducibility** (input digests and
+  drift), **simulation** (lever application) and **planning** (objective variance and plan health) — with seven
+  application services, **30 `forecast.*` events** and 64 typed errors. Verified: **no `Date.now`, `new Date()` or
+  `Math.random` anywhere outside tests** — a forecast that consulted a clock or a random source could not be
+  reproduced, so the package has neither.
+- **An interval that cannot be omitted** — a prediction interval has **no absent representation** at the type
+  level, so a bare point forecast is not a value this package can build. `REQUIRED_CONFIDENCE_LEVEL` is `80`,
+  `CONFIDENCE_LEVELS` is the closed set `[50, 80, 95]` against a fixed multiplier table, and
+  `MIN_RESIDUALS_FOR_STABLE_SPREAD` refuses to pretend a spread from one or two residuals is a spread.
+- **A horizon ceiling that is a constant, not a parameter** — `MAX_HORIZON_RATIO` is `0.5` and **nothing in the
+  package can raise it**: no tenant setting, no override, no "advanced" flag. Below
+  `MIN_OBSERVATIONS_FOR_FORECAST` (`4`) the admissible horizon is **zero**, so the platform's answer to "forecast
+  next year from three months of history" is not a wide interval — it is no forecast. This is the fifth thing,
+  the one not named in the contract sentence, and it holds the other four up.
+- **Assumptions as a precondition of producing** — `UndeclaredAssumptionsError` is raised at construction, so a
+  run with nothing declared is **not a record**; `BASES_REQUIRING_HOLDER` and `BASES_REQUIRING_REFERENCE` mean an
+  `expert_judgement` must name a person the `PersonDirectory` can resolve and a derived basis must point at what
+  it derives from. Uncertainty is graded across four grades with six stable reason codes, and `judgeCalibration`
+  closes the loop against `CALIBRATION_TOLERANCE` — an interval that was always right was too wide.
+- **Reproducibility as a digest, versioned** — every run pins its inputs and carries a `sha256` digest over their
+  canonical form; `verify` rebuilds a **shadow run from the pinned inputs** and compares it to the recorded
+  points rather than trusting a stored verdict, and `diffInputs` names drift with six stable codes.
+  `FORECAST_PRECISION` (`6`) and `VALUE_TOLERANCE` make "the same" a defined thing rather than a float comparison.
+- **Publication is earned** — `isPublishable` requires a **positive skill score against the naive baseline** and
+  **non-overconfident intervals** on a non-empty holdout, so a model that beat nothing cannot be published, and
+  `publish` checks the evidence **before** resolving the version number.
+- **Commitment is frozen** — plan objectives freeze at activation, reviews keep the variance they saw at the time
+  rather than recomputing it, progress readings are kept in arrival order, and `PLAN_ON_TRACK_TOLERANCE` /
+  `PLAN_AT_RISK_TOLERANCE` derive health rather than letting anyone assert it.
+- **Persistence** — seven FORCE-RLS tables (`observation_series`, `forecast_model`, `forecast_run`, `backtest`,
+  `scenario`, `simulation_run`, `strategic_plan`), migration `20261229000000_add_predictive_intelligence`,
+  `tenant_isolation` (USING + WITH CHECK, fail-closed) on every table, all four absolute uniques DB-backed
+  (series `(tenant, org, series_key)`; model `(tenant, model_key, version)`; scenario `(tenant, org,
+  scenario_key)`; plan `(tenant, org, plan_key)`). **Five tables deliberately carry no soft-delete column** — the
+  observed history and the record of what was projected, scored, simulated and committed to.
+- **API** — seven permission-gated controllers / 77 endpoints under
+  `apps/api/src/domains/predictive-intelligence`, split `forecast:manage` (authoring) / `forecast:record` (the
+  observed history, separate authority) / `forecast:operate` (production, backtesting, simulation, and
+  `GET runs/:id/verification` — checking a number is an operator's job, not a reader's) / **`forecast:plan` (the
+  institution's commitment, standing alone — the analyst who produced the projection cannot commit the school to
+  it)** / `forecast:read` (every read); accountable identity always from the authenticated principal, never a
+  body; module registered in `app.module`.
+- **Boundaries** — **D28 forecasts; it never decides** (weighing a projection is D27's, acting on it is D26's).
+  No domain→domain import: the organization, the assumption holder and the **subject of a series across twenty-one
+  domains** enter through three directory ports, the last resolving `(sourceDomain, sourceRef)` through the P2-D25
+  knowledge graph — an unresolvable subject is refused, because a forecast about something the institution cannot
+  identify is a number attributed to nothing. ADR-0047, TD-48.
+
+## P2-D27 · Program: Intelligence Core · Institutional Decision Intelligence, Workflow Orchestration & Autonomous Operations
 
 The **third contract of Program E — the intelligence core** (D25–D30), and the thing D25 and D26 were built for:
 D25 gave the institution a semantic memory, D26 gave it a governed AI runtime, and D27 is the **decision layer**
