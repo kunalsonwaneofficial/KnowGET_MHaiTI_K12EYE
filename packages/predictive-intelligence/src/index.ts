@@ -34,3 +34,6 @@ export * from "./forecast-view";
 export * from "./series";
 export * from "./projection";
 export * from "./uncertainty";
+export * from "./assumptions";
+export * from "./reproducibility";
+export * from "./accuracy";
