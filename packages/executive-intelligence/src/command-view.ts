@@ -1,8 +1,11 @@
 import type {
+  AttentionReason,
+  AttentionSeverity,
   EvidenceKind,
   HealthPillar,
   MeasureUnit,
   MetricPolarity,
+  PanelBinding,
   PerformanceBand,
   ReadingStanding,
 } from "./command-value";
@@ -395,4 +398,124 @@ export interface ReproductionVerdict {
   /** Recomputed minus recorded, or `null` when either side has no value to compare. */
   readonly drift: number | null;
   readonly faults: readonly ReproductionFault[];
+}
+
+// --- Dashboard composition ---------------------------------------------------------
+
+/**
+ * What a binding needs naming before it can be resolved.
+ *
+ * A property of the binding rather than of the panel, so a `pillar_score` panel cannot be authored without a
+ * pillar and a `coverage_report` panel cannot be authored with one. The alternative — a panel carrying whichever
+ * subject fields its author happened to fill in — composes into a tile that silently resolves to nothing, and a
+ * dashboard that quietly shows nothing is the failure this whole contract is trying to avoid.
+ */
+export type PanelSubject = "kpi" | "pillar" | "none";
+
+/**
+ * One panel as a dashboard declares it: what it is about, and which scope reaches it.
+ *
+ * There is no position, no size, no order field. Panels are composed in declaration order and nothing else, and
+ * the absence of a coordinate is what makes omission safe: a composed dashboard with positions in it would show
+ * gaps where the panels a viewer may not see used to be, which tells every viewer the shape of what they are
+ * missing just as loudly as a tile marked "restricted" would.
+ */
+export interface DashboardPanel {
+  readonly panelKey: string;
+  readonly binding: PanelBinding;
+  /** The permission scope a viewer must hold. Compared by exact string after normalization. */
+  readonly requiredScope: string;
+  /** The KPI a kpi-bound panel is about. `null` for every other binding. */
+  readonly kpiKey: string | null;
+  /** The pillar a pillar-bound panel is about. `null` for every other binding. */
+  readonly pillar: HealthPillar | null;
+}
+
+/** One thing wrong with a dashboard's declared panels, and the panel it is wrong at when that is meaningful. */
+export interface PanelIssue {
+  readonly code: string;
+  /** The offending panel's index, or `null` when the issue is a property of the whole set. */
+  readonly panelIndex: number | null;
+}
+
+/** The result of inspecting a dashboard's declared panels. Every issue, not the first one. */
+export interface PanelSetVerdict {
+  readonly usable: boolean;
+  readonly issues: readonly PanelIssue[];
+}
+
+// --- Attention ---------------------------------------------------------------------
+
+/** What an attention signal is about. */
+export type AttentionSubjectKind = "index" | "pillar" | "kpi";
+
+/**
+ * One thing asking to be looked at.
+ *
+ * Carries no wording. There is no title, no message, no recommendation — a reason code, a severity and a
+ * subject, and the presentation contract turns those into a sentence in whatever language the reader has
+ * configured. A domain package that emitted "Financial health has fallen two bands" would have quietly become
+ * the platform's copywriter, and every translation of it would then be a schema migration.
+ */
+export interface AttentionSignal {
+  /** Stable within one assessment, so raising the same finding twice is idempotent rather than duplicated. */
+  readonly key: string;
+  readonly reason: AttentionReason;
+  readonly severity: AttentionSeverity;
+  readonly subjectKind: AttentionSubjectKind;
+  /** The pillar or KPI key this is about. Empty for an index-level signal, which has no subject but itself. */
+  readonly subject: string;
+  /**
+   * The quantity this reason was raised on, in whatever that reason measures — a signed index movement, a band
+   * step count, a coverage ratio, a shortfall in normalized points — or `null` where the reason has no number
+   * behind it. Not comparable across reasons and never to be summed across signals.
+   */
+  readonly observed: number | null;
+}
+
+/**
+ * The index at two consecutive periods, as attention sees it.
+ *
+ * Carries measurements and never their classifications: no band, no sufficiency flag, no "is this a drop". The
+ * engine bands what it is given, so a caller cannot hand in a band that disagrees with the value it came from —
+ * the same reason standing is derived from evidence rather than declared by an author.
+ */
+export interface IndexWatch {
+  readonly value: number | null;
+  readonly pillarCoverage: number;
+  readonly previousValue: number | null;
+  /** The previous period's coverage, which decides whether the two periods may be compared at all. */
+  readonly previousPillarCoverage: number;
+  readonly standing: ReadingStanding | null;
+  readonly previousStanding: ReadingStanding | null;
+}
+
+/**
+ * One pillar's current score and the run behind it.
+ *
+ * `history` is oldest first and excludes `score`, so a caller cannot accidentally count the current period
+ * twice when asking whether the pillar is declining.
+ */
+export interface PillarWatch {
+  readonly pillar: HealthPillar;
+  /** This period's score, or `null` when the pillar did not produce one. */
+  readonly score: number | null;
+  /** Preceding consecutive scores, oldest first, not including `score`. */
+  readonly history: readonly number[];
+  readonly kpiCoverage: number;
+}
+
+/**
+ * One KPI reading, as attention sees it.
+ *
+ * Exists only for a KPI that actually has a reading. A declared KPI nobody measured is not a reading in a poor
+ * state, it is a hole in the pillar's coverage, and it is raised there.
+ */
+export interface KpiWatch {
+  readonly kpiKey: string;
+  readonly score: number | null;
+  /** The normalized score the institution declared as this KPI's target, or `null` when it declares none. */
+  readonly targetScore: number | null;
+  /** What the traceability engine decided about this reading. Attention re-derives none of it. */
+  readonly admission: ReadingAdmission;
 }

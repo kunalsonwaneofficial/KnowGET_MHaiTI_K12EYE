@@ -34,7 +34,9 @@ export * from "./command-view";
 
 // --- Engines ---------------------------------------------------------------------
 
+export * from "./attention";
 export * from "./banding";
+export * from "./composition";
 export * from "./indexing";
 export * from "./measurement";
 export * from "./reproducibility";
