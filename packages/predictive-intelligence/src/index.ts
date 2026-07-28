@@ -39,3 +39,12 @@ export * from "./reproducibility";
 export * from "./accuracy";
 export * from "./simulation";
 export * from "./planning";
+
+// --- Errors ----------------------------------------------------------------------
+
+export * from "./errors";
+
+// --- Aggregates ------------------------------------------------------------------
+
+export * from "./observation-series";
+export * from "./forecast-model";
