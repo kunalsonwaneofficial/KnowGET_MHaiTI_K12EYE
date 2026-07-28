@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/executive-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Executive Intelligence, Governance & Institutional Command (P2-D29) — the fifth contract of the intelligence core (Program E), where leadership finally sees the institution whole. Every KPI reading names the evidence it stands on and cannot be constructed without it; the Institutional Health Index scores ten pillars under declared weights, refuses to publish a number when too little of the institution reported, and pins its inputs so the score can be recomputed and the recomputation compared; dashboards are composed per viewer, so a panel the viewer may not see is absent from the composition rather than redacted inside it; and a briefing freezes at issue. Nothing here holds a clock, an unseeded random source, a renderer or a network client: a score that cannot be traced back to records is an opinion with a decimal point. Domain events carry ids, keys, pillars, statuses, stable reason codes and counts only — no measure values, no briefing prose, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
