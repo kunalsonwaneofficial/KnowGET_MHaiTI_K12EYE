@@ -25,6 +25,12 @@ import { PlatformError } from "@knowget/exceptions";
  *   a convenient subset of the institution, or on nothing anybody can follow back, stays provisional forever. It
  *   is still computed and still readable — suppressing it would only push people back to spreadsheets — but it
  *   cannot become the number a board paper quotes.
+ * - {@link UnusablePanelSetError} means a dashboard's panels are inspected exactly when they would become visible
+ *   — at publication, and again on every edit to one already in service. A draft stays free to be half-finished
+ *   because nobody is looking at it; a live dashboard does not, because everybody is.
+ * - {@link UncitableAssessmentError} means a briefing quotes a figure the institution stands behind or it quotes
+ *   nothing at all. A provisional composite that went out to a board is the version everybody remembers, whatever
+ *   the platform later says about it.
  *
  * A refusal here is a 409 or a 422 with the specifics an operator needs to fix it, because these are the platform
  * enforcing its contract — not something going wrong inside it.
@@ -444,6 +450,263 @@ export class AssessmentAlreadyInvalidatedError extends PlatformError {
       httpStatus: 409,
       isOperational: true,
       details: { id },
+    });
+  }
+}
+
+// --- Dashboards ------------------------------------------------------------------
+
+/** A dashboard is addressed by key — by a saved link, by a default-dashboard setting, by a briefing. */
+export class EmptyDashboardKeyError extends PlatformError {
+  constructor() {
+    super("A dashboard must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A dashboard appears in a sidebar under a name. It must have one. */
+export class EmptyDashboardNameError extends PlatformError {
+  constructor() {
+    super("A dashboard must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * **Visibility is the gate**, and it is a gate a dashboard passes through more than once.
+ *
+ * A draft's panels are never inspected: assembling forty panels is iterative work, and a platform that refused to
+ * save a half-finished one would push the authoring somewhere this contract cannot see. Publication is inspected,
+ * and so is every edit to an already-published dashboard, because that edit is live the moment it saves — there is
+ * no draft standing between the author and the reader to catch it. The issue codes come straight from the
+ * composition engine, so an author is told every fault at once rather than the next one after each fix.
+ */
+export class UnusablePanelSetError extends PlatformError {
+  constructor(dashboardKey: string, issues: readonly string[]) {
+    super(`Dashboard "${dashboardKey}" cannot show an unusable panel set (${issues.join(", ")})`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { dashboardKey, issues: [...issues] },
+    });
+  }
+}
+
+/**
+ * An archived dashboard is out of service and does not move.
+ *
+ * The one terminality in this package that is about people rather than about a backward reference. Nothing pins a
+ * dashboard, so restoring one would break no record — it would put a layout nobody has re-read, bound to KPIs that
+ * may since have been retired, back into the sidebars of everyone who had it. Declaring the successor is cheap for
+ * exactly the same reason, and it puts the panel set in front of an author before it goes back in front of readers.
+ */
+export class ArchivedDashboardImmutableError extends PlatformError {
+  constructor(id: string) {
+    super(`Dashboard "${id}" is archived and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The attempted dashboard transition is not allowed from where the dashboard currently stands. */
+export class InvalidDashboardTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A dashboard cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Executive briefings ---------------------------------------------------------
+
+/** A briefing is addressed by key by whatever circulates, archives or supersedes it. */
+export class EmptyBriefingKeyError extends PlatformError {
+  constructor() {
+    super("An executive briefing must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A briefing goes in front of a governing body under a title. It must have one. */
+export class EmptyBriefingTitleError extends PlatformError {
+  constructor() {
+    super("An executive briefing must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A briefing names the scope that may read it, and an empty one is refused rather than treated as unrestricted.
+ *
+ * This is where a briefing differs from a panel. A panel whose scope nobody holds simply drops out of a composed
+ * dashboard and the rest of the page is still served; a briefing has no larger document to be quietly dropped out
+ * of, so a blank audience would default the most sensitive record this contract produces to the widest reading it
+ * has. Defaults that fail open are only ever discovered from the outside.
+ */
+export class EmptyBriefingAudienceScopeError extends PlatformError {
+  constructor() {
+    super("An executive briefing must name the permission scope its audience holds", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A briefing cites a figure the institution stands behind, or it cites nothing.
+ *
+ * The coverage floor's rule followed all the way to the top of the pyramid. A provisional composite is a working
+ * number — legitimately visible, legitimately incomplete — and circulating it is how it becomes the number a board
+ * remembers, whatever the platform says about it afterwards. An invalidated one is worse: it is a figure the
+ * institution has already withdrawn.
+ */
+export class UncitableAssessmentError extends PlatformError {
+  constructor(assessmentId: string, status: string) {
+    super(`Assessment "${assessmentId}" is "${status}"; a briefing cites a final assessment only`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { assessmentId, status },
+    });
+  }
+}
+
+/** A briefing is composed while it is drafting. An issued or withdrawn one is a document that went out. */
+export class BriefingNotDraftingError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Executive briefing "${id}" is "${status}" and is no longer being drafted`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * The assessment offered at issue is not the one the briefing was drafted against.
+ *
+ * Issuing takes the assessment in hand rather than an id, because the two live conditions worth re-checking at the
+ * moment of circulation — that the figure is still final, that it has not been invalidated since the draft was
+ * written — cannot be checked against an identifier. That makes handing in the wrong assessment possible, so it is
+ * refused: silently accepting it would issue a document whose pinned figures came from one assessment and whose
+ * clearance came from another.
+ */
+export class BriefingAssessmentMismatchError extends PlatformError {
+  constructor(id: string, expected: string, received: string) {
+    super(`Executive briefing "${id}" cites assessment "${expected}", not "${received}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, expected, received },
+    });
+  }
+}
+
+/**
+ * Only an issued briefing can be withdrawn. A retraction is meaningful against something that circulated; a draft
+ * nobody has seen is abandoned rather than retracted, and saying otherwise would put a correction on the record
+ * for a document that was never on it.
+ */
+export class BriefingNotIssuedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Executive briefing "${id}" is "${status}"; only an issued briefing can be withdrawn`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+// --- Attention items -------------------------------------------------------------
+
+/**
+ * Acknowledgement is available once, from `open`. Acknowledging an already-acknowledged item would move the
+ * timestamp that says how long a finding sat before anybody picked it up, which is the one thing a queue's own
+ * performance is measured by.
+ */
+export class AttentionItemNotOpenError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Attention item "${id}" is "${status}" and is no longer open`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * A closed item does not move.
+ *
+ * Not even to be restated. A finding that deteriorates after somebody resolved it is a fresh observation about a
+ * period that has already been assessed, and reopening the closed one would erase the record that a human looked
+ * at this and made a call — which is the only thing distinguishing a queue from a list of alerts.
+ */
+export class AttentionItemClosedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Attention item "${id}" is "${status}" and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * The signal offered as a restatement is about something else.
+ *
+ * The attention engine keeps severity out of a signal's key precisely so that a deteriorating finding restates one
+ * row instead of opening a second beside it. That only holds while the row and the signal are the same finding, so
+ * the keys are compared rather than assumed — a mismatch here would overwrite one finding's severity and subject
+ * with another's and leave the queue reading as though both had been seen.
+ */
+export class AttentionSignalMismatchError extends PlatformError {
+  constructor(id: string, key: string, signalKey: string) {
+    super(`Attention item "${id}" is "${key}" and cannot be restated by signal "${signalKey}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id, key, signalKey },
+    });
+  }
+}
+
+/**
+ * A dismissal says the platform was wrong to raise this, and it has to say why.
+ *
+ * The asymmetry with a resolution note is deliberate. A resolution is corroborated by the next period's assessment
+ * — the finding either comes back or it does not — whereas a dismissal leaves nothing behind at all, so an
+ * unexplained one is indistinguishable from an item nobody looked at. It is also the only feedback the raising
+ * rules ever get about being too loud.
+ */
+export class EmptyDismissalReasonError extends PlatformError {
+  constructor() {
+    super("Dismissing an attention item requires a reason", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
     });
   }
 }

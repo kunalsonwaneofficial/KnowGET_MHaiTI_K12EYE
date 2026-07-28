@@ -45,7 +45,10 @@ export * from "./weighting";
 
 // --- Aggregates ------------------------------------------------------------------
 
+export * from "./attention-item";
+export * from "./dashboard";
 export * from "./errors";
+export * from "./executive-briefing";
 export * from "./health-index-assessment";
 export * from "./health-index-definition";
 export * from "./kpi-definition";
