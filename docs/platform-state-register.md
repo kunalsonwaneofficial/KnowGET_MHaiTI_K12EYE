@@ -1487,3 +1487,81 @@ guard running on every request and checking nothing on most of them. The DI-grap
 seven service tokens are exported for **in-process cross-domain use**. Residual deferrals are **TD-48**. The layer
 that gives the platform one definition of what a forecast is, so the number an institution plans against carries
 its interval, its assumptions, its grade and the digest that lets anyone recompute it.
+
+## Executive Intelligence, Governance & Institutional Command (P2-D29, Program: Intelligence Core · ADR-0048)
+
+The `@knowget/executive-intelligence` package is the institution's **command layer**, and the **fifth contract of
+Program E** (D25–D30) — where twenty-eight domains' worth of activity becomes the small number of figures
+leadership is expected to act on. It follows the domain architecture (ADR-0010): a pure package — **seven
+aggregates plus eight pure engines** — behind repository ports, Prisma/RLS adapters at the `apps/api` composition
+root, application services on the platform event bus, and permission-gated, tenant-scoped REST controllers. One
+contract rule defines it and it is three clauses in one sentence — **role-aware dashboards, a reproducible
+Institutional Health Index across ~10 domains, evidence-traceable KPIs** — and the design problem each addresses
+is **plausibility rather than accuracy**: every other layer is checked by the world (an attendance figure is wrong
+in front of a teacher), while a composite index is checked by nobody and is the one number in the institution that
+can be badly wrong and look completely fine. **Evidence-traceable** — `record` refuses a reading whose citations
+do not hold up, so a figure with no evidence is not a weakly sourced reading but **not a reading**; six stable
+issue codes are the whole vocabulary of the check, existence is verified through the `EvidenceRecordDirectory` at
+the moment the figure is entered (the cost of finding the right reference belongs on the person entering it, not
+on the governor who follows the citation eighteen months later and arrives nowhere), and **standing is derived
+from the weakest citation rather than declared** — one forecast among nine measured records makes the reading
+`projected`, one manual return makes it `attested` — because an author allowed to declare reliability would
+eventually declare it well. **Reproducible** — `fingerprintRun` digests the definition version, the effective
+weights and every contributing pillar and reading into a 16-character FNV-1a fingerprint, `reproduce` calls the
+**real `assessIndex`** rather than a comparison shortcut, and there is **no tolerance**: composite scoring is
+exact decimal work at `INDEX_PRECISION = 6` and `WEIGHT_PRECISION = 4`, and a tolerance would be where a real
+drift hides behind a rounding argument. **Role-aware** — every panel names the scope its reader must hold and
+`composeFor` **omits** what they may not see; `PANEL_VISIBILITY_OUTCOMES` is the single-element list `["omitted"]`
+so the vocabulary has no word for a blanked tile, because a blanked tile tells a reader that a figure exists, that
+they are not trusted with it, and — where the panel would have shown a count — that the count is probably zero.
+Holding those three up is a fourth thing not in the sentence: **a missing pillar is excluded, never zeroed**. A
+pillar with no citable evidence leaves the index and its weight is redistributed proportionally, because zeroing
+is the one arithmetic lie whose output is indistinguishable from a genuine catastrophe — an institution that has
+not wired up its wellbeing KPIs would score identically to one whose learners are in crisis. Under it sit two
+floors nothing can lower (`MIN_PILLAR_COVERAGE = 0.6`, `MIN_KPI_COVERAGE_PER_PILLAR = 0.5`) and a **coverage
+figure that travels with the score in the same object**; an assessment below the floor still computes and is
+**not citable**, since refusing to compute teaches users to stop asking while letting it be quoted is the failure
+the contract exists to prevent. Eight **pure, deterministic, clock-free engines** compute what is derived, built
+and tested first: **measurement** (polarity-aware normalisation onto 0–100), **banding**, **weighting** (the
+exclusion arithmetic), **indexing**, **traceability**, **reproducibility**, **composition** and **attention**.
+`HEALTH_PILLARS` is **closed at ten** and shared by every index in every tenant, because a tenant-extensible
+pillar set makes two institutions' scores incomparable and makes an index incomparable with its own history the
+first time a pillar is added; weights are bounded on **both** sides (`MIN_PILLAR_WEIGHT = 0.01`,
+`MAX_PILLAR_WEIGHT = 0.5`) so no pillar is present in name only and none quietly becomes the index. Seven
+aggregates: `KpiDefinition`, `KpiReading`, `HealthIndexDefinition` (**versioned by supersession**),
+`HealthIndexAssessment` (**frozen at finalisation** — a recomputing report is an account of what leadership should
+have been told, and the only record worth keeping is what they were told; a period whose inputs later prove wrong
+is **invalidated rather than recomputed** and stays beside its replacement), `Dashboard`, `ExecutiveBriefing`
+(**pins its figure** to one assessment and filters findings down rather than composing them afresh, so a document
+cannot quietly change its own number between being issued and being read) and `AttentionItem` (eight stable
+reasons covering both directions — `band_breach`, `band_fall`, `sustained_decline`, `target_miss`, `index_drop` on
+the arithmetic and `coverage_gap`, `evidence_stale`, `standing_weakened` on the evidence, because a pillar that
+stopped reporting is the finding most likely to be read as "nothing to see"; closure is `resolved` or `dismissed`
+with a **compulsory reason** and never deletion, and a sweep leaves closed items untouched since reopening one
+erases the evidence that a human looked). Seven **FORCE-RLS** tables, each `tenant_isolation` (USING + WITH CHECK,
+fail-closed), tenant-indexed, with five absolute uniques DB-backed and **two partial uniques that hold a rule
+rather than a shape** — one live reading per `(tenant, kpi, period)` where `withdrawn_at IS NULL`, and **one
+published definition per `(tenant, index_key)`**, the difference between a rule and an intention when two
+defensible scores would otherwise mean two institutions inside one tenant. **No table carries a soft-delete
+column at all**: every aggregate's way out is a domain state — retired, withdrawn, superseded, invalidated,
+archived, resolved, dismissed. **Five permission scopes** split the surface across 69 endpoints —
+`command:measure` (the figures, separate because a withdrawn reading retroactively changes every assessment
+computed since), `command:manage` (what is measured and how it composes, so a weight cannot be adjusted in the
+same breath as the score it produces), `command:operate` (assessment and the queue), `command:read` (every read,
+deliberately wide, because an index nobody may inspect fails this contract as surely as one nobody can reproduce)
+and **`command:brief` standing alone**, because the ability to compute the number is not the authority to narrate
+it. Accountable identity always comes from the authenticated principal and is never read from a body. Value-,
+prose- and PII-free `command.*` events (32) publish onto the shared bus — index scores do not travel, because a
+score detached from its coverage, citability and fingerprint is precisely the artifact this contract exists to
+prevent. Two directory ports resolve the organization node and **the record a citation points at** — assessment
+results, forecast runs, decision records and knowledge assertions to their owning domains by kind (P2-D10, P2-D28,
+P2-D27, P2-D25), everything else through the knowledge graph by `(sourceDomain, sourceRef)`. There is
+**deliberately no scope or role directory**: panels and briefings name the scope a reader must hold and this
+package never asks whether it exists or who holds it, because a second opinion about who a principal is would
+surface its disagreement with the identity domain as a leak rather than as an error. This contract **recomputes
+nothing it cites** — it measures, bands, weights and composes, and never reaches back into attendance or finance
+to derive a number for itself, since the platform gets one arithmetic per fact. The DI-graph spec asserts both
+directories bind. All seven service tokens are exported for **in-process cross-domain use**. Residual deferrals
+are **TD-49**. The layer that gives the platform one definition of institutional health, so the figure a board
+acts on carries how much of the institution it saw, how good the evidence under it was, and the fingerprint that
+lets anyone recompute it.
