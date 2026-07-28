@@ -37,3 +37,5 @@ export * from "./uncertainty";
 export * from "./assumptions";
 export * from "./reproducibility";
 export * from "./accuracy";
+export * from "./simulation";
+export * from "./planning";

@@ -408,6 +408,43 @@ export type PlanStatus = (typeof PLAN_STATUSES)[number];
 export const TRACKING_STATES = ["on_track", "at_risk", "off_track", "achieved", "missed"] as const;
 export type TrackingState = (typeof TRACKING_STATES)[number];
 
+/**
+ * How bad a tracking state is, ascending. This is deliberately *not* the declaration order of
+ * {@link TRACKING_STATES}, which is grouped for readability rather than ranked, and reading severity off an
+ * index would put `achieved` between `off_track` and `missed` — the single most misleading ordering available.
+ */
+export const TRACKING_SEVERITY: Readonly<Record<TrackingState, number>> = {
+  achieved: 0,
+  on_track: 1,
+  at_risk: 2,
+  off_track: 3,
+  missed: 4,
+};
+
+/** The rank of a tracking state (0 = achieved). Used to compare and to take the worse of two. */
+export const trackingSeverity = (state: TrackingState): number => TRACKING_SEVERITY[state];
+
+/** The worse of two tracking states. The instrument a plan's overall state is folded with. */
+export const worseTracking = (a: TrackingState, b: TrackingState): TrackingState =>
+  trackingSeverity(a) >= trackingSeverity(b) ? a : b;
+
+/**
+ * How far behind its straight line an objective may sit and still be called `on_track`, as a fraction of the
+ * whole baseline-to-target distance.
+ *
+ * A tolerance rather than zero, because a plan reviewed monthly against a line drawn in years will sit a
+ * fraction of a percent off it almost every time, and a status that flickers to `at_risk` on rounding is a
+ * status nobody reads. Five percent of the journey is small enough that a real slip still shows.
+ */
+export const PLAN_ON_TRACK_TOLERANCE = 0.05;
+
+/**
+ * How far behind an objective may sit before it stops being `at_risk` and becomes `off_track`, on the same
+ * scale. Fifteen percent of the whole journey behind schedule is no longer a wobble: at that distance the plan
+ * needs a decision, which is exactly the difference `off_track` is meant to convey.
+ */
+export const PLAN_AT_RISK_TOLERANCE = 0.15;
+
 /** The verdict on whether a model's stated intervals are honest. See the accuracy engine. */
 export const CALIBRATION_VERDICTS = ["calibrated", "overconfident", "underconfident"] as const;
 export type CalibrationVerdict = (typeof CALIBRATION_VERDICTS)[number];
