@@ -48,3 +48,5 @@ export * from "./errors";
 
 export * from "./observation-series";
 export * from "./forecast-model";
+export * from "./forecast-run";
+export * from "./backtest";
