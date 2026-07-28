@@ -58,3 +58,13 @@ export * from "./strategic-plan";
 
 export * from "./forecast-events";
 export * from "./ports";
+
+// --- Application services --------------------------------------------------------
+
+export * from "./observation-series-service";
+export * from "./forecast-model-service";
+export * from "./forecast-run-service";
+export * from "./backtest-service";
+export * from "./scenario-service";
+export * from "./simulation-run-service";
+export * from "./strategic-plan-service";

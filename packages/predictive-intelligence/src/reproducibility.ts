@@ -85,7 +85,7 @@ export const reproducibilityKeyOf = (inputs: ReproducibilityInputs): Reproducibi
 export const sameInputs = (a: ReproducibilityInputs, b: ReproducibilityInputs): boolean =>
   canonicalize(a) === canonicalize(b);
 
-// --- Drift ----------------------------------------------------------------------
+// --- Drift -----------------------------------------------------------------------
 
 /**
  * Exactly what moved between two input records, one code per field.

@@ -226,7 +226,11 @@ export class InMemoryForecastModelRepository implements ForecastModelRepository 
  * `findByDigest` is the read the contract's fourth rule turns on. A digest is computed from the pinned inputs
  * alone, so two runs sharing one are the same computation done twice — which is worth knowing before the
  * second is stored, and is the only way an auditor can ask "has this exact forecast been produced before"
- * without reproducing it. `findLatestForSeries` is the current forecast for a series, which is what everything
+ * without reproducing it. Where a digest has more than one run — a superseded run and the re-production that
+ * replaced it share their pinned inputs exactly — the live one is returned, so the read answers "what does the
+ * institution currently say about this question" rather than "what did it once say". In SQL that is
+ * `ORDER BY CASE WHEN status = 'completed' THEN 0 ELSE 1 END, produced_at DESC LIMIT 1`.
+ * `findLatestForSeries` is the current forecast for a series, which is what everything
  * downstream of this domain actually wants. `listBySeries` and `listByModel` are the two sweeps behind
  * re-verification: a corrected series and a retired model each put a set of runs in question. Runs are never
  * removed — superseding and invalidating are how a run stops being current while staying on the record.
@@ -251,9 +255,10 @@ export class InMemoryForecastRunRepository implements ForecastRunRepository {
   }
 
   async findByDigest(tenantId: TenantId, digest: string): Promise<ForecastRun | null> {
-    return (
-      [...this.byId.values()].find((r) => r.tenantId === tenantId && r.digest === digest) ?? null
+    const matches = [...this.byId.values()].filter(
+      (r) => r.tenantId === tenantId && r.digest === digest,
     );
+    return matches.find((r) => r.status === "completed") ?? matches[0] ?? null;
   }
 
   async findLatestForSeries(tenantId: TenantId, seriesId: Uuid): Promise<ForecastRun | null> {
