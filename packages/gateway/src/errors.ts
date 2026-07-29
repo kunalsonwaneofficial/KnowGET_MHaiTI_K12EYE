@@ -555,6 +555,27 @@ export class EmptyTrafficPolicyError extends PlatformError {
   }
 }
 
+/**
+ * Half a rate limit was set: a request count with no window, a window with no count, or a burst with neither.
+ *
+ * Refused rather than completed with a default, because both defaults are wrong in a way nobody would notice. A
+ * count with an assumed window is a limit the operator did not choose and cannot see; a window with no count
+ * enforces nothing at all while appearing in every listing as though it does.
+ */
+export class IncompleteRateLimitError extends PlatformError {
+  constructor(missing: string) {
+    super(
+      `A rate limit needs a request count and the window it is counted over; ${missing} was not set`,
+      {
+        code: "VALIDATION_ERROR",
+        httpStatus: 422,
+        isOperational: true,
+        details: { missing },
+      },
+    );
+  }
+}
+
 /** A burst allowance below the sustained limit would deny traffic the limit expressly permits. */
 export class BurstBelowLimitError extends PlatformError {
   constructor(burstAllowance: number, requestsPerWindow: number) {
