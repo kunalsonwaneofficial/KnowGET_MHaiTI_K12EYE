@@ -47,3 +47,12 @@ export * from "./lifecycle";
 export * from "./lineage";
 export * from "./maturity";
 export * from "./realization";
+
+// --- Errors ----------------------------------------------------------------------
+
+export * from "./errors";
+
+// --- Aggregates ------------------------------------------------------------------
+
+export * from "./improvement-initiative";
+export * from "./improvement-signal";

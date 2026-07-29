@@ -86,6 +86,27 @@ export const isValidKey = (value: string): boolean =>
   value === normalizeKey(value) &&
   KEY_PATTERN.test(value);
 
+// --- Summaries -------------------------------------------------------------------
+
+/**
+ * Longest accepted summary on a signal or an initiative.
+ *
+ * Long enough to state a problem, or a proposed change, in the terms the institution would actually use in the
+ * meeting about it — and short enough that nobody pastes a report into the field. A domain whose summaries run to
+ * pages is one where the summary stops being read, and a field everybody skips is a field that stops being
+ * written honestly.
+ */
+export const MAX_SUMMARY_LENGTH = 1000;
+
+/**
+ * Shortest accepted summary. Below this the field is a title with a full stop after it.
+ *
+ * A signal reading *marking* is not something anybody can triage, and an initiative reading *fix timetabling* is
+ * not something anybody can decide on. The floor exists because the cost of an unreadable improvement queue is
+ * paid months later by whoever inherits it, and never by the person who filled the form in a hurry.
+ */
+export const MIN_SUMMARY_LENGTH = 20;
+
 // --- Permission scopes -----------------------------------------------------------
 
 /**
