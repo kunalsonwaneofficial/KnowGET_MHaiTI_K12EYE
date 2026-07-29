@@ -225,6 +225,9 @@ importers:
       '@knowget/person':
         specifier: workspace:*
         version: link:../../packages/person
+      '@knowget/platform-evolution':
+        specifier: workspace:*
+        version: link:../../packages/platform-evolution
       '@knowget/predictive-intelligence':
         specifier: workspace:*
         version: link:../../packages/predictive-intelligence

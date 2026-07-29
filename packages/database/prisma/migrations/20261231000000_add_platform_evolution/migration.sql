@@ -237,7 +237,7 @@ CREATE TABLE "improvement_cycle" (
     "organization_id" UUID NOT NULL,
     "cycle_key" TEXT NOT NULL,
     "intent" TEXT NOT NULL,
-    "stage" TEXT NOT NULL DEFAULT 'planned',
+    "stage" TEXT NOT NULL DEFAULT 'planning',
     "start_period" INTEGER NOT NULL,
     "end_period" INTEGER NOT NULL,
     "periods" INTEGER NOT NULL,

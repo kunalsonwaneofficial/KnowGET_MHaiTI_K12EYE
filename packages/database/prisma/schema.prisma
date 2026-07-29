@@ -6317,7 +6317,7 @@ model ImprovementCycle {
   organizationId     String   @map("organization_id") @db.Uuid
   cycleKey           String   @map("cycle_key")
   intent             String
-  stage              String   @default("planned")
+  stage              String   @default("planning")
   startPeriod        Int      @map("start_period")
   endPeriod          Int      @map("end_period")
   periods            Int
