@@ -1,4 +1,5 @@
 import type {
+  BenefitDirection,
   CapabilityArea,
   ChangeClass,
   CycleStage,
@@ -10,9 +11,12 @@ import type {
   LessonCategory,
   LessonOrigin,
   LessonRetention,
+  MaturityLevel,
+  RealizationVerdict,
   SignalPriority,
   SignalSource,
   SignalStatus,
+  VarianceBand,
 } from "./evolution-value";
 
 /**
@@ -469,4 +473,182 @@ export interface LineageVerdict {
   readonly traceable: boolean;
   readonly reachedStage: LineageStage;
   readonly gaps: readonly LineageGap[];
+}
+
+// --- Institutional maturity ------------------------------------------------------
+
+/**
+ * One capability area's weight, as an institution declared it.
+ *
+ * `area` is a loose string for the reason {@link LessonDraft}'s applicability is: a weighting arrives from a
+ * configuration screen or an import, and typing the field as {@link CapabilityArea} would move the recognition
+ * check to the compiler, where the only way past it is a cast. The cast is how an area the platform has never
+ * heard of ends up carrying a fifth of an institution's maturity score.
+ */
+export interface AreaWeight {
+  readonly area: string;
+  readonly weight: number;
+}
+
+/** One thing wrong with a declared weighting, and the entry it is wrong at when that is meaningful. */
+export interface WeightingIssue {
+  readonly code: string;
+  /** The offending entry's index, or `null` when the issue is a property of the whole weighting. */
+  readonly entryIndex: number | null;
+}
+
+/**
+ * One capability area's weight after inspection: a recognised area, and a weight inside the declared range.
+ *
+ * This type is the weighting engine's output and the assessment engine's input, and that is the whole reason it
+ * is a distinct type from {@link AreaWeight}. The assessment engine does not re-check weights it is handed — one
+ * engine holds the opinion about what a legal weighting is, and a second engine that also held it would give the
+ * institution two answers about its own configuration the first time they drifted apart.
+ */
+export interface ResolvedWeight {
+  readonly area: CapabilityArea;
+  readonly weight: number;
+}
+
+/**
+ * Whether a declared weighting can be assessed against, and the weights that survived inspection.
+ *
+ * `total` is returned whether or not the weighting is usable, because the sum is the thing an institution
+ * correcting a weighting actually needs to see. A verdict that said only "these do not sum to one" would leave
+ * somebody adding up ten numbers by hand to find out which way they missed.
+ */
+export interface WeightingVerdict {
+  readonly usable: boolean;
+  /** Recognised areas with in-range weights, in declared order. */
+  readonly weights: readonly ResolvedWeight[];
+  /** What the surviving weights actually sum to. */
+  readonly total: number;
+  readonly issues: readonly WeightingIssue[];
+}
+
+/**
+ * What an assessor recorded for one capability area.
+ *
+ * `evidenceCount` sits beside the score rather than behind it because a maturity score without evidence is an
+ * opinion, and the difference between an institution assessing itself and an institution flattering itself is
+ * whether anybody had to point at something. The count is a count and not the records themselves: the evidence
+ * engine has already inspected those, and re-inspecting them here would be the second opinion this package
+ * refuses to hold anywhere.
+ */
+export interface AreaReading {
+  readonly area: string;
+  readonly score: number;
+  readonly evidenceCount: number;
+}
+
+/** One capability area as assessed: what it scored, what it weighs, and whether it counted. */
+export interface AreaOutcome {
+  readonly area: CapabilityArea;
+  /** The declared score, clamped onto the maturity scale. */
+  readonly score: number;
+  readonly weight: number;
+  readonly evidenceCount: number;
+  /** Whether the area cited enough evidence to contribute to the index and to coverage. */
+  readonly reported: boolean;
+}
+
+/** One thing wrong with an assessment, and the reading it is wrong at when that is meaningful. */
+export interface MaturityIssue {
+  readonly code: string;
+  /** The offending reading's index, or `null` when the issue is a property of the whole assessment. */
+  readonly readingIndex: number | null;
+}
+
+/**
+ * An institution's assessed maturity: what it scores, what level that is, and how much of itself it measured.
+ *
+ * `index` and `coverage` answer different questions and neither substitutes for the other. The index is a
+ * weighted picture of the areas that reported; coverage is how much of the institution those areas are. An
+ * institution that assessed three areas well has a real index and a coverage of 0.3, and collapsing the two into
+ * one adjusted number would produce a score that is neither an honest reading of what was measured nor an honest
+ * admission of what was not.
+ *
+ * `publishable` is the flag that does the work. An under-covered assessment is still computed and still readable
+ * — suppressing it would push people back to the spreadsheet the platform replaced — but it is not the number
+ * anybody quotes, and nothing in this package can lower the floor it fails against.
+ */
+export interface MaturityVerdict {
+  readonly publishable: boolean;
+  /** Weighted mean of the reported areas' scores, over those areas' own weights. */
+  readonly index: number;
+  readonly level: MaturityLevel;
+  /** Reported areas as a fraction of all ten capability areas — never of however many were declared. */
+  readonly coverage: number;
+  readonly areasReported: number;
+  /** Every recognised, weighted reading, reported or not, in submitted order. */
+  readonly areas: readonly AreaOutcome[];
+  readonly issues: readonly MaturityIssue[];
+}
+
+// --- Benefit realization ---------------------------------------------------------
+
+/**
+ * One benefit an initiative promised, with where the measure started, where it was supposed to get to, and where
+ * it actually is.
+ *
+ * The baseline is the field that makes this honest, and it is the one most benefit tracking leaves out. Without
+ * it, "the measure is at 94% of target" is a statement about the target's units rather than about anything the
+ * initiative did — an institution whose attendance was already at 96% and whose target was 97% would report
+ * near-total realization for a change that moved nothing. Measuring the promised *movement* rather than the
+ * promised *level* is what makes the ratio comparable between one initiative and the next.
+ *
+ * `direction` is declared rather than inferred from whether the target sits above or below the baseline. An
+ * initiative that promised to reduce a measure and named a target above its baseline has made an incoherent
+ * claim, and inferring the direction would silently repair it into a coherent one nobody intended.
+ */
+export interface BenefitClaim {
+  readonly direction: BenefitDirection;
+  readonly baseline: number;
+  readonly target: number;
+  readonly observed: number;
+}
+
+/**
+ * What one promised benefit actually delivered.
+ *
+ * `band` is nullable and `measurable` is separate from it because an unmeasurable benefit is not a missed one.
+ * A claim built on a broken baseline tells the institution nothing about whether the change worked; banding it
+ * `missed` would convert an absence of evidence into a finding, and an adoption review built on those findings
+ * would recommend reverting changes whose only fault was a data problem.
+ *
+ * `promised` and `achieved` are returned alongside the ratio so the ratio can be checked rather than believed —
+ * and, for the two incoherent-claim refusals, they are the fastest way to see what went wrong: a negative
+ * `promised` is a target on the wrong side of its own baseline, stated in the institution's own units.
+ */
+export interface BenefitOutcome {
+  readonly measurable: boolean;
+  /** The movement the initiative promised, in the measure's own units. `0` when nothing could be computed. */
+  readonly promised: number;
+  /** The movement actually observed, in the same units and the same direction. */
+  readonly achieved: number;
+  /** `achieved` as a fraction of `promised`. `0` when the benefit is unmeasurable. */
+  readonly ratio: number;
+  /** `null` when the benefit is unmeasurable — which is not the same as having missed. */
+  readonly band: VarianceBand | null;
+  readonly issues: readonly string[];
+}
+
+/**
+ * What an adoption review should recommend, and the finding that drove it.
+ *
+ * `worstBand` is returned because the verdict is decided by the worst measurable outcome rather than by an
+ * average, and a recommendation to revert that did not say which benefit earned it would be a conclusion nobody
+ * could argue with — which, for a recommendation whose whole purpose is to start an argument in front of a
+ * governing body, is the one thing it must not be.
+ *
+ * `benefitsMeasured` against `benefitsClaimed` is a finding in its own right. An initiative that promised six
+ * benefits and could measure one did not deliver a `sustained` outcome; it delivered one measurement, and the
+ * two counts sitting side by side are what stop that being read as five successes.
+ */
+export interface RealizationRecommendation {
+  readonly verdict: RealizationVerdict;
+  /** The severest band among the measurable benefits, or `null` when none could be measured. */
+  readonly worstBand: VarianceBand | null;
+  readonly benefitsMeasured: number;
+  readonly benefitsClaimed: number;
 }
