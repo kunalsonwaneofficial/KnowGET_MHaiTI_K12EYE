@@ -73,6 +73,64 @@ import { PlatformError } from "@knowget/exceptions";
  * question of everything this contract will refuse to do.
  */
 
+// --- Directories -----------------------------------------------------------------
+
+/** The organization (institution node, P2-D01-M01) this signal, initiative, lesson, cycle or review belongs to. */
+export class OrganizationNotFoundForEvolutionError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" not found; cannot attach the record to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}
+
+/**
+ * A person named on the record — a proposer, a decider, whoever raised a signal or published an assessment — is
+ * not in this tenant.
+ *
+ * The governance case is the one that matters. A quorum is a count of distinct people who agreed, and the rule
+ * that nobody decides their own change is a comparison between names. Both hold perfectly against identifiers
+ * that resolve to nobody: the arithmetic is unchanged, the gate satisfies, and the institution ends up with a
+ * minute recording agreement from people who do not exist. That record is worse than a missing one, because it
+ * survives being looked at.
+ */
+export class PersonNotFoundForEvolutionError extends PlatformError {
+  constructor(personId: string, role: string) {
+    super(`No person "${personId}" exists in this tenant; they cannot be the ${role}`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { personId, role },
+    });
+  }
+}
+
+/**
+ * A citation points at a record that is not there.
+ *
+ * A signal has to stand on evidence, and that evidence is worth exactly what its citations resolving is worth.
+ * A signal citing a record nobody can open is indistinguishable, at the moment somebody needs it, from a signal
+ * standing on nothing — and that moment is a governance gate months later, by which time the signal has been
+ * triaged, accepted and built into a change whose justification now traces back to an empty reference. So
+ * citations are resolved as they are made, while the person filing still knows what they meant to point at.
+ */
+export class EvidenceRecordNotFoundError extends PlatformError {
+  constructor(kind: string, sourceDomain: string, sourceRef: string) {
+    super(
+      `No ${kind} record "${sourceRef}" exists in ${sourceDomain}; the citation cannot be made`,
+      {
+        code: "NOT_FOUND",
+        httpStatus: 404,
+        isOperational: true,
+        details: { kind, sourceDomain, sourceRef },
+      },
+    );
+  }
+}
+
 // --- Improvement signals ---------------------------------------------------------
 
 /** The requested improvement signal does not exist in the current tenant. */

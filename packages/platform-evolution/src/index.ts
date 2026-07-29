@@ -61,3 +61,11 @@ export * from "./improvement-initiative";
 export * from "./improvement-signal";
 export * from "./lesson";
 export * from "./maturity-assessment";
+
+// --- Ports -----------------------------------------------------------------------
+
+export * from "./ports";
+
+// --- Events ----------------------------------------------------------------------
+
+export * from "./evolution-events";
