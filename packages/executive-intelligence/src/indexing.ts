@@ -16,6 +16,7 @@ import type {
   PillarExclusion,
   PillarInput,
   PillarOmission,
+  PillarReport,
   PillarWeight,
 } from "./command-view";
 import { redistribute, redistributedWeight } from "./weighting";
@@ -192,6 +193,54 @@ export const assessIndex = (
     omissions,
     weightRedistributed: redistributedWeight(weights, contributingPillars),
   };
+};
+
+// --- Rolling up ------------------------------------------------------------------
+
+/**
+ * Turn what the indicators reported into what the pillars report.
+ *
+ * The step between a reading and an index, and the only place in this contract where individual KPI scores become
+ * a pillar score. It is here rather than in a service because it is a judgement, not an assembly: an institution
+ * that changed how its indicators combine would be changing what its pillars mean, and a rule that lived in a
+ * service would end up restated slightly differently in the second service that needed it.
+ *
+ * **Indicators within a pillar are weighted equally.** The weighting an institution declares is over its pillars,
+ * and there is deliberately nowhere to declare a second one over the indicators inside a pillar. That is not a
+ * simplification waiting to be lifted. A per-indicator weighting would let a school tune what *attendance and
+ * engagement* means until it read well, one indicator at a time, in a place no governor would ever look — and the
+ * composite would still present as the same measure it was last year. The pillar weighting is the visible dial;
+ * having exactly one is what makes it auditable.
+ *
+ * An indicator that scored nothing counts toward what its pillar declared and not toward what it read, which is
+ * exactly how a broken feed surfaces as thin coverage rather than as a low score. A pillar in which nothing scored
+ * comes back with a score of zero and a read count of zero — and the zero is never seen, because the indexing walk
+ * tests coverage before it looks at the number.
+ *
+ * Pillars come out in the order they were first reported, so two runs over the same readings produce the same
+ * inputs and an assessment reproduces.
+ */
+export const rollUpPillars = (reports: readonly PillarReport[]): readonly PillarInput[] => {
+  const declared = new Map<HealthPillar, number>();
+  const scores = new Map<HealthPillar, number[]>();
+
+  for (const report of reports) {
+    declared.set(report.pillar, (declared.get(report.pillar) ?? 0) + 1);
+    const read = scores.get(report.pillar) ?? [];
+    if (report.score !== null && isNormalizedScore(report.score)) read.push(report.score);
+    scores.set(report.pillar, read);
+  }
+
+  return [...declared].map(([pillar, kpisDeclared]) => {
+    const read = scores.get(pillar) ?? [];
+    const total = read.reduce((sum, score) => sum + score, 0);
+    return {
+      pillar,
+      score: read.length === 0 ? 0 : roundIndexValue(total / read.length),
+      kpisRead: read.length,
+      kpisDeclared,
+    };
+  });
 };
 
 // --- Reading an assessment -------------------------------------------------------

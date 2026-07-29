@@ -45,8 +45,29 @@ export * from "./weighting";
 
 // --- Aggregates ------------------------------------------------------------------
 
+export * from "./attention-item";
+export * from "./dashboard";
 export * from "./errors";
+export * from "./executive-briefing";
 export * from "./health-index-assessment";
 export * from "./health-index-definition";
 export * from "./kpi-definition";
 export * from "./kpi-reading";
+
+// --- Ports -----------------------------------------------------------------------
+
+export * from "./ports";
+
+// --- Events ----------------------------------------------------------------------
+
+export * from "./command-events";
+
+// --- Services --------------------------------------------------------------------
+
+export * from "./attention-item-service";
+export * from "./dashboard-service";
+export * from "./executive-briefing-service";
+export * from "./health-index-assessment-service";
+export * from "./health-index-definition-service";
+export * from "./kpi-definition-service";
+export * from "./kpi-reading-service";

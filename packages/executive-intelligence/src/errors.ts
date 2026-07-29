@@ -25,12 +25,90 @@ import { PlatformError } from "@knowget/exceptions";
  *   a convenient subset of the institution, or on nothing anybody can follow back, stays provisional forever. It
  *   is still computed and still readable — suppressing it would only push people back to spreadsheets — but it
  *   cannot become the number a board paper quotes.
+ * - {@link UnusablePanelSetError} means a dashboard's panels are inspected exactly when they would become visible
+ *   — at publication, and again on every edit to one already in service. A draft stays free to be half-finished
+ *   because nobody is looking at it; a live dashboard does not, because everybody is.
+ * - {@link UncitableAssessmentError} means a briefing quotes a figure the institution stands behind or it quotes
+ *   nothing at all. A provisional composite that went out to a board is the version everybody remembers, whatever
+ *   the platform later says about it.
  *
  * A refusal here is a 409 or a 422 with the specifics an operator needs to fix it, because these are the platform
  * enforcing its contract — not something going wrong inside it.
+ *
+ * A handful of these belong to the services rather than to the aggregates, and the split is not arbitrary. An
+ * aggregate is handed one record and can only refuse what that record can see; uniqueness of a key, the existence
+ * of an organization, whether a citation resolves to a real record elsewhere in the platform — none of those are
+ * decidable from a single object, so they are refused where the repositories and directories are. Putting them
+ * here rather than in a services module keeps one place where every failure this contract can produce is written
+ * down.
  */
 
+// --- Directories -----------------------------------------------------------------
+
+/** The organization (institution node, P2-D01-M01) this indicator, index, dashboard or briefing would belong to. */
+export class OrganizationNotFoundForCommandError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" not found; cannot attach the record to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}
+
+/**
+ * A citation points at a record that is not there.
+ *
+ * *Evidence-traceable* is worth exactly as much as the citations resolving. A reading whose evidence names a
+ * document nobody can open is indistinguishable, at the point somebody needs it, from a reading with no evidence
+ * at all — and the point somebody needs it is a governance meeting six months later, which is the worst possible
+ * moment to discover the reference was never checked. So citations are resolved as they are made.
+ */
+export class EvidenceRecordNotFoundError extends PlatformError {
+  constructor(kind: string, sourceDomain: string, sourceRef: string) {
+    super(
+      `No ${kind} record "${sourceRef}" exists in ${sourceDomain}; the citation cannot be made`,
+      {
+        code: "NOT_FOUND",
+        httpStatus: 404,
+        isOperational: true,
+        details: { kind, sourceDomain, sourceRef },
+      },
+    );
+  }
+}
+
 // --- KPI definitions -------------------------------------------------------------
+
+/** The requested KPI definition does not exist in the current tenant. */
+export class KpiDefinitionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`KPI definition "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A KPI key is how a panel, a pillar roll-up and a board paper all address the same indicator, so two indicators
+ * cannot answer to one key. Reusing a retired indicator's key is refused too: the retired definition still holds
+ * the scale its readings were scored against, and a second definition on the same key would make a series that
+ * silently changes what it measured partway through look like one continuous measurement.
+ */
+export class DuplicateKpiKeyError extends PlatformError {
+  constructor(kpiKey: string) {
+    super(`KPI "${kpiKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { kpiKey },
+    });
+  }
+}
 
 /** A KPI is addressed by key everywhere it is used — by a panel, by a reading, by a pillar. */
 export class EmptyKpiKeyError extends PlatformError {
@@ -153,6 +231,37 @@ export class InvalidKpiTransitionError extends PlatformError {
 
 // --- KPI readings ----------------------------------------------------------------
 
+/** The requested KPI reading does not exist in the current tenant. */
+export class KpiReadingNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`KPI reading "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * One indicator reports once per period, and a second reading is refused rather than accepted as a correction.
+ *
+ * A restatement that overwrote the earlier figure would leave an assessment pinned to a reading whose value has
+ * changed since it was pinned, and the assessment would no longer reproduce — the one property this contract
+ * spends most of its structure protecting. The way to restate is to withdraw the reading, which is visible in the
+ * record, and then file the new one.
+ */
+export class DuplicateKpiReadingError extends PlatformError {
+  constructor(kpiKey: string, period: number) {
+    super(`KPI "${kpiKey}" already has a standing reading for period ${String(period)}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { kpiKey, period },
+    });
+  }
+}
+
 /**
  * Readings are filed against an active indicator only.
  *
@@ -225,6 +334,55 @@ export class KpiReadingAlreadyWithdrawnError extends PlatformError {
 }
 
 // --- Health index definitions ----------------------------------------------------
+
+/** The requested health index definition does not exist in the current tenant. */
+export class HealthIndexDefinitionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Health index definition "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A key names a *series*, and a series has at most one composition in force at a time.
+ *
+ * The way an institution changes how its index is composed is to reweight the published definition, which
+ * supersedes it — leaving the assessments that already ran pointing at the composition that actually produced
+ * them, and putting the change in the series exactly where it happened. Authoring a second definition on the
+ * same key would produce two live compositions and no way to say which one last term's number came from.
+ */
+export class DuplicateIndexKeyError extends PlatformError {
+  constructor(indexKey: string) {
+    super(`Health index "${indexKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { indexKey },
+    });
+  }
+}
+
+/**
+ * A definition may only be superseded by another definition of the same series.
+ *
+ * The supersession chain is what lets a reader walk backwards from this term's number to the composition that
+ * produced the one before it. Pointing a series at a successor belonging to a different key would break that walk
+ * silently, and the break would only be discovered by whoever was trying to explain a movement across the join.
+ */
+export class SupersessionKeyMismatchError extends PlatformError {
+  constructor(indexKey: string, successorKey: string) {
+    super(`Health index "${indexKey}" cannot be superseded by a definition of "${successorKey}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { indexKey, successorKey },
+    });
+  }
+}
 
 /** A health index is addressed by key by every assessment, dashboard and briefing that refers to it. */
 export class EmptyIndexKeyError extends PlatformError {
@@ -333,6 +491,52 @@ export class InvalidIndexTransitionError extends PlatformError {
 }
 
 // --- Health index assessments ----------------------------------------------------
+
+/** The requested health index assessment does not exist in the current tenant. */
+export class HealthIndexAssessmentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Health index assessment "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A series produces one assessment per period, and a second run is refused rather than allowed to overwrite.
+ *
+ * Rerunning a period against readings that have since changed is a legitimate thing to want, and it is exactly
+ * the thing that must not happen quietly: a briefing, a board minute and a term's worth of attention items all
+ * point at the number that was produced the first time. Invalidating the existing assessment is the way to say
+ * the figure was wrong, in a form the record keeps.
+ */
+export class DuplicateAssessmentError extends PlatformError {
+  constructor(indexKey: string, period: number) {
+    super(`Health index "${indexKey}" already has an assessment for period ${String(period)}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { indexKey, period },
+    });
+  }
+}
+
+/**
+ * A series has nothing published to assess against — either no definition was ever authored under this key, or
+ * the one that was is still a draft, or the institution superseded it and has not published the successor.
+ */
+export class NoPublishedIndexError extends PlatformError {
+  constructor(indexKey: string) {
+    super(`Health index "${indexKey}" has no published definition to assess against`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { indexKey },
+    });
+  }
+}
 
 /**
  * Assessments are computed against a published definition only.
@@ -444,6 +648,350 @@ export class AssessmentAlreadyInvalidatedError extends PlatformError {
       httpStatus: 409,
       isOperational: true,
       details: { id },
+    });
+  }
+}
+
+// --- Dashboards ------------------------------------------------------------------
+
+/** The requested dashboard does not exist in the current tenant. */
+export class DashboardNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Dashboard "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A dashboard key is what a saved link, a bookmark and a default-view setting all resolve through, so it names
+ * one dashboard. An archived dashboard keeps its key for the same reason it keeps its panels: a link somebody
+ * saved last year should land on the thing it was pointing at, and be told it was retired.
+ */
+export class DuplicateDashboardKeyError extends PlatformError {
+  constructor(dashboardKey: string) {
+    super(`Dashboard "${dashboardKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { dashboardKey },
+    });
+  }
+}
+
+/** A dashboard is addressed by key — by a saved link, by a default-dashboard setting, by a briefing. */
+export class EmptyDashboardKeyError extends PlatformError {
+  constructor() {
+    super("A dashboard must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A dashboard appears in a sidebar under a name. It must have one. */
+export class EmptyDashboardNameError extends PlatformError {
+  constructor() {
+    super("A dashboard must have a non-empty name", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * **Visibility is the gate**, and it is a gate a dashboard passes through more than once.
+ *
+ * A draft's panels are never inspected: assembling forty panels is iterative work, and a platform that refused to
+ * save a half-finished one would push the authoring somewhere this contract cannot see. Publication is inspected,
+ * and so is every edit to an already-published dashboard, because that edit is live the moment it saves — there is
+ * no draft standing between the author and the reader to catch it. The issue codes come straight from the
+ * composition engine, so an author is told every fault at once rather than the next one after each fix.
+ */
+export class UnusablePanelSetError extends PlatformError {
+  constructor(dashboardKey: string, issues: readonly string[]) {
+    super(`Dashboard "${dashboardKey}" cannot show an unusable panel set (${issues.join(", ")})`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { dashboardKey, issues: [...issues] },
+    });
+  }
+}
+
+/**
+ * An archived dashboard is out of service and does not move.
+ *
+ * The one terminality in this package that is about people rather than about a backward reference. Nothing pins a
+ * dashboard, so restoring one would break no record — it would put a layout nobody has re-read, bound to KPIs that
+ * may since have been retired, back into the sidebars of everyone who had it. Declaring the successor is cheap for
+ * exactly the same reason, and it puts the panel set in front of an author before it goes back in front of readers.
+ */
+export class ArchivedDashboardImmutableError extends PlatformError {
+  constructor(id: string) {
+    super(`Dashboard "${id}" is archived and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The attempted dashboard transition is not allowed from where the dashboard currently stands. */
+export class InvalidDashboardTransitionError extends PlatformError {
+  constructor(from: string, to: string) {
+    super(`A dashboard cannot go from "${from}" to "${to}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { from, to },
+    });
+  }
+}
+
+// --- Executive briefings ---------------------------------------------------------
+
+/** The requested executive briefing does not exist in the current tenant. */
+export class ExecutiveBriefingNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Executive briefing "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A briefing key is the reference a board minute quotes, so it resolves to one document. A withdrawn briefing
+ * keeps its key rather than freeing it, because the minute that cited it is not withdrawn — it must still land
+ * on the document, and on the fact that the institution later took it back.
+ */
+export class DuplicateBriefingKeyError extends PlatformError {
+  constructor(briefingKey: string) {
+    super(`Executive briefing "${briefingKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { briefingKey },
+    });
+  }
+}
+
+/** A briefing is addressed by key by whatever circulates, archives or supersedes it. */
+export class EmptyBriefingKeyError extends PlatformError {
+  constructor() {
+    super("An executive briefing must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A briefing goes in front of a governing body under a title. It must have one. */
+export class EmptyBriefingTitleError extends PlatformError {
+  constructor() {
+    super("An executive briefing must have a non-empty title", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A briefing names the scope that may read it, and an empty one is refused rather than treated as unrestricted.
+ *
+ * This is where a briefing differs from a panel. A panel whose scope nobody holds simply drops out of a composed
+ * dashboard and the rest of the page is still served; a briefing has no larger document to be quietly dropped out
+ * of, so a blank audience would default the most sensitive record this contract produces to the widest reading it
+ * has. Defaults that fail open are only ever discovered from the outside.
+ */
+export class EmptyBriefingAudienceScopeError extends PlatformError {
+  constructor() {
+    super("An executive briefing must name the permission scope its audience holds", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A briefing cites a figure the institution stands behind, or it cites nothing.
+ *
+ * The coverage floor's rule followed all the way to the top of the pyramid. A provisional composite is a working
+ * number — legitimately visible, legitimately incomplete — and circulating it is how it becomes the number a board
+ * remembers, whatever the platform says about it afterwards. An invalidated one is worse: it is a figure the
+ * institution has already withdrawn.
+ */
+export class UncitableAssessmentError extends PlatformError {
+  constructor(assessmentId: string, status: string) {
+    super(`Assessment "${assessmentId}" is "${status}"; a briefing cites a final assessment only`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { assessmentId, status },
+    });
+  }
+}
+
+/** A briefing is composed while it is drafting. An issued or withdrawn one is a document that went out. */
+export class BriefingNotDraftingError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Executive briefing "${id}" is "${status}" and is no longer being drafted`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * The assessment offered at issue is not the one the briefing was drafted against.
+ *
+ * Issuing takes the assessment in hand rather than an id, because the two live conditions worth re-checking at the
+ * moment of circulation — that the figure is still final, that it has not been invalidated since the draft was
+ * written — cannot be checked against an identifier. That makes handing in the wrong assessment possible, so it is
+ * refused: silently accepting it would issue a document whose pinned figures came from one assessment and whose
+ * clearance came from another.
+ */
+export class BriefingAssessmentMismatchError extends PlatformError {
+  constructor(id: string, expected: string, received: string) {
+    super(`Executive briefing "${id}" cites assessment "${expected}", not "${received}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, expected, received },
+    });
+  }
+}
+
+/**
+ * Only an issued briefing can be withdrawn. A retraction is meaningful against something that circulated; a draft
+ * nobody has seen is abandoned rather than retracted, and saying otherwise would put a correction on the record
+ * for a document that was never on it.
+ */
+export class BriefingNotIssuedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Executive briefing "${id}" is "${status}"; only an issued briefing can be withdrawn`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+// --- Attention items -------------------------------------------------------------
+
+/** The requested attention item does not exist in the current tenant. */
+export class AttentionItemNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Attention item "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * One assessment raises one item per finding, and a second raise is refused.
+ *
+ * The attention engine is deterministic: run it twice over the same assessment and it produces the same findings
+ * under the same keys. A service that raised on every run would fill a head teacher's queue with duplicates of a
+ * single problem, and the queue would stop being read — which is a worse failure than the finding never having
+ * been raised, because it takes the other findings down with it. A repeat run restates the existing item instead.
+ */
+export class DuplicateAttentionItemError extends PlatformError {
+  constructor(assessmentId: string, key: string) {
+    super(`Assessment "${assessmentId}" has already raised attention item "${key}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { assessmentId, key },
+    });
+  }
+}
+
+/**
+ * Acknowledgement is available once, from `open`. Acknowledging an already-acknowledged item would move the
+ * timestamp that says how long a finding sat before anybody picked it up, which is the one thing a queue's own
+ * performance is measured by.
+ */
+export class AttentionItemNotOpenError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Attention item "${id}" is "${status}" and is no longer open`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * A closed item does not move.
+ *
+ * Not even to be restated. A finding that deteriorates after somebody resolved it is a fresh observation about a
+ * period that has already been assessed, and reopening the closed one would erase the record that a human looked
+ * at this and made a call — which is the only thing distinguishing a queue from a list of alerts.
+ */
+export class AttentionItemClosedError extends PlatformError {
+  constructor(id: string, status: string) {
+    super(`Attention item "${id}" is "${status}" and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, status },
+    });
+  }
+}
+
+/**
+ * The signal offered as a restatement is about something else.
+ *
+ * The attention engine keeps severity out of a signal's key precisely so that a deteriorating finding restates one
+ * row instead of opening a second beside it. That only holds while the row and the signal are the same finding, so
+ * the keys are compared rather than assumed — a mismatch here would overwrite one finding's severity and subject
+ * with another's and leave the queue reading as though both had been seen.
+ */
+export class AttentionSignalMismatchError extends PlatformError {
+  constructor(id: string, key: string, signalKey: string) {
+    super(`Attention item "${id}" is "${key}" and cannot be restated by signal "${signalKey}"`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id, key, signalKey },
+    });
+  }
+}
+
+/**
+ * A dismissal says the platform was wrong to raise this, and it has to say why.
+ *
+ * The asymmetry with a resolution note is deliberate. A resolution is corroborated by the next period's assessment
+ * — the finding either comes back or it does not — whereas a dismissal leaves nothing behind at all, so an
+ * unexplained one is indistinguishable from an item nobody looked at. It is also the only feedback the raising
+ * rules ever get about being too loud.
+ */
+export class EmptyDismissalReasonError extends PlatformError {
+  constructor() {
+    super("Dismissing an attention item requires a reason", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
     });
   }
 }

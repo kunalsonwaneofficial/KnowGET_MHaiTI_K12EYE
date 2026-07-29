@@ -3,7 +3,86 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D28 · Program: Intelligence Core · Predictive Intelligence, Simulation & Strategic Planning
+## [Unreleased] — P2-D29 · Program: Intelligence Core · Executive Intelligence, Governance & Institutional Command
+
+The **fifth contract of Program E — the intelligence core** (D25–D30), and the layer every domain before it was
+feeding: twenty-eight domains' worth of institutional activity reduced to the small number of figures a board
+actually acts on. One `@knowget/executive-intelligence` package (ADR-0048). One rule defines the contract —
+**role-aware dashboards, a reproducible Institutional Health Index across ~10 domains, evidence-traceable KPIs** —
+and the whole of the engineering judgement was to make each clause **structural rather than procedural**. The
+design problem here is **plausibility, not accuracy**: every other layer in the platform is checked by the world —
+an attendance figure is wrong in front of a teacher, a fee balance is wrong in front of a parent — while a
+composite index is checked by nobody, and is the one number in the institution that can be badly wrong and look
+completely fine.
+
+### Added
+
+- **`@knowget/executive-intelligence`** — seven aggregates (`KpiDefinition`, `KpiReading` with its evidence
+  citations, `HealthIndexDefinition` with its pillar weights, `HealthIndexAssessment` with its pillar roll-up and
+  fingerprint, `Dashboard` with its panels, `ExecutiveBriefing` with its findings, `AttentionItem`) plus eight
+  pure, deterministic, **clock-free** engines — **measurement** (polarity-aware normalisation onto 0–100),
+  **banding**, **weighting** (the exclusion arithmetic), **indexing**, **traceability**, **reproducibility**,
+  **composition** and **attention** — with seven application services, **32 `command.*` events** and 59 typed
+  errors. The package holds **no clock**, so no figure in it depends on when it was read, and it **recomputes
+  nothing it cites**: the platform gets one arithmetic per fact, and the command layer is not entitled to a second
+  opinion about attendance, finance or outcomes.
+- **A missing pillar is excluded, never zeroed** — this is the fourth thing, the one not named in the contract
+  sentence, and it holds the other three up. A pillar with no citable evidence **leaves the index** and its weight
+  is redistributed proportionally across those that remain, because a 0 out of 100 is indistinguishable in the
+  output from a genuine catastrophe: an institution that has not yet wired up its wellbeing indicators would score
+  exactly like one whose learners are in crisis. `HEALTH_PILLARS` is **closed at ten** so two institutions' scores
+  mean the same thing, and `MIN_PILLAR_WEIGHT` (`0.01`) / `MAX_PILLAR_WEIGHT` (`0.5`) bound every weight on both
+  sides — no pillar present in name only, none quietly becoming the index.
+- **Coverage travels with the score** — `MIN_PILLAR_COVERAGE` (`0.6`) and `MIN_KPI_COVERAGE_PER_PILLAR` (`0.5`) are
+  constants with no configuration path, and the coverage figure sits **on the assessment beside the score** with no
+  unset representation. An assessment below the floor still computes and is **not citable**: refusing to compute
+  teaches users to stop asking, and letting a thin figure be quoted is the failure this contract exists to prevent.
+- **Evidence as a precondition of recording** — a reading whose citations do not hold up is **not a reading**, with
+  six stable issue codes as the whole vocabulary of the check and existence verified through the
+  `EvidenceRecordDirectory` at the moment the figure is entered. **Standing is derived from the weakest citation
+  rather than declared** — one forecast among nine measured records makes a reading `projected`, one manual return
+  makes it `attested` — because an author allowed to declare reliability would eventually declare it well, and a
+  `manual_return` must name an attestor.
+- **A fingerprint with no tolerance** — `fingerprintRun` digests the definition version, the effective weights and
+  every contributing pillar and reading into a 16-character FNV-1a fingerprint, and `reproduce` calls the **real
+  `assessIndex`** rather than a comparison shortcut. Composite scoring is exact decimal work at
+  `INDEX_PRECISION` (`6`) and `WEIGHT_PRECISION` (`4`), so a fingerprint matches or it does not — a tolerance
+  would be where a real drift hides behind a rounding argument.
+- **A dashboard omits, never denies** — `composeFor` drops the panels a reader may not see, and
+  `PANEL_VISIBILITY_OUTCOMES` is the single-element list `["omitted"]`, so the vocabulary has no word for a blanked
+  tile and no later increment can add one without changing the type. A masked tile tells a reader that a figure
+  exists, that they are not trusted with it, and — where a count would have shown — that the count is probably zero.
+- **Publication is exclusive, and closure is by judgement** — one published definition per index key, held by a
+  **partial unique index** rather than by service code; an assessment **freezes at finalisation** and a period whose
+  inputs later prove wrong is **invalidated rather than recomputed**; a briefing **pins its figure** to one
+  assessment and filters findings down rather than composing them afresh. The attention queue raises on **absence**
+  as readily as on breach (`coverage_gap`, `evidence_stale`, `standing_weakened` beside `band_breach`, `band_fall`,
+  `sustained_decline`, `target_miss`, `index_drop`), closes only by a human's `resolve` or `dismiss` — the latter
+  with a compulsory reason — and a sweep leaves closed items untouched, because reopening one erases the evidence
+  that somebody looked.
+- **Persistence** — seven FORCE-RLS tables (`kpi_definition`, `kpi_reading`, `health_index_definition`,
+  `health_index_assessment`, `dashboard`, `executive_briefing`, `attention_item`), migration
+  `20261230000000_add_executive_intelligence`, `tenant_isolation` (USING + WITH CHECK, fail-closed) on every table,
+  five absolute uniques DB-backed plus **two partial uniques that hold a rule rather than a shape** — one live
+  reading per `(tenant, kpi, period)` where `withdrawn_at IS NULL`, and one published definition per
+  `(tenant, index_key)`. **No table carries a soft-delete column at all**: every aggregate's way out is a domain
+  state — retired, withdrawn, superseded, invalidated, archived, resolved, dismissed.
+- **API** — seven permission-gated controllers / 69 endpoints under
+  `apps/api/src/domains/executive-intelligence`, split `command:measure` (the figures, separate because a withdrawn
+  reading retroactively changes every assessment computed since) / `command:manage` (what is measured and how it
+  composes, so a weight cannot be adjusted in the same breath as the score it produces) / `command:operate`
+  (assessment and the queue, including `GET assessments/:id/reproduction` — checking a number is an operator's job,
+  not a reader's) / **`command:brief` (what leadership is told, standing alone — the ability to compute the number
+  is not the authority to narrate it)** / `command:read` (every read); accountable identity always from the
+  authenticated principal, never a body; module registered in `app.module`.
+- **Boundaries** — **D29 measures; it never derives the underlying numbers.** No domain→domain import: the
+  organization node and every evidence citation enter through two directory ports, the second resolving assessment
+  results, forecast runs, decision records and knowledge assertions to their owning domains by kind (P2-D10,
+  P2-D28, P2-D27, P2-D25) and everything else through the graph by `(sourceDomain, sourceRef)`. There is
+  **deliberately no scope or role directory** — a second opinion about who a principal is would surface its
+  disagreement with the identity domain as a leak rather than as an error. ADR-0048, TD-49.
+
+## P2-D28 · Program: Intelligence Core · Predictive Intelligence, Simulation & Strategic Planning
 
 The **fourth contract of Program E — the intelligence core** (D25–D30), and where the prediction deferred out of
 **all twenty-four operational domains** finally lands: enrolment projections, cash-flow forecasts, staffing

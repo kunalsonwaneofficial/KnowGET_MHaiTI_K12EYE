@@ -5846,3 +5846,286 @@ model StrategicPlan {
   // migration-only DB feature not expressible in the Prisma schema).
   @@map("strategic_plan")
 }
+
+// ============================================================================
+// P2-D29 — Executive Intelligence, Governance & Institutional Command
+// The layer leadership actually reads (Program E). Twenty-eight contracts each
+// recorded what happened inside one part of the institution; this one answers
+// whether the school is alright, whether it was more alright last term, and
+// which part of it to go and look at first.
+// Two rules are structural here rather than procedural. Every reading carries
+// the evidence it stands on, and every assessment pins the weights and pillar
+// reports it was computed from together with a digest of them — so a figure
+// quoted in a board paper can be re-derived years later and the recomputation
+// compared rather than believed.
+// Periods are integer ordinals on a grid the institution declares, never
+// dates: this domain holds no clock, so staleness is subtraction and a run
+// reproduces exactly. No table here has a delete path.
+// All tenant-isolated by FORCE RLS.
+// ============================================================================
+
+/// KpiDefinition (P2-D29) — one thing an institution measures, and what good means for it. `kpi_key` and
+/// `pillar` are immutable after declaration: a key that moved would orphan every reading filed under it and
+/// every panel bound to it, and an indicator that changed pillar would restate both pillars' history in every
+/// period it had already reported. `scale` is the JSONB anchor set the measurement engine interpolates through,
+/// frozen from activation onward, because a rescaled indicator silently restates its own past. `source_domain`
+/// names the operational contract that publishes the figure and is never re-modelled here. Never deleted: an
+/// indicator the institution has stopped using is retired, so the readings behind it stay explicable.
+/// Tenant-owned: FORCE RLS.
+model KpiDefinition {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  kpiKey         String   @map("kpi_key")
+  name           String
+  description    String?
+  pillar         String
+  sourceDomain   String   @map("source_domain")
+  scale          Json
+  targetScore    Float?   @map("target_score")
+  status         String   @default("draft")
+  activatedAt    String?  @map("activated_at")
+  retiredAt      String?  @map("retired_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, kpiKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, pillar])
+  @@index([tenantId, sourceDomain])
+  @@map("kpi_definition")
+}
+
+/// KpiReading (P2-D29) — one figure filed against one indicator for one period, and the records it stands on.
+/// `citations` is JSONB inside the aggregate and not a child table, because a reading cannot be constructed
+/// without at least one usable citation and a child row that can be written on its own is exactly how that
+/// invariant stops being one. `standing` is the weakest standing among those citations, derived on the way in
+/// and never declared. `measurement` holds either the scored measure or the engine's explicit refusal to score
+/// it — a figure of known origin and nonsensical value is what leadership needs shown, not hidden. `period` is
+/// an ordinal, never a date. Never deleted: a figure that should not have counted is withdrawn, which is also
+/// what frees its period for the correction that replaces it. Tenant-owned: FORCE RLS.
+model KpiReading {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  kpiDefinitionId  String   @map("kpi_definition_id") @db.Uuid
+  kpiKey           String   @map("kpi_key")
+  pillar           String
+  period           Int
+  measurement      Json
+  citations        Json     @default("[]")
+  standing         String
+  withdrawnAt      String?  @map("withdrawn_at")
+  withdrawalReason String?  @map("withdrawal_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, kpiDefinitionId])
+  // One standing reading per indicator per period is enforced by a PARTIAL unique
+  // index on (tenant_id, kpi_definition_id, period) WHERE withdrawn_at IS NULL,
+  // created in the add_executive_intelligence migration. A withdrawn figure must
+  // not block the correction that replaces it, which a total unique would — and a
+  // partial unique is a migration-only DB feature, like RLS.
+  @@index([tenantId, kpiDefinitionId, period])
+  @@index([tenantId, organizationId, kpiDefinitionId])
+  @@index([tenantId, kpiKey, period])
+  @@map("kpi_reading")
+}
+
+/// HealthIndexDefinition (P2-D29) — what each of the ten pillars is worth to this institution. The ten pillars
+/// are fixed at the platform and their weighting is the institution's, which is the whole line between a
+/// comparable index and a bespoke one. `weights` is JSONB and frozen from publication onward; `grain` is
+/// declared once and immutable, because a period is an ordinal and an index that changed from terms to quarters
+/// would leave every filed assessment pointing at a different stretch of the year. `superseded_by_id` is what
+/// lets a reader walk a school's reweightings forward and see that a step in the series was a change of
+/// question rather than of fortune. Never deleted: a superseded composition is what a past assessment was
+/// computed under. Tenant-owned: FORCE RLS.
+model HealthIndexDefinition {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  indexKey       String   @map("index_key")
+  name           String
+  description    String?
+  grain          String
+  weights        Json     @default("[]")
+  status         String   @default("draft")
+  supersededById String?  @map("superseded_by_id") @db.Uuid
+  publishedAt    String?  @map("published_at")
+  supersededAt   String?  @map("superseded_at")
+  retiredAt      String?  @map("retired_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  // One composition of a series is in service at a time, enforced by a PARTIAL
+  // unique index on (tenant_id, index_key) WHERE status = 'published', created in
+  // the add_executive_intelligence migration. Superseded and retired compositions
+  // keep the key, because assessments were computed under them.
+  @@index([tenantId, indexKey])
+  @@index([tenantId, status])
+  @@map("health_index_definition")
+}
+
+/// HealthIndexAssessment (P2-D29) — one period's composite, and the pinned inputs that make it defensible.
+/// `run` holds the declared weights and the pillar reports together, detached from the definition, and
+/// `fingerprint` is a digest of exactly that — the cheap way to notice inputs moved, never a tamper control.
+/// This is the reason the aggregate is worth storing at all: a foreign key resolves to today's weights, and
+/// reproducibility is a claim about the day the figure was computed. `value` is NULL rather than zero when
+/// nothing declared could be scored, because a composite that could not be computed and one that came out at
+/// zero are different events. `sufficient` and `weight_redistributed` are stored as they were decided, never
+/// re-derived: coverage floors could move, and a recomputed verdict would rewrite what the institution was
+/// told. Never deleted: a figure that turned out wrong is invalidated in place. Tenant-owned: FORCE RLS.
+model HealthIndexAssessment {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  indexDefinitionId   String   @map("index_definition_id") @db.Uuid
+  indexKey            String   @map("index_key")
+  period              Int
+  grain               String
+  run                 Json
+  fingerprint         String
+  value               Float?
+  band                String?
+  pillarCoverage      Float    @map("pillar_coverage")
+  sufficient          Boolean  @default(false)
+  weightRedistributed Float    @default(0) @map("weight_redistributed")
+  contributions       Json     @default("[]")
+  omissions           Json     @default("[]")
+  evidence            Json
+  status              String   @default("provisional")
+  finalizedAt         String?  @map("finalized_at")
+  invalidatedAt       String?  @map("invalidated_at")
+  invalidationReason  String?  @map("invalidation_reason")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by") @db.Uuid
+  updatedBy           String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, indexKey, period])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, indexDefinitionId])
+  @@index([tenantId, status])
+  @@index([tenantId, fingerprint])
+  @@map("health_index_assessment")
+}
+
+/// Dashboard (P2-D29) — what a role opens, declared as bindings rather than pictures. `panels` is an ordered
+/// JSONB array and order is the only positioning this contract has, deliberately: a coordinate would leave
+/// visible holes where a viewer's withheld panels used to be, and a hole is an answer. Each panel names the
+/// permission scope a reader must hold; composition removes what a viewer's scopes do not reach rather than
+/// blanking it in place. `dashboard_key` is immutable — it is what a saved link and an institution's
+/// default-dashboard setting both resolve through — and an archived dashboard keeps it for the same reason.
+/// Tenant-owned: FORCE RLS.
+model Dashboard {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  dashboardKey   String   @map("dashboard_key")
+  name           String
+  description    String?
+  panels         Json     @default("[]")
+  status         String   @default("draft")
+  publishedAt    String?  @map("published_at")
+  archivedAt     String?  @map("archived_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, dashboardKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@map("dashboard")
+}
+
+/// ExecutiveBriefing (P2-D29) — what was actually circulated, and what it said at the time. `cited` is the
+/// figure as it stood when the briefing was drafted, copied rather than referenced: it survives the assessment
+/// being invalidated, which is the entire point — the record of what leadership was told must not silently
+/// become the record of what is true now. `findings` are frozen in the order they were ranked in.
+/// `audience_scope` is required, not optional: unlike a panel a briefing has no larger document to be quietly
+/// dropped out of, so a blank audience would fail open on the most sensitive record this contract produces.
+/// Never deleted: a briefing that should not have gone out is withdrawn with a reason. Tenant-owned: FORCE RLS.
+model ExecutiveBriefing {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  briefingKey      String   @map("briefing_key")
+  title            String
+  narrative        String?
+  audienceScope    String   @map("audience_scope")
+  assessmentId     String   @map("assessment_id") @db.Uuid
+  indexKey         String   @map("index_key")
+  period           Int
+  cited            Json
+  findings         Json     @default("[]")
+  status           String   @default("draft")
+  issuedAt         String?  @map("issued_at")
+  withdrawnAt      String?  @map("withdrawn_at")
+  withdrawalReason String?  @map("withdrawal_reason")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, briefingKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, assessmentId])
+  @@index([tenantId, organizationId, status])
+  @@map("executive_briefing")
+}
+
+/// AttentionItem (P2-D29) — one finding a period's arithmetic produced, and the work of clearing it. Identity
+/// is (assessment, key): the assessment is which period's arithmetic raised it and the key is the engine's
+/// stable name for the finding, which together are why a sweep restates rather than duplicates and why nothing
+/// is ever reopened — a later period raises its own item. `severity` moves when a finding deteriorates, which
+/// is exactly why it is not part of the key. `observed` is the quantity the finding was last raised on in
+/// whatever its reason measures, and is never summed across items. Never deleted: acknowledging, resolving and
+/// dismissing all leave the record of what was raised and who dealt with it. Tenant-owned: FORCE RLS.
+model AttentionItem {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  assessmentId   String   @map("assessment_id") @db.Uuid
+  indexKey       String   @map("index_key")
+  period         Int
+  key            String
+  reason         String
+  severity       String
+  subjectKind    String   @map("subject_kind")
+  subject        String
+  observed       Float?
+  status         String   @default("open")
+  acknowledgedAt String?  @map("acknowledged_at")
+  acknowledgedBy String?  @map("acknowledged_by") @db.Uuid
+  closedAt       String?  @map("closed_at")
+  closedBy       String?  @map("closed_by") @db.Uuid
+  closureNote    String?  @map("closure_note")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, assessmentId, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, indexKey, period])
+  @@index([tenantId, severity])
+  @@map("attention_item")
+}

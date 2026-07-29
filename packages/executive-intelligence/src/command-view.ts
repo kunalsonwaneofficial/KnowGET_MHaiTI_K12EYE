@@ -170,6 +170,22 @@ export interface WeightVerdict {
 // --- Indexing --------------------------------------------------------------------
 
 /**
+ * One indicator's report to its pillar: which pillar it belongs to, and what it scored — or that it scored
+ * nothing.
+ *
+ * The shape a roll-up consumes, and the reason it is a shape at all rather than two parallel arrays. A pillar's
+ * coverage is the count of its indicators that reported over the count it declares, so an indicator that could not
+ * be scored has to arrive as a member of the pillar with no score, not as an absence. Dropping it before the
+ * roll-up would leave a pillar that measured one of its nine indicators looking as though it had measured its only
+ * one.
+ */
+export interface PillarReport {
+  readonly pillar: HealthPillar;
+  /** The indicator's normalized score, or `null` when it had none to give. Never a zero standing in for one. */
+  readonly score: number | null;
+}
+
+/**
  * What one pillar brought to an assessment: its score, and how much of itself it managed to measure.
  *
  * The coverage counts travel with the score rather than beside it because they are the only thing that

@@ -38,6 +38,7 @@
     "@knowget/enterprise-identity": "workspace:*",
     "@knowget/events": "workspace:*",
     "@knowget/exceptions": "workspace:*",
+    "@knowget/executive-intelligence": "workspace:*",
     "@knowget/engagement": "workspace:*",
     "@knowget/facilities": "workspace:*",
     "@knowget/faculty-excellence": "workspace:*",
