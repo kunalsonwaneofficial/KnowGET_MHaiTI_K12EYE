@@ -179,9 +179,14 @@ export type NegotiationRefusal = "no_versions_offered" | "unknown_version" | "ve
 /**
  * The version a caller will be served on, and what they should be told about it.
  *
- * `advisory` is the deprecation notice a served-but-deprecated caller gets. It is part of the verdict rather
- * than something the transport adds afterwards, because a deprecation that is announced by whichever adapter
- * remembered to announce it is a deprecation that half the consumers never hear about.
+ * `deprecated` and `sunsetAt` together are the notice a served-but-deprecated caller gets: that they are on a
+ * version that is going away, and the date it goes. Both are part of the verdict rather than something the
+ * transport works out afterwards, because a deprecation announced by whichever adapter remembered to announce
+ * it is a deprecation half the consumers never hear about.
+ *
+ * `sunsetAt` is populated only when `deprecated` is true. A version that is merely published has no end date to
+ * report, and carrying one anyway — a date read off a row that has not been announced yet — would let a
+ * transport render a countdown for a version nobody has been told anything about.
  */
 export interface VersionVerdict {
   readonly seated: boolean;
