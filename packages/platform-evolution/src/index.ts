@@ -54,5 +54,7 @@ export * from "./errors";
 
 // --- Aggregates ------------------------------------------------------------------
 
+export * from "./governance-decision";
 export * from "./improvement-initiative";
 export * from "./improvement-signal";
+export * from "./lesson";

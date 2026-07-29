@@ -31,6 +31,25 @@ import { PlatformError } from "@knowget/exceptions";
  * - {@link InitiativeSettledError} means `adopted`, `rejected` and `withdrawn` are ends. Undoing an adopted
  *   change is a new initiative under the reversion gate, because the fact that the institution once believed in
  *   it is exactly the fact a later reader needs.
+ * - {@link ProposerMayNotDecideError} and {@link RepeatBallotError} are the quorum rule enforced where a ballot
+ *   is *cast* rather than where it is counted. The governance engine can afford to accept a proposer's vote and
+ *   discount it, because an engine produces a number; a decision record cannot, because it produces an
+ *   appearance. A minuted gate showing the author of a change among the people who agreed to it is the exact
+ *   thing the rule exists to prevent, and it stays true however carefully the arithmetic underneath excluded it.
+ * - {@link ConditionsRequiredError} and {@link ConditionsNotPermittedError} mean a verdict named *approved with
+ *   conditions* carries conditions, and no other verdict does. The first refuses a decision that sounds
+ *   qualified and binds nobody to anything; the second refuses conditions attached to a plain rejection, where
+ *   they read as terms that were never actually agreed.
+ * - {@link MemoryCommitmentUnresolvedError} is *lessons feed institutional memory* made structural. A lesson
+ *   becomes `retained` when a commitment resolves against the knowledge graph and at no other moment — not when
+ *   it is written well, not when it is reviewed, not when somebody marks it done. Every institution that has
+ *   ever run a retrospective has a folder of insights nobody committed anywhere; this refusal is what stops that
+ *   folder from being reportable as institutional memory.
+ * - {@link LessonTextFrozenError} means a lesson that reached memory says what it said when it was committed. A
+ *   retained lesson is cited by later cycles and traced by lineage, and one whose text could still be edited
+ *   would make every citation a reference to whatever the sentence has since become. A conclusion that has
+ *   changed is a new lesson superseding this one, which is also how the institution keeps the fact that it
+ *   previously believed something else.
  *
  * A refusal is a 409 or a 422 carrying the specifics an operator needs to act on it, because these are the
  * platform enforcing its contract rather than something going wrong inside it.
@@ -472,6 +491,396 @@ export class EmptyWithdrawalReasonError extends PlatformError {
  * arithmetic produce a figure nobody could reconstruct.
  */
 export class InvalidPilotPeriodError extends PlatformError {
+  constructor(period: number) {
+    super(`Period ${period} is not a valid period index`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { period },
+    });
+  }
+}
+
+// --- Governance decisions --------------------------------------------------------
+
+/** The requested governance decision does not exist in the current tenant. */
+export class GovernanceDecisionNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Governance decision "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * One initiative cannot have two open gates of the same kind.
+ *
+ * A second approval gate convened while the first is still pending gives the institution two records of one
+ * question, and whichever is read first becomes the answer. It is also the mechanism by which a gate somebody
+ * refused gets quietly retried: convene another, ask different people, and the initiative advances on a record
+ * that is true in isolation and misleading in company. Reconsideration is legitimate — it just has to wait for
+ * the first gate to settle, so that both rounds are readable and in order.
+ */
+export class DuplicateOpenGateError extends PlatformError {
+  constructor(initiativeId: string, gate: string) {
+    super(`Improvement initiative "${initiativeId}" already has an open ${gate} gate`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { initiativeId, gate },
+    });
+  }
+}
+
+/**
+ * A gate convened without a recorded proposer.
+ *
+ * The rule that nobody decides their own change can only be applied against a name, so a gate assembled without
+ * one is not a gate with a field missing — it is a gate whose central safeguard cannot run and will report
+ * nothing when it does not. The governance engine's answer is to leave such a gate permanently pending; this
+ * aggregate's answer is to refuse to open it, because a gate that can never satisfy is a queue entry somebody
+ * will eventually be asked to explain.
+ */
+export class UnattributedProposalError extends PlatformError {
+  constructor() {
+    super("A governance gate must record who proposed the change it decides", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * The gate has finished, and a ballot arriving afterwards cannot have contributed to it.
+ *
+ * Accepting one would produce the most quietly dishonest record this domain could hold: a decision showing more
+ * agreement than it was taken on. That is true of a late affirmation as much as a late refusal — the second
+ * looks like the institution ignoring a warning it never actually received in time. Either way the remedy is a
+ * fresh gate, which arrives with its own date on it.
+ */
+export class GateAlreadySettledError extends PlatformError {
+  constructor(id: string, outcome: string) {
+    super(`Governance decision "${id}" is ${outcome}; no further ballots can be cast`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, outcome },
+    });
+  }
+}
+
+/** A vote with nobody behind it is not a person agreeing, and a quorum is a count of people. */
+export class UnattributedBallotError extends PlatformError {
+  constructor() {
+    super("A governance ballot must record who cast it", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * The person who put the change forward may not vote on it.
+ *
+ * The governance engine reports this ballot and declines to count it, which is the right behaviour for a
+ * function that returns a number. It is the wrong behaviour for a record. A minuted gate listing the proposer
+ * among those who spoke is exactly the appearance the rule exists to prevent, and the arithmetic underneath
+ * having excluded them is not something the reader of the minute can see.
+ */
+export class ProposerMayNotDecideError extends PlatformError {
+  constructor(id: string, deciderId: string) {
+    super(`Decider "${deciderId}" proposed the change decided by gate "${id}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, deciderId },
+    });
+  }
+}
+
+/**
+ * This person has already voted at this gate.
+ *
+ * Refused rather than counted-once, because a quorum met by one person voting three times and a quorum met by
+ * three people are indistinguishable in any store that accepted both. Somebody who has changed their mind has
+ * not cast a second ballot; they have reached a different decision, and that is a new gate.
+ */
+export class RepeatBallotError extends PlatformError {
+  constructor(id: string, deciderId: string) {
+    super(`Decider "${deciderId}" has already cast a ballot at gate "${id}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, deciderId },
+    });
+  }
+}
+
+/**
+ * Every ballot states a reason, and the reason is long enough to be one.
+ *
+ * This is the only compulsory free text on a decision and it is the part of the record that turns out to matter.
+ * A gate showing three approvals tells a later reader that three people agreed; the rationales tell them what
+ * those people thought they were agreeing to, which is the question actually asked when a change is revisited
+ * two years later. A decision with no stated reason is a signature.
+ */
+export class DecisionRationaleLengthError extends PlatformError {
+  constructor(length: number, minimum: number, maximum: number) {
+    super(`A governance ballot rationale must be ${minimum}–${maximum} characters; got ${length}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { length, minimum, maximum },
+    });
+  }
+}
+
+/** A verdict named *approved with conditions* that carries none is a qualification binding nobody to anything. */
+export class ConditionsRequiredError extends PlatformError {
+  constructor() {
+    super("A conditional approval must state at least one condition", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Conditions belong to a conditional approval and to nothing else.
+ *
+ * Attached to a rejection or a deferral they read as terms the institution agreed to, which nobody did — the
+ * decision was no. The realization engine later reads conditions as commitments made at adoption, so a
+ * condition hanging off a refusal is a commitment traceable to a change that never happened.
+ */
+export class ConditionsNotPermittedError extends PlatformError {
+  constructor(verdict: string) {
+    super(`A ${verdict} ballot may not carry conditions`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { verdict },
+    });
+  }
+}
+
+/** Conditions are things somebody will be held to; a list too long to be read is a list nobody is held to. */
+export class TooManyDecisionConditionsError extends PlatformError {
+  constructor(count: number, maximum: number) {
+    super(`A governance ballot may carry at most ${maximum} conditions; got ${count}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { count, maximum },
+    });
+  }
+}
+
+/** A blank condition is an obligation with no content that still counts towards the gate having had any. */
+export class BlankDecisionConditionError extends PlatformError {
+  constructor(index: number) {
+    super(`Governance ballot condition at index ${index} is empty`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { index },
+    });
+  }
+}
+
+// --- Lessons ---------------------------------------------------------------------
+
+/** The requested lesson does not exist in the current tenant. */
+export class LessonNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Lesson "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A lesson key is how a cycle, a lineage trace and a superseding lesson all address the same conclusion, so two
+ * lessons cannot answer to one key. Superseded keys stay taken: the earlier conclusion remains readable, and a
+ * new lesson wearing its key would make the institution's record of having changed its mind disappear into a
+ * single row that has apparently always said this.
+ */
+export class DuplicateLessonKeyError extends PlatformError {
+  constructor(lessonKey: string) {
+    super(`Lesson "${lessonKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { lessonKey },
+    });
+  }
+}
+
+/** A lesson is addressed by key by every cycle, trace and successor that refers back to it. */
+export class EmptyLessonKeyError extends PlatformError {
+  constructor() {
+    super("A lesson must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * Keys are matched by exact string equality, and supersession is decided by comparing two of them. A key not in
+ * canonical form is a lesson nothing will find again, and — because the self-supersession check is a key
+ * comparison — it is also the one shape in which a lesson can be recorded as replacing itself.
+ */
+export class InvalidLessonKeyError extends PlatformError {
+  constructor(lessonKey: string) {
+    super(`Lesson key "${lessonKey}" is not a well-formed registry key`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { lessonKey },
+    });
+  }
+}
+
+/**
+ * The lesson is not well enough formed to be recorded.
+ *
+ * The learning engine reports every problem at once and the codes travel into the refusal, so somebody writing
+ * up a retrospective is told the whole story rather than discovering it one correction at a time. Unrecognised
+ * and repeated capability areas are not among them: those are dropped and reported, because losing the six areas
+ * a person picked correctly to punish the one they mistyped is how a form stops being filled in.
+ */
+export class UnusableLessonError extends PlatformError {
+  constructor(lessonKey: string, issues: readonly string[]) {
+    super(`Lesson "${lessonKey}" is not well enough formed to record`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { lessonKey, issues },
+    });
+  }
+}
+
+/**
+ * A lesson that has reached memory says what it said when it was committed.
+ *
+ * Cycles cite it, lineage traces run through it and later lessons supersede it by name, and every one of those
+ * references is to a sentence. Editing the sentence afterwards leaves the references pointing at a claim nobody
+ * ever agreed to; the institution would hold a conclusion it never actually reached, cited by records that
+ * predate it. A conclusion that has changed is a new lesson, and superseding is how it says so.
+ */
+export class LessonTextFrozenError extends PlatformError {
+  constructor(id: string, retention: string) {
+    super(`Lesson "${id}" is ${retention}; its statement is fixed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, retention },
+    });
+  }
+}
+
+/** The lesson already holds this retention state: the move asked for has been made. */
+export class LessonAlreadyInRetentionError extends PlatformError {
+  constructor(id: string, retention: string) {
+    super(`Lesson "${id}" is already ${retention}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, retention },
+    });
+  }
+}
+
+/**
+ * `superseded` is an end. A lesson a later one corrected stays exactly as it was, because the fact that the
+ * institution once concluded the opposite is part of what it knows — and restoring it would erase the correction
+ * rather than the error.
+ */
+export class LessonRetentionSettledError extends PlatformError {
+  constructor(id: string, retention: string) {
+    super(`Lesson "${id}" is ${retention}; its retention is settled`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, retention },
+    });
+  }
+}
+
+/** Lessons travel provisional to retained to superseded. No other move exists, and none of them runs backwards. */
+export class InvalidRetentionProgressionError extends PlatformError {
+  constructor(id: string, from: string, to: string) {
+    super(`Lesson "${id}" cannot move from ${from} to ${to}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, from, to },
+    });
+  }
+}
+
+/**
+ * *Lessons feed institutional memory*, made structural.
+ *
+ * A lesson becomes `retained` when its memory commitment resolves against the institutional knowledge graph
+ * (P2-D25) and at no other moment — not when it is written well, not when it is reviewed, not when somebody
+ * marks it done. Every institution that has run a retrospective has a folder of insights nobody committed
+ * anywhere, and the folder is invariably reported as what the institution learned. This refusal is the whole
+ * difference between the two, and it is the reason `provisional` is uncomfortable everywhere it appears.
+ */
+export class MemoryCommitmentUnresolvedError extends PlatformError {
+  constructor(id: string) {
+    super(`Lesson "${id}" has no resolved memory commitment`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** Superseding is a lesson being replaced by a named one. Without the name it is a lesson being withdrawn. */
+export class NoSupersedingLessonError extends PlatformError {
+  constructor(id: string) {
+    super(`Superseding lesson "${id}" requires the lesson that replaces it`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** A lesson recorded as its own replacement is readable forever and points at nothing. */
+export class LessonSupersedesItselfError extends PlatformError {
+  constructor(id: string) {
+    super(`Lesson "${id}" cannot supersede itself`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A period index outside the grid this domain counts on.
+ *
+ * A lesson's retention period is what makes its review standing decidable years later without asking what today
+ * is. A period that is not a whole number in range would make the review arithmetic produce a date nobody could
+ * reconstruct, on the one record the institution keeps specifically in order to be able to.
+ */
+export class InvalidRetentionPeriodError extends PlatformError {
   constructor(period: number) {
     super(`Period ${period} is not a valid period index`, {
       code: "VALIDATION_ERROR",
