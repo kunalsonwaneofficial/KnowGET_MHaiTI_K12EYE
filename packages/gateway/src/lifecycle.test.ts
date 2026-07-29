@@ -6,6 +6,7 @@ import {
   ENDPOINT_STATUSES,
   MIN_DEPRECATION_NOTICE_DAYS,
   ROUTE_STATUSES,
+  SUBSCRIPTION_STATUSES,
 } from "./gateway-value";
 import {
   inspectConsumerTransition,
@@ -14,6 +15,7 @@ import {
   inspectEndpointTransition,
   inspectRouteTransition,
   inspectServing,
+  inspectSubscriptionTransition,
 } from "./lifecycle";
 
 const iso = (value: string): ISODateString => value as ISODateString;
@@ -139,6 +141,35 @@ describe("endpoint progression", () => {
 
   it("treats a repeated request as a resubmission rather than as a bad move", () => {
     expect(inspectEndpointTransition("disabled", "disabled").refusal).toBe("same_status");
+  });
+});
+
+describe("subscription progression", () => {
+  it("stops sending for either reason, but only from where sending was happening", () => {
+    expect(inspectSubscriptionTransition("active", "paused").allowed).toBe(true);
+    expect(inspectSubscriptionTransition("active", "suspended").allowed).toBe(true);
+  });
+
+  it("keeps the consumer's pause and the platform's suspension out of each other's way", () => {
+    expect(inspectSubscriptionTransition("paused", "suspended").refusal).toBe("not_permitted");
+    expect(inspectSubscriptionTransition("suspended", "paused").refusal).toBe("not_permitted");
+  });
+
+  it("brings a subscription back from either absence", () => {
+    expect(inspectSubscriptionTransition("paused", "active").allowed).toBe(true);
+    expect(inspectSubscriptionTransition("suspended", "active").allowed).toBe(true);
+  });
+
+  it("lets a consumer end a subscription from wherever it is", () => {
+    for (const status of SUBSCRIPTION_STATUSES) {
+      if (status === "revoked") continue;
+      expect(inspectSubscriptionTransition(status, "revoked").allowed).toBe(true);
+      expect(inspectSubscriptionTransition("revoked", status).refusal).toBe("terminal_status");
+    }
+  });
+
+  it("treats a repeated request as a resubmission rather than as a bad move", () => {
+    expect(inspectSubscriptionTransition("paused", "paused").refusal).toBe("same_status");
   });
 });
 

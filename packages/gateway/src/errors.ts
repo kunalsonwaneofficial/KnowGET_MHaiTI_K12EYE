@@ -757,6 +757,25 @@ export class NoEventTypesSubscribedError extends PlatformError {
   }
 }
 
+/**
+ * Something asked the fabric to send to a subscription that is not currently being sent to.
+ *
+ * Names the status rather than only refusing, because the three ways to arrive here have three different next
+ * actions and the caller cannot tell them apart otherwise: a paused subscription is resumed by the consumer who
+ * paused it, a suspended one is resumed once whatever the receiver was doing has stopped, and a revoked one is
+ * not resumed at all.
+ */
+export class SubscriptionNotSendingError extends PlatformError {
+  constructor(subscriptionKey: string, status: string) {
+    super(`Webhook subscription "${subscriptionKey}" is ${status} and is not being sent to`, {
+      code: "UNAVAILABLE",
+      httpStatus: 503,
+      isOperational: true,
+      details: { subscriptionKey, status },
+    });
+  }
+}
+
 // --- Outbound deliveries ---------------------------------------------------------
 
 /** The requested outbound delivery does not exist in the current tenant. */
@@ -812,6 +831,29 @@ export class DeliveryAttemptsExhaustedError extends PlatformError {
       httpStatus: 409,
       isOperational: true,
       details: { id, attempts },
+    });
+  }
+}
+
+/**
+ * The backoff engine was handed an attempt count that is not a count of attempts.
+ *
+ * Non-operational, and the reason is worth stating plainly: the attempt counter is incremented by this package
+ * and by nothing else. A consumer cannot influence it, a receiver cannot influence it, and a value that is not a
+ * whole non-negative number means the delivery record was written by something that is not the aggregate.
+ *
+ * Raised rather than clamped, on the same argument the circuit engine makes. A clamped attempt count still
+ * produces a schedule, and that schedule decides whether a delivery is retried in thirty seconds or given up on
+ * entirely — so absorbing the defect costs an institution a webhook that was silently dead-lettered on the first
+ * failure, or one that retried past its allowance against a receiver already telling us to stop.
+ */
+export class InvalidAttemptNumberError extends PlatformError {
+  constructor(deliveryId: string, attempt: number) {
+    super(`Outbound delivery "${deliveryId}" has a non-count attempt number of ${attempt}`, {
+      code: "INTERNAL_ERROR",
+      httpStatus: 500,
+      isOperational: false,
+      details: { deliveryId, attempt },
     });
   }
 }

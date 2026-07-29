@@ -5,10 +5,12 @@ import {
   type EndpointStatus,
   MIN_DEPRECATION_NOTICE_DAYS,
   type RouteStatus,
+  type SubscriptionStatus,
   isTerminalConsumerStatus,
   isTerminalContractStatus,
   isTerminalEndpointStatus,
   isTerminalRouteStatus,
+  isTerminalSubscriptionStatus,
 } from "./gateway-value";
 import type {
   DeprecationRequest,
@@ -31,10 +33,11 @@ import type {
  * **The progression maps are the whole lifecycle, written once.** A consumer moves through registration,
  * activation, suspension and retirement; a contract through draft, publication, deprecation and sunset; a route
  * through draft, activation and retirement; an outbound endpoint through registration, service, quarantine,
- * disablement and retirement. No map has a reverse edge out of its terminal status, and that is deliberate in
- * every case for the same reason: a decommissioning that can be undone is one that nobody ever finishes, and the
- * credential reference, the integrator's pinned version, the published path or the address of a system nobody
- * has spoken to in a year stays live in somebody's configuration on the strength of it.
+ * disablement and retirement; a webhook subscription through service, pause, suspension and revocation. No map
+ * has a reverse edge out of its terminal status, and that is deliberate in every case for the same reason: a
+ * decommissioning that can be undone is one that nobody ever finishes, and the credential reference, the
+ * integrator's pinned version, the published path or the address of a system nobody has spoken to in a year
+ * stays live in somebody's configuration on the strength of it.
  *
  * **Serving is a question about an instant, not about now.** {@link inspectServing} takes `asOf` and answers for
  * that moment, including moments before the deprecation was announced — at which point the contract was merely
@@ -138,6 +141,34 @@ const ENDPOINT_PROGRESSION: Readonly<Record<EndpointStatus, readonly EndpointSta
   });
 
 /**
+ * Where a webhook subscription may go from where it is.
+ *
+ * Two ways to stop sending again, and the same argument that separates quarantine from disablement separates
+ * these — except that here the two parties are the consumer and the platform rather than the platform and an
+ * operator. `paused` is the consumer's own choice, taken because their receiver is being deployed or their
+ * downstream is being migrated; `suspended` is the platform's, taken because the receiver has been refusing
+ * everything for long enough that continuing to send is costing both sides capacity for nothing. A consumer
+ * returning from a maintenance window needs to know which of the two they are in, because a pause is cleared by
+ * remembering to clear it and a suspension is cleared by fixing something.
+ *
+ * There is no edge from `paused` to `suspended`. A paused subscription is not being sent to, so there are no
+ * failures for the platform to draw a conclusion from, and suspending one would be the fabric announcing a
+ * verdict about deliveries it chose not to attempt.
+ *
+ * Both absences lead back to `active` rather than to each other. A suspension is not converted into a pause by
+ * the consumer noticing it, and a pause is not escalated into a suspension by lasting a long time; each is
+ * cleared by the party that caused it, and the record says which party that was.
+ */
+const SUBSCRIPTION_PROGRESSION: Readonly<
+  Record<SubscriptionStatus, readonly SubscriptionStatus[]>
+> = Object.freeze({
+  active: Object.freeze(["paused", "suspended", "revoked"]) as readonly SubscriptionStatus[],
+  paused: Object.freeze(["active", "revoked"]) as readonly SubscriptionStatus[],
+  suspended: Object.freeze(["active", "revoked"]) as readonly SubscriptionStatus[],
+  revoked: Object.freeze([]) as readonly SubscriptionStatus[],
+});
+
+/**
  * The one transition rule, applied to whichever map was handed in.
  *
  * The order of the three checks is the order the caller can act on. Being told a record is already active is a
@@ -181,6 +212,13 @@ export const inspectEndpointTransition = (
   to: EndpointStatus,
 ): TransitionVerdict =>
   inspectTransition(from, to, isTerminalEndpointStatus, ENDPOINT_PROGRESSION[from]);
+
+/** Whether a webhook subscription may move from one status to another. */
+export const inspectSubscriptionTransition = (
+  from: SubscriptionStatus,
+  to: SubscriptionStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalSubscriptionStatus, SUBSCRIPTION_PROGRESSION[from]);
 
 // --- Serving ---------------------------------------------------------------------
 

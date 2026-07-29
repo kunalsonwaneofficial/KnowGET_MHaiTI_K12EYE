@@ -506,3 +506,34 @@ export interface SubscriptionView {
 
 /** The subscription status as a plain name, for projections that do not import the union. */
 export type SubscriptionStatusName = "active" | "paused" | "suspended" | "revoked";
+
+// --- Delivery projection ---------------------------------------------------------
+
+/**
+ * One outbound delivery as an operator working a dead-letter queue sees it.
+ *
+ * `lastError` crosses and the payload does not, which is the division this projection is built around. A person
+ * triaging a queue of failed webhooks needs to know what the receiver said — a 401 and a 502 are different jobs
+ * for different people — and does not need the institution's student records rendered into a support screen on
+ * the way to finding out. The digest is carried instead, which is enough to tell two deliveries of the same
+ * event apart and useless for anything else.
+ */
+export interface DeliveryView {
+  readonly deliveryId: Uuid;
+  readonly subscriptionId: Uuid;
+  readonly eventType: string;
+  readonly outcome: DeliveryOutcomeName;
+  readonly attempts: number;
+  readonly attemptsRemaining: number;
+  readonly nextAttemptAt: ISODateString | null;
+  readonly lastAttemptedAt: ISODateString | null;
+  /** What the receiver answered with, where it answered at all. Null for a transport failure. */
+  readonly lastStatusCode: number | null;
+  readonly lastError: string | null;
+  /** True only for a dead-lettered delivery. An abandoned one is retained and must never be re-sent. */
+  readonly replayable: boolean;
+}
+
+/** The delivery outcome as a plain name, for projections that do not import the union. */
+export type DeliveryOutcomeName =
+  "pending" | "delivered" | "failed" | "dead_lettered" | "abandoned";
