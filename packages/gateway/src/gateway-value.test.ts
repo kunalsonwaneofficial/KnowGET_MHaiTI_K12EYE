@@ -44,6 +44,7 @@ import {
   isContractServable,
   isCount,
   isCredentialReference,
+  isHttpStatusCode,
   isMutatingMethod,
   isPositiveCount,
   isReplayableOutcome,
@@ -328,5 +329,21 @@ describe("numeric guards", () => {
     expect(isPositiveCount(0)).toBe(false);
     expect(isPositiveCount(1)).toBe(true);
     expect(isPositiveCount(-3)).toBe(false);
+  });
+
+  it("accepts the whole registered status range, including codes we would never send", () => {
+    expect(isHttpStatusCode(100)).toBe(true);
+    expect(isHttpStatusCode(200)).toBe(true);
+    expect(isHttpStatusCode(418)).toBe(true);
+    expect(isHttpStatusCode(599)).toBe(true);
+  });
+
+  it("refuses the shapes that are a defect rather than a strange server", () => {
+    expect(isHttpStatusCode(0)).toBe(false);
+    expect(isHttpStatusCode(99)).toBe(false);
+    expect(isHttpStatusCode(600)).toBe(false);
+    expect(isHttpStatusCode(-200)).toBe(false);
+    expect(isHttpStatusCode(200.5)).toBe(false);
+    expect(isHttpStatusCode(Number.NaN)).toBe(false);
   });
 });

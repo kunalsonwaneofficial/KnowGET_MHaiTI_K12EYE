@@ -601,3 +601,14 @@ export const isCount = (value: number): boolean => Number.isInteger(value) && va
 
 /** Whether a value is a positive integer — the shape every limit that would be meaningless at zero takes. */
 export const isPositiveCount = (value: number): boolean => Number.isInteger(value) && value > 0;
+
+/**
+ * Whether a value is an HTTP status code the platform is willing to record.
+ *
+ * The whole registered range rather than a list of the ones we happen to return, because two of the three places
+ * a status reaches this package it came from somebody else's server, and a receiver answering `418` is being
+ * strange rather than being wrong. What the range excludes is the shape that is actually a defect: a zero, a
+ * negative, a fraction, or a millisecond count that arrived in the wrong argument.
+ */
+export const isHttpStatusCode = (value: number): boolean =>
+  Number.isInteger(value) && value >= 100 && value <= 599;

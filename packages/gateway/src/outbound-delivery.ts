@@ -13,6 +13,7 @@ import {
   type DeliveryOutcome,
   INITIAL_DELIVERY_OUTCOME,
   MAX_DELIVERY_ATTEMPTS,
+  isHttpStatusCode,
   isReplayableOutcome,
   isTerminalDeliveryOutcome,
   isValidKey,
@@ -116,10 +117,6 @@ export interface DeliveryFailure {
  */
 const MAX_ERROR_LENGTH = 1_000;
 
-/** The range a response status has to be in to be worth recording as one. */
-const MIN_STATUS_CODE = 100;
-const MAX_STATUS_CODE = 599;
-
 /** Normalise an event type and refuse it if it is blank or does not fit the platform's grammar. */
 function requireEventType(value: string): string {
   const key = normalizeKey(value);
@@ -152,12 +149,7 @@ function requireFingerprint(value: string): string {
  * computes with.
  */
 const recordableStatus = (statusCode: number | null): number | null =>
-  statusCode !== null &&
-  Number.isInteger(statusCode) &&
-  statusCode >= MIN_STATUS_CODE &&
-  statusCode <= MAX_STATUS_CODE
-    ? statusCode
-    : null;
+  statusCode !== null && isHttpStatusCode(statusCode) ? statusCode : null;
 
 /** Reduce a failure message to the text retained for it, or to nothing where there is no text. */
 function recordableError(error: string): string | null {

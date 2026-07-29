@@ -918,6 +918,27 @@ export class IdempotencyRecordSettledError extends PlatformError {
   }
 }
 
+/**
+ * A completion was recorded against an idempotency key with something that is not an HTTP status.
+ *
+ * Refused rather than absorbed, which is the opposite of what a delivery attempt does with a nonsense status
+ * code, and the difference is what the number is *for*. A delivery records what a receiver said and nothing
+ * branches on it; this number is replayed to the next caller as their response status. A record completed with
+ * a null status answers a retry with no status at all, and the client library on the other end will do
+ * something arbitrary with that — most of them treat it as a transport failure and retry, which is exactly the
+ * duplicate the ledger exists to prevent.
+ */
+export class InvalidRecordedStatusError extends PlatformError {
+  constructor(idempotencyKey: string, statusCode: number) {
+    super(`Cannot record status ${statusCode} against idempotency key "${idempotencyKey}"`, {
+      code: "INTERNAL_ERROR",
+      httpStatus: 500,
+      isOperational: false,
+      details: { idempotencyKey, statusCode },
+    });
+  }
+}
+
 // --- Enforcement -----------------------------------------------------------------
 
 /**
@@ -939,6 +960,25 @@ export class InvalidQuotaFigureError extends PlatformError {
       httpStatus: 500,
       isOperational: false,
       details: { name, value, requirement },
+    });
+  }
+}
+
+/**
+ * An admission check was handed a declared body size that is not a size.
+ *
+ * A negative or fractional byte count comes from the transport layer, not from the caller — a consumer cannot
+ * declare minus four hundred bytes — so this is our defect and is hidden accordingly. Raised rather than read as
+ * "no body", because a request whose size could not be established is a request the payload ceiling was never
+ * actually applied to, and serving it would mean the limit an operator configured silently did not hold.
+ */
+export class InvalidPayloadSizeError extends PlatformError {
+  constructor(payloadBytes: number) {
+    super(`A declared body size must be a whole number of bytes; ${payloadBytes} was given`, {
+      code: "INTERNAL_ERROR",
+      httpStatus: 500,
+      isOperational: false,
+      details: { payloadBytes },
     });
   }
 }
