@@ -39,5 +39,7 @@ export * from "./evolution-view";
 
 // --- Engines ---------------------------------------------------------------------
 
+export * from "./cadence";
 export * from "./governance";
 export * from "./intake";
+export * from "./lifecycle";

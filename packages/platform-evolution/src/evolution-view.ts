@@ -1,9 +1,11 @@
 import type {
   ChangeClass,
+  CycleStage,
   DecisionVerdict,
   EvidenceKind,
   GateOutcome,
   GovernanceGate,
+  InitiativeStatus,
   SignalPriority,
   SignalSource,
   SignalStatus,
@@ -181,4 +183,107 @@ export interface GateVerdict {
   /** How many deferred. A deferral leaves the gate open rather than settling it in either direction. */
   readonly deferrals: number;
   readonly issues: readonly BallotIssue[];
+}
+
+// --- Initiative lifecycle --------------------------------------------------------
+
+/**
+ * A proposed move of an initiative from one lifecycle state to another, with everything the engine needs to
+ * decide it.
+ *
+ * `gateOutcome` is nullable because the absence of a gate and the presence of an unsatisfied one are different
+ * situations with different remedies, and collapsing them into a falsy check would tell the caller to wait for
+ * people who were never asked. `pilotPeriods` arrives already counted rather than as a pair of period indices:
+ * the lifecycle engine has no business doing calendar arithmetic, and the cadence engine has no business knowing
+ * what a pilot is.
+ */
+export interface AdvanceRequest {
+  readonly from: InitiativeStatus;
+  readonly to: InitiativeStatus;
+  /** The outcome of the gate this move requires, or `null` when no gate has been convened for it. */
+  readonly gateOutcome: GateOutcome | null;
+  /** Whole periods the initiative has already piloted for. Ignored by moves that are not adoption. */
+  readonly pilotPeriods: number;
+}
+
+/** Why an initiative may not move to the state somebody asked for. */
+export type AdvanceRefusal =
+  | "same_status"
+  | "terminal_status"
+  | "unreachable_status"
+  | "pilot_too_short"
+  | "gate_missing"
+  | "gate_pending"
+  | "gate_refused";
+
+/**
+ * Whether an initiative may make this move, which gate the move stands on, and if it may not, which kind of not.
+ *
+ * `gate` is reported whether the move is allowed or refused, because a caller assembling a governance record
+ * needs to know which gate a transition rested on even when it went through — that is the field an auditor reads
+ * eighteen months later to find the ballots.
+ */
+export interface AdvanceVerdict {
+  readonly allowed: boolean;
+  readonly from: InitiativeStatus;
+  readonly to: InitiativeStatus;
+  /** The gate this move requires, or `null` when it requires none. */
+  readonly gate: GovernanceGate | null;
+  /** `null` when the move is allowed. */
+  readonly refusal: AdvanceRefusal | null;
+}
+
+// --- Improvement cadence ---------------------------------------------------------
+
+/**
+ * A span of periods, checked and counted.
+ *
+ * Issues here are bare codes with no index, because a span has two named ends rather than a list of members —
+ * an index would be a position in something that has no positions. The count is inclusive of both ends: a cycle
+ * that runs from period 4 to period 4 is one period long, not zero, because it is a real cycle that happened.
+ */
+export interface SpanVerdict {
+  readonly usable: boolean;
+  readonly startPeriod: number;
+  readonly endPeriod: number;
+  /** Periods the span covers, counting both ends. `0` when the span is unusable. */
+  readonly periods: number;
+  readonly issues: readonly string[];
+}
+
+/**
+ * A proposed move of an improvement cycle from one stage to another.
+ *
+ * `lessonsRecorded` is what makes closure mean something. A cycle that closes having written nothing down is an
+ * improvement programme that ran, consumed a term of everybody's attention, and left the institution knowing
+ * exactly what it knew before.
+ */
+export interface StageChangeRequest {
+  readonly from: CycleStage;
+  readonly to: CycleStage;
+  /** The outcome of the gate this move requires, or `null` when no gate has been convened for it. */
+  readonly gateOutcome: GateOutcome | null;
+  /** Lessons the cycle has produced so far. Ignored by moves that are not closure. */
+  readonly lessonsRecorded: number;
+}
+
+/** Why an improvement cycle may not move to the stage somebody asked for. */
+export type StageRefusal =
+  | "same_stage"
+  | "terminal_stage"
+  | "unreachable_stage"
+  | "no_lessons"
+  | "gate_missing"
+  | "gate_pending"
+  | "gate_refused";
+
+/** Whether a cycle may make this move, which gate it stands on, and if it may not, which kind of not. */
+export interface StageChangeVerdict {
+  readonly allowed: boolean;
+  readonly from: CycleStage;
+  readonly to: CycleStage;
+  /** The gate this move requires, or `null` when it requires none. */
+  readonly gate: GovernanceGate | null;
+  /** `null` when the move is allowed. */
+  readonly refusal: StageRefusal | null;
 }
