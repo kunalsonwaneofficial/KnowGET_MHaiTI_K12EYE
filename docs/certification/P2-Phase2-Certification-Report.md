@@ -1,7 +1,7 @@
 # Phase 2 Certification Report — Domain Intelligence Platform
 
 - **Certifies:** Phase 2 — P2-D01 … P2-D30, the complete K–12 institutional domain surface
-- **Status:** _pending merge_
+- **Status:** ✅ Certified — merged to `main` (`350c624`); baseline frozen and tagged `v0.3.0`
 - **Date:** 2026-07-29
 - **Baseline tag:** `v0.3.0`
 - **Built on:** Phase-1 Platform Core, certified and frozen at `v0.1.0`; Identity & Organization, certified at `v0.2.0`
