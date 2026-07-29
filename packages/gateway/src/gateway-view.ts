@@ -306,14 +306,34 @@ export interface QuotaRequest {
  * `retryAfterSeconds` is present on every non-allow verdict and is computed from the window rather than
  * guessed, so a throttled consumer is told exactly when the window turns over. A gateway that throttles without
  * saying when has converted a well-behaved client into a polling one.
+ *
+ * The three window-shaped fields are nullable together and mean one thing between them: no rate limit applies,
+ * so nothing is being counted. `null` rather than a sentinel, because both available sentinels lie — a
+ * `remaining` of zero reads as exhausted on the one header integrators actually watch, and a very large number
+ * reads as a limit nobody set. A transport renders these headers when they are populated and omits them
+ * otherwise, which is what an unmetered consumer should see.
  */
 export interface QuotaVerdict {
   readonly decision: EnforcementDecision;
   readonly reason: EnforcementReason;
-  /** Units left in the window after this request, floored at zero. */
-  readonly remaining: number;
-  /** When the current window turns over. */
-  readonly windowResetsAt: ISODateString;
+  /**
+   * Units left against the *sustained* limit after this request, floored at zero. `null` when unmetered.
+   *
+   * Counted against the sustained figure rather than the burst ceiling on purpose: a consumer drawing on its
+   * burst allowance sees zero remaining while still being served, which is exactly the signal a well-behaved
+   * client needs to ease off before the ceiling actually refuses it.
+   */
+  readonly remaining: number | null;
+  /** When the window this request falls in turns over. `null` when unmetered. */
+  readonly windowResetsAt: ISODateString | null;
+  /**
+   * The aligned start of the window this request falls in. `null` when unmetered.
+   *
+   * Differs from the request's `windowStartedAt` exactly when the recorded window has elapsed. A ledger rolling
+   * a stale row writes this rather than the current instant, so windows keep their phase instead of drifting
+   * forward every time a consumer goes quiet.
+   */
+  readonly currentWindowStartedAt: ISODateString | null;
   readonly retryAfterSeconds: number | null;
   /** True when the window described has already elapsed, so `consumed` refers to a window that is over. */
   readonly windowExpired: boolean;

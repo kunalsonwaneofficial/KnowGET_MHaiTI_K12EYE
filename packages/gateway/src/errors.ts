@@ -855,6 +855,29 @@ export class IdempotencyRecordSettledError extends PlatformError {
 // --- Enforcement -----------------------------------------------------------------
 
 /**
+ * A quota check was handed a count that is not a count: a negative consumption, a fractional cost, a cost of nothing.
+ *
+ * Hidden from clients and non-operational, because no consumer can cause this. Every figure the quota engine
+ * reads comes from the platform's own ledger or from the code that priced the call, so a bad one is a defect on
+ * our side and the consumer would only be confused by it.
+ *
+ * Raised rather than absorbed. The tempting alternative is to clamp — read a cost of zero as one, a negative
+ * consumption as none — and it is the wrong instinct here, because every clamp produces a call that is served
+ * and mis-counted, and a consumer whose usage is quietly under-counted is discovered by the bill or by the
+ * outage, months later, with no record of which calls were wrong.
+ */
+export class InvalidQuotaFigureError extends PlatformError {
+  constructor(name: string, value: number, requirement: string) {
+    super(`A quota ${name} ${requirement}; ${value} was given`, {
+      code: "INTERNAL_ERROR",
+      httpStatus: 500,
+      isOperational: false,
+      details: { name, value, requirement },
+    });
+  }
+}
+
+/**
  * The consumer exceeded the rate they are permitted.
  *
  * `retryAfterSeconds` is in the details rather than only in a header, because the details object is what
