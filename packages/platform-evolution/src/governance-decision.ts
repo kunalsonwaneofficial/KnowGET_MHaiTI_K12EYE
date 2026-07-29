@@ -344,6 +344,32 @@ export const isDecisionSatisfied = (decision: GovernanceDecision): boolean =>
   decision.outcome === "satisfied";
 
 /**
+ * The gate of this name a change currently stands on, chosen from its whole decision trail.
+ *
+ * This is the read the initiative aggregate's gate argument is filled from, and it is deliberately not the same
+ * question the repository's `findOpenGate` answers. That one asks *is anybody still being asked*, which is what
+ * stops a second gate being convened alongside a live one, and it excludes settled gates for exactly that
+ * reason. This one asks *what did the institution decide*, and the answer to that is almost always a settled
+ * gate — an approval that was satisfied last month is precisely what an initiative advances on.
+ *
+ * An unsettled gate wins when there is one, because a change with a question still open stands on that question
+ * rather than on the previous answer: an initiative refused at approval, reworked, and put again is `pending`
+ * until the new gate closes, not still `refused`. There can only ever be one, so the choice is unambiguous.
+ * Otherwise the last settled gate answers, which is the most recent decision the institution took.
+ *
+ * Takes the trail rather than reaching for a store, so what counts as *current* is one rule readable in one
+ * place rather than a filter written slightly differently in each service that needs it.
+ */
+export const currentGate = (
+  decisions: readonly GovernanceDecision[],
+  gate: GovernanceGate,
+): GovernanceDecision | null => {
+  const atGate = decisions.filter((decision) => decision.gate === gate);
+  const unsettled = atGate.find((decision) => !isDecisionSettled(decision));
+  return unsettled ?? atGate[atGate.length - 1] ?? null;
+};
+
+/**
  * Every term anybody attached to their approval, in the order the ballots were cast.
  *
  * These are the commitments the institution made in order to get the change through, and they are the thing an

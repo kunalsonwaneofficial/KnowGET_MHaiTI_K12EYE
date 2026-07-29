@@ -24,6 +24,7 @@ import {
   type GovernanceDecision,
   castBallot,
   convokeGate,
+  currentGate,
   decisionConditions,
   gateStanding,
   isDecisionSatisfied,
@@ -374,11 +375,57 @@ describe("reading", () => {
   });
 });
 
+describe("the gate a change currently stands on", () => {
+  it("finds nothing in an empty trail, and nothing at a gate never convened", () => {
+    expect(currentGate([], "approval")).toBeNull();
+    expect(currentGate([gate()], "reversion")).toBeNull();
+  });
+
+  it("answers with a settled gate, which is what an initiative actually advances on", () => {
+    const satisfied = opened();
+
+    expect(currentGate([satisfied], "approval")).toEqual(satisfied);
+    expect(currentGate([satisfied], "approval")?.outcome).toBe("satisfied");
+  });
+
+  it("keeps the gates of other names out of it", () => {
+    const approval = opened();
+    const exit = cast(gate({ gate: "pilot_exit" }), "person-3");
+
+    expect(currentGate([approval, exit], "pilot_exit")).toEqual(exit);
+    expect(currentGate([approval, exit], "approval")).toEqual(approval);
+  });
+
+  it("prefers the question still open to the answer already given", () => {
+    const refused = cast(gate(), "person-3", { verdict: "rejected" });
+    const reconvened = gate();
+
+    expect(currentGate([refused, reconvened], "approval")).toEqual(reconvened);
+  });
+
+  it("answers with the most recent decision once every gate has settled", () => {
+    const refused = cast(gate(), "person-3", { verdict: "rejected" });
+    const satisfied = opened();
+
+    expect(currentGate([refused, satisfied], "approval")).toEqual(satisfied);
+  });
+
+  it("reads the trail without reordering or otherwise touching it", () => {
+    const trail = [cast(gate(), "person-3", { verdict: "rejected" }), gate()];
+    const before = JSON.stringify(trail);
+
+    currentGate(trail, "approval");
+
+    expect(JSON.stringify(trail)).toBe(before);
+  });
+});
+
 describe("deliberate absences", () => {
   it("publishes exactly the surface a gate has and nothing more", () => {
     expect(Object.keys(decisionModule).sort()).toEqual([
       "castBallot",
       "convokeGate",
+      "currentGate",
       "decisionConditions",
       "gateStanding",
       "isDecisionSatisfied",

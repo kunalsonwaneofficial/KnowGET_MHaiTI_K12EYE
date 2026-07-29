@@ -69,3 +69,9 @@ export * from "./ports";
 // --- Events ----------------------------------------------------------------------
 
 export * from "./evolution-events";
+
+// --- Services --------------------------------------------------------------------
+
+export * from "./governance-decision-service";
+export * from "./improvement-initiative-service";
+export * from "./improvement-signal-service";
