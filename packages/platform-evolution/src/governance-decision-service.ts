@@ -3,12 +3,13 @@ import type { DomainEvent, TenantId, Uuid } from "@knowget/types";
 import {
   DuplicateOpenGateError,
   GovernanceDecisionNotFoundError,
+  ImprovementCycleNotFoundError,
   ImprovementInitiativeNotFoundError,
   OrganizationNotFoundForEvolutionError,
   PersonNotFoundForEvolutionError,
 } from "./errors";
 import { ballotCast, gateConvoked, gateRefused, gateSatisfied } from "./evolution-events";
-import type { GovernanceGate } from "./evolution-value";
+import type { ChangeClass, GovernanceGate } from "./evolution-value";
 import {
   type CastBallotParams,
   type ConvokeGateParams,
@@ -22,6 +23,7 @@ import {
 import type { ImprovementInitiative } from "./improvement-initiative";
 import type {
   GovernanceDecisionRepository,
+  ImprovementCycleRepository,
   ImprovementInitiativeRepository,
   OrganizationDirectory,
   PersonDirectory,
@@ -38,11 +40,20 @@ import type {
  * failure the quorum rule exists to prevent. The store is asked before the record is written; the aggregate
  * holds one decision and has no way to see the other.
  *
- * **The change class is copied from the initiative, not from the caller.** {@link ConvokeGateParams} carries a
+ * **The change class is copied from the subject, not from the caller.** {@link ConvokeGateParams} carries a
  * class because the aggregate needs one to derive the quorum, and this service refuses to convene a gate whose
  * class disagrees with the initiative's own — a gate convened at `minor` against a `policy` change would face a
  * smaller quorum than the institution decided that change deserves, and the resulting minute would read as
  * perfectly regular. The initiative is loaded and its class is what is used.
+ *
+ * **Three of the four gates stand in front of an initiative; `cycle_closure` stands in front of a cycle.** The
+ * subject is addressed through one field either way, and which kind of record it names is decided by the gate.
+ * A closure gate has no initiative to copy a class from, so there the caller's declared class stands — the one
+ * place in this contract where a class is taken on trust. What bounds it is that the class only moves the
+ * quorum, the floor of {@link MIN_REQUIRED_DECIDERS} holds regardless, and the proposer still may not decide:
+ * the cheapest closure a caller can arrange is one other real person agreeing the round is finished. That the
+ * cycle exists is checked, because a closure gate addressed to nothing would satisfy in perfect isolation and
+ * the cycle it was supposedly about would still be sitting open.
  *
  * **Everybody named is real.** The proposer, whoever convened the gate, and every decider. This is the check
  * this whole contract turns on: a quorum is a count of distinct people and the proposer-may-not-decide rule is a
@@ -59,6 +70,7 @@ import type {
 export interface GovernanceDecisionServiceDeps {
   readonly repository: GovernanceDecisionRepository;
   readonly initiatives: ImprovementInitiativeRepository;
+  readonly cycles: ImprovementCycleRepository;
   readonly organizations: OrganizationDirectory;
   readonly people: PersonDirectory;
   readonly events?: Pick<EventBus, "publish">;
@@ -67,6 +79,7 @@ export interface GovernanceDecisionServiceDeps {
 export class GovernanceDecisionService {
   private readonly repository: GovernanceDecisionRepository;
   private readonly initiatives: ImprovementInitiativeRepository;
+  private readonly cycles: ImprovementCycleRepository;
   private readonly organizations: OrganizationDirectory;
   private readonly people: PersonDirectory;
   private readonly events: Pick<EventBus, "publish"> | undefined;
@@ -74,6 +87,7 @@ export class GovernanceDecisionService {
   constructor(deps: GovernanceDecisionServiceDeps) {
     this.repository = deps.repository;
     this.initiatives = deps.initiatives;
+    this.cycles = deps.cycles;
     this.organizations = deps.organizations;
     this.people = deps.people;
     this.events = deps.events;
@@ -82,15 +96,14 @@ export class GovernanceDecisionService {
   // --- Convening -------------------------------------------------------------------
 
   /**
-   * Open a gate in front of a change, at the class the initiative actually carries.
+   * Open a gate in front of a change, at the class its subject actually carries.
    *
-   * The initiative is loaded first because its class overrides whatever the caller sent, and the gate the
+   * The subject is loaded first because its class overrides whatever the caller sent, and the gate the
    * aggregate is built with has to be the one that will be stored. Then the organization, then the absence of a
    * competing gate, then the people.
    */
   async convoke(params: ConvokeGateParams): Promise<GovernanceDecision> {
-    const initiative = await this.requireInitiative(params.tenantId, params.initiativeId);
-    const decision = convokeGate({ ...params, changeClass: initiative.changeClass });
+    const decision = convokeGate({ ...params, changeClass: await this.subjectClass(params) });
     await this.requireOrganization(params.tenantId, params.organizationId);
     await this.requireGateFree(params.tenantId, params.initiativeId, params.gate);
     await this.requirePerson(params.tenantId, params.proposedBy, "proposer of the change");
@@ -169,6 +182,25 @@ export class GovernanceDecisionService {
     return decision;
   }
 
+  /**
+   * The class this gate will be decided at, read off whatever the gate stands in front of.
+   *
+   * For `approval`, `pilot_exit` and `reversion` that is the initiative, and its class wins outright. For
+   * `cycle_closure` the subject is an improvement cycle, which has no class of its own — a round is not a
+   * proposed change and carries no blast radius to inherit — so the caller's declared class stands and the
+   * existence of the cycle is what gets checked instead. That is a weaker rule than the other three gates get,
+   * stated plainly here rather than hidden: it is bounded by the decider floor and the proposer-may-not-decide
+   * rule, both of which hold at every class.
+   */
+  private async subjectClass(params: ConvokeGateParams): Promise<ChangeClass> {
+    if (params.gate === "cycle_closure") {
+      await this.requireCycle(params.tenantId, params.initiativeId);
+      return params.changeClass;
+    }
+    const initiative = await this.requireInitiative(params.tenantId, params.initiativeId);
+    return initiative.changeClass;
+  }
+
   /** The initiative this gate stands in front of, whose change class the gate inherits. */
   private async requireInitiative(
     tenantId: TenantId,
@@ -179,6 +211,13 @@ export class GovernanceDecisionService {
       throw new ImprovementInitiativeNotFoundError(initiativeId);
     }
     return initiative;
+  }
+
+  /** The improvement cycle a closure gate stands in front of. Existence only; there is no class to copy. */
+  private async requireCycle(tenantId: TenantId, cycleId: Uuid): Promise<void> {
+    if (!(await this.cycles.findById(tenantId, cycleId))) {
+      throw new ImprovementCycleNotFoundError(cycleId);
+    }
   }
 
   /** The institution this decision hangs off, checked through the directory port. */

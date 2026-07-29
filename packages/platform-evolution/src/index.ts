@@ -72,6 +72,10 @@ export * from "./evolution-events";
 
 // --- Services --------------------------------------------------------------------
 
+export * from "./adoption-review-service";
 export * from "./governance-decision-service";
+export * from "./improvement-cycle-service";
 export * from "./improvement-initiative-service";
 export * from "./improvement-signal-service";
+export * from "./lesson-service";
+export * from "./maturity-assessment-service";

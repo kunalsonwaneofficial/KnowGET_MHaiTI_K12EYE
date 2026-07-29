@@ -89,10 +89,14 @@ export interface GovernanceDecision {
   readonly id: Uuid;
   readonly tenantId: TenantId;
   readonly organizationId: Uuid;
-  /** The initiative this gate stands in front of. */
+  /**
+   * What this gate stands in front of: an improvement initiative at `approval`, `pilot_exit` and `reversion`,
+   * and an improvement cycle at `cycle_closure`. One column either way — the gate says which kind of record it
+   * names, and nothing here dereferences it.
+   */
   readonly initiativeId: Uuid;
   readonly gate: GovernanceGate;
-  /** Copied from the initiative at convocation, so the quorum this gate faced is readable without a join. */
+  /** Copied from the subject at convocation, so the quorum this gate faced is readable without a join. */
   readonly changeClass: ChangeClass;
   /** Who put the change forward. Their own ballot is refused, in either direction. */
   readonly proposedBy: Uuid;
@@ -124,9 +128,10 @@ export interface GovernanceDecision {
 export interface ConvokeGateParams {
   readonly tenantId: TenantId;
   readonly organizationId: Uuid;
+  /** The initiative this gate stands in front of, or the improvement cycle at `cycle_closure`. */
   readonly initiativeId: Uuid;
   readonly gate: GovernanceGate;
-  /** The initiative's frozen change class. It decides how many people must agree. */
+  /** The subject's frozen change class. It decides how many people must agree. */
   readonly changeClass: ChangeClass;
   readonly proposedBy: Uuid;
   /** `null` when an automated step opened the gate, which is permitted and decides nothing. */

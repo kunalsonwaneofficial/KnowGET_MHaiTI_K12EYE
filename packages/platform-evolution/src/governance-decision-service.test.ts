@@ -4,6 +4,7 @@ import {
   DuplicateOpenGateError,
   GateAlreadySettledError,
   GovernanceDecisionNotFoundError,
+  ImprovementCycleNotFoundError,
   ImprovementInitiativeNotFoundError,
   OrganizationNotFoundForEvolutionError,
   PersonNotFoundForEvolutionError,
@@ -14,11 +15,14 @@ import { BALLOT_CAST, GATE_CONVOKED, GATE_REFUSED, GATE_SATISFIED } from "./evol
 import { type ChangeClass, REQUIRED_DECIDERS } from "./evolution-value";
 import type { CastBallotParams, ConvokeGateParams } from "./governance-decision";
 import { GovernanceDecisionService } from "./governance-decision-service";
+import { openCycle } from "./improvement-cycle";
 import { proposeInitiative } from "./improvement-initiative";
 import {
   type GovernanceDecisionRepository,
+  type ImprovementCycleRepository,
   type ImprovementInitiativeRepository,
   InMemoryGovernanceDecisionRepository,
+  InMemoryImprovementCycleRepository,
   InMemoryImprovementInitiativeRepository,
   type OrganizationDirectory,
   type PersonDirectory,
@@ -37,6 +41,7 @@ const ABSENT_INITIATIVE = "88888888-8888-4888-8888-888888888888" as Uuid;
 
 const SUMMARY = "Move marking turnaround to two weeks across the whole of key stage three.";
 const RATIONALE = "The two-week turnaround is achievable at the current marking load.";
+const INTENT = "Shorten marking turnaround across key stage three over the spring term.";
 
 class Recorder {
   readonly published: DomainEvent[] = [];
@@ -73,6 +78,7 @@ interface Harness {
   readonly service: GovernanceDecisionService;
   readonly repository: GovernanceDecisionRepository;
   readonly initiatives: ImprovementInitiativeRepository;
+  readonly cycles: ImprovementCycleRepository;
   readonly organizations: StubOrganizations;
   readonly people: StubPeople;
   readonly events: Recorder;
@@ -81,6 +87,7 @@ interface Harness {
 const harness = (): Harness => {
   const repository = new InMemoryGovernanceDecisionRepository();
   const initiatives = new InMemoryImprovementInitiativeRepository();
+  const cycles = new InMemoryImprovementCycleRepository();
   const organizations = new StubOrganizations();
   const people = new StubPeople();
   const events = new Recorder();
@@ -88,12 +95,14 @@ const harness = (): Harness => {
     service: new GovernanceDecisionService({
       repository,
       initiatives,
+      cycles,
       organizations,
       people,
       events,
     }),
     repository,
     initiatives,
+    cycles,
     organizations,
     people,
     events,
@@ -127,6 +136,21 @@ const seedInitiative = async (
   });
   await h.initiatives.save(initiative);
   return initiative.id;
+};
+
+/** An improvement cycle in the store, which is what a `cycle_closure` gate stands in front of. */
+const seedCycle = async (h: Harness): Promise<Uuid> => {
+  const cycle = openCycle({
+    tenantId: TENANT,
+    organizationId: ORG,
+    cycleKey: "cycle-2026-t1",
+    intent: INTENT,
+    startPeriod: 1,
+    endPeriod: 3,
+    openedBy: CONVENER,
+  });
+  await h.cycles.save(cycle);
+  return cycle.id;
 };
 
 const convocation = (
@@ -453,6 +477,102 @@ describe("reading the minutes", () => {
   });
 });
 
+describe("convening a closure gate over an improvement cycle", () => {
+  it("stands the gate in front of the cycle rather than looking for an initiative", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+
+    const decision = await h.service.convoke(
+      convocation(cycleId, { gate: "cycle_closure", changeClass: "clarification" }),
+    );
+
+    expect(decision.initiativeId).toBe(cycleId);
+    expect(decision.gate).toBe("cycle_closure");
+    expect(decision.outcome).toBe("pending");
+    expect(await h.repository.findById(TENANT, decision.id)).toEqual(decision);
+  });
+
+  it("keeps the caller's class, because a round has none of its own to copy", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+
+    const decision = await h.service.convoke(
+      convocation(cycleId, { gate: "cycle_closure", changeClass: "policy" }),
+    );
+
+    expect(decision.changeClass).toBe("policy");
+    expect(decision.required).toBe(REQUIRED_DECIDERS.policy);
+  });
+
+  it("still refuses the proposer's own ballot at the weakest class a closure can be convened at", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+    const decision = await h.service.convoke(
+      convocation(cycleId, { gate: "cycle_closure", changeClass: "clarification" }),
+    );
+
+    const refusal = await refusalOf(() => h.service.cast(TENANT, decision.id, ballot(PROPOSER)));
+
+    expect(refusal).toBeInstanceOf(ProposerMayNotDecideError);
+  });
+
+  it("refuses a closure gate over a cycle that does not exist", async () => {
+    const h = harness();
+
+    const refusal = await refusalOf(() =>
+      h.service.convoke(convocation(MISSING, { gate: "cycle_closure" })),
+    );
+
+    expect(refusal).toBeInstanceOf(ImprovementCycleNotFoundError);
+    expect(await h.service.list(TENANT)).toEqual([]);
+  });
+
+  it("refuses a closure gate over a cycle belonging to another tenant", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+
+    const refusal = await refusalOf(() =>
+      h.service.convoke(convocation(cycleId, { gate: "cycle_closure", tenantId: OTHER })),
+    );
+
+    expect(refusal).toBeInstanceOf(ImprovementCycleNotFoundError);
+  });
+
+  it("does not accept an initiative id at the closure gate", async () => {
+    const h = harness();
+    const initiativeId = await seedInitiative(h);
+
+    const refusal = await refusalOf(() =>
+      h.service.convoke(convocation(initiativeId, { gate: "cycle_closure" })),
+    );
+
+    expect(refusal).toBeInstanceOf(ImprovementCycleNotFoundError);
+  });
+
+  it("does not accept a cycle id at the three gates that stand in front of an initiative", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+
+    for (const gate of ["approval", "pilot_exit", "reversion"] as const) {
+      const refusal = await refusalOf(() => h.service.convoke(convocation(cycleId, { gate })));
+      expect(refusal).toBeInstanceOf(ImprovementInitiativeNotFoundError);
+    }
+  });
+
+  it("carries a closure gate through to satisfied, so a round can actually be closed", async () => {
+    const h = harness();
+    const cycleId = await seedCycle(h);
+    const decision = await h.service.convoke(
+      convocation(cycleId, { gate: "cycle_closure", changeClass: "clarification" }),
+    );
+
+    const settled = await h.service.cast(TENANT, decision.id, ballot(FIRST));
+
+    expect(settled.outcome).toBe("satisfied");
+    expect(await h.service.findGate(TENANT, cycleId, "cycle_closure")).toEqual(settled);
+  });
+});
+
 describe("what the service will not do", () => {
   const methods = (): string[] => Object.getOwnPropertyNames(GovernanceDecisionService.prototype);
 
@@ -473,6 +593,7 @@ describe("what the service will not do", () => {
     const service = new GovernanceDecisionService({
       repository: new InMemoryGovernanceDecisionRepository(),
       initiatives,
+      cycles: new InMemoryImprovementCycleRepository(),
       organizations: new StubOrganizations(),
       people: new StubPeople(),
     });
