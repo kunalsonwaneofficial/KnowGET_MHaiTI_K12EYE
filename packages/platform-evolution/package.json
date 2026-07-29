@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/platform-evolution",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Platform Evolution, Institutional Learning & Continuous Improvement (P2-D30) — the sixth and final contract of the intelligence core (Program E), and the only one whose subject is the institution changing itself. A lesson is provisional until it is committed to institutional memory, so a retrospective that never reached the graph is visibly unfinished rather than quietly filed; and no initiative crosses a governance gate on arithmetic — the gate is crossed by named people, as many of them as the change class demands, none of whom may be the proposer, and any one of whom can refuse. Nothing here holds a clock, an unseeded random source, a deployer or a network client: a platform that could enact its own conclusions would be the one failure this contract exists to make impossible. Domain events carry ids, keys, gates, statuses, verdicts, stable reason codes and counts only — no rationale prose, no lesson text, no PII.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -12,6 +12,7 @@ import { CampusSecurityModule } from "./domains/campus-security/campus-security.
 import { DecisionIntelligenceModule } from "./domains/decision-intelligence/decision-intelligence.module";
 import { PredictiveIntelligenceModule } from "./domains/predictive-intelligence/predictive-intelligence.module";
 import { ExecutiveIntelligenceModule } from "./domains/executive-intelligence/executive-intelligence.module";
+import { PlatformEvolutionModule } from "./domains/platform-evolution/platform-evolution.module";
 import { EngagementModule } from "./domains/engagement/engagement.module";
 import { FacilitiesModule } from "./domains/facilities/facilities.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
@@ -124,6 +125,7 @@ const persistedServices =
     DecisionIntelligenceModule,
     PredictiveIntelligenceModule,
     ExecutiveIntelligenceModule,
+    PlatformEvolutionModule,
     ...persistedSecurity,
     ...persistedServices,
   ],

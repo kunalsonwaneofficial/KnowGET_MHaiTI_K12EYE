@@ -6129,3 +6129,293 @@ model AttentionItem {
   @@index([tenantId, severity])
   @@map("attention_item")
 }
+
+/// ImprovementSignal (P2-D30) — something is not working, and who says so. This is the only entry point the
+/// contract has: nothing downstream may be proposed against a problem nobody filed. `priority` is derived by
+/// the intake engine on every account and never set by hand, which is what stops a queue being reordered by
+/// whoever shouts loudest. `corroboration` counts distinct people after repeat filings collapse into
+/// `repeat_accounts`, and `unattributed` counts filings with nobody behind them — three separate columns
+/// because a queue that folded them together would look quieter than it is. `accounts` is JSONB and ordered:
+/// every derived count above is a function of exactly that list, so a stored count that disagrees with it is
+/// visibly wrong rather than quietly authoritative. Never deleted: a signal is triaged, merged or declined,
+/// and a problem the institution decided not to act on is a decision worth keeping. Tenant-owned: FORCE RLS.
+model ImprovementSignal {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  signalKey          String   @map("signal_key")
+  source             String
+  summary            String
+  status             String   @default("raised")
+  priority           String   @default("routine")
+  corroboration      Int      @default(0)
+  repeatAccounts     Int      @default(0) @map("repeat_accounts")
+  unattributed       Int      @default(0)
+  selfEvident        Boolean  @default(false) @map("self_evident")
+  citations          Json     @default("[]")
+  accounts           Json     @default("[]")
+  raisedBy           String?  @map("raised_by") @db.Uuid
+  triagedAt          String?  @map("triaged_at")
+  triagedBy          String?  @map("triaged_by") @db.Uuid
+  settledAt          String?  @map("settled_at")
+  settledBy          String?  @map("settled_by") @db.Uuid
+  mergedIntoSignalId String?  @map("merged_into_signal_id") @db.Uuid
+  declineReason      String?  @map("decline_reason")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, signalKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, priority])
+  @@index([tenantId, mergedIntoSignalId])
+  @@map("improvement_signal")
+}
+
+/// ImprovementInitiative (P2-D30) — a proposed change, and the signals it was raised to answer.
+/// `change_class` fixes how many distinct people must agree and is frozen once the initiative leaves the
+/// drafting table, so a proposal cannot lower its own quorum on the way to a gate. `originating_signal_ids` is
+/// a JSONB array rather than a join table because it is a fixed, ordered, bounded claim made at proposal time
+/// and the lineage engine reports the gap when it is empty — a change nobody can trace to a filed problem is a
+/// finding, not a constraint violation. `proposed_by` is never NULL: the rule that nobody approves their own
+/// proposal has nothing to check against without it. `pilot_started_period` is an ordinal on the caller's grid,
+/// not a date, because pilot length is subtraction and this domain holds no clock. Never deleted: an initiative
+/// is rejected or withdrawn, and both are decisions the institution made. Tenant-owned: FORCE RLS.
+model ImprovementInitiative {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  initiativeKey        String   @map("initiative_key")
+  changeClass          String   @map("change_class")
+  summary              String
+  originatingSignalIds Json     @default("[]") @map("originating_signal_ids")
+  status               String   @default("draft")
+  proposedBy           String   @map("proposed_by") @db.Uuid
+  submittedAt          String?  @map("submitted_at")
+  reviewStartedAt      String?  @map("review_started_at")
+  approvedAt           String?  @map("approved_at")
+  pilotStartedAt       String?  @map("pilot_started_at")
+  pilotStartedPeriod   Int?     @map("pilot_started_period")
+  settledAt            String?  @map("settled_at")
+  settledBy            String?  @map("settled_by") @db.Uuid
+  withdrawalReason     String?  @map("withdrawal_reason")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by") @db.Uuid
+  updatedBy            String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, initiativeKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, proposedBy])
+  @@map("improvement_initiative")
+}
+
+/// GovernanceDecision (P2-D30) — the gate a change has to pass, and every ballot cast at it. This is where the
+/// contract's rule that nothing self-modifies becomes a table: an initiative cannot move to approved, out of
+/// pilot, or back out again, and a cycle cannot close, without a settled gate here. `initiative_id` names an
+/// improvement initiative at the approval, pilot_exit and reversion gates and an improvement cycle at
+/// cycle_closure — one column either way, because the gate says which kind of record it names and nothing
+/// dereferences it blind. `change_class` and `proposed_by` are copied from the subject at convocation so the
+/// quorum this gate faced and the ballot it must refuse stay readable without a join, and stay true even if the
+/// subject is later amended. `ballots` is JSONB and ordered: `required`, `affirmed`, `outstanding`,
+/// `conditional`, `refused` and `deferrals` are all a function of exactly that list. One open gate per subject
+/// per kind is enforced by a PARTIAL unique index created in the migration. Never deleted. Tenant-owned:
+/// FORCE RLS.
+model GovernanceDecision {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  initiativeId   String   @map("initiative_id") @db.Uuid
+  gate           String
+  changeClass    String   @map("change_class")
+  proposedBy     String   @map("proposed_by") @db.Uuid
+  outcome        String   @default("pending")
+  required       Int
+  affirmed       Int      @default(0)
+  outstanding    Int
+  conditional    Int      @default(0)
+  refused        Boolean  @default(false)
+  deferrals      Int      @default(0)
+  ballots        Json     @default("[]")
+  convokedAt     String   @map("convoked_at")
+  convokedBy     String?  @map("convoked_by") @db.Uuid
+  settledAt      String?  @map("settled_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  // One gate of a kind may stand open against a subject at a time, enforced by a
+  // PARTIAL unique index on (tenant_id, initiative_id, gate) WHERE outcome = 'pending',
+  // created in the add_platform_evolution migration. Settled gates keep their row,
+  // because a reversion convened after an earlier gate settled is a second decision
+  // rather than a re-run of the first.
+  @@index([tenantId, initiativeId])
+  @@index([tenantId, initiativeId, gate])
+  @@index([tenantId, outcome])
+  @@map("governance_decision")
+}
+
+/// Lesson (P2-D30) — what the institution concluded, and whether it actually remembers it. The distinction
+/// between `provisional` and `retained` is the reason this table exists rather than a notes field: a lesson
+/// reaches memory only on a commitment that resolved against the knowledge graph, and the domain has no way to
+/// decide that locally, which is exactly what stops a retrospective from marking its own conclusions
+/// remembered. `retained_at_period` is an ordinal, and review falls due by subtraction from it. `areas` is
+/// JSONB — the recognised capability areas the learning engine resolved, so a lesson can be found by what it
+/// speaks to rather than by who filed it. `superseding_lesson_key` holds a key rather than an id because the
+/// self-supersession rule is a key comparison and a reader must be able to follow the pointer without a join.
+/// The unique on (tenant_id, lesson_key) is TOTAL and superseded lessons keep their key: a citation written
+/// against the old conclusion still has to land somewhere. Never deleted. Tenant-owned: FORCE RLS.
+model Lesson {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId             String   @map("tenant_id") @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  lessonKey            String   @map("lesson_key")
+  statement            String
+  category             String
+  origin               String
+  originRef            String   @map("origin_ref")
+  retention            String   @default("provisional")
+  areas                Json     @default("[]")
+  retainedAtPeriod     Int?     @map("retained_at_period")
+  recordedBy           String?  @map("recorded_by") @db.Uuid
+  retainedAt           String?  @map("retained_at")
+  supersededAt         String?  @map("superseded_at")
+  supersedingLessonKey String?  @map("superseding_lesson_key")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+  createdBy            String?  @map("created_by") @db.Uuid
+  updatedBy            String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, lessonKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, retention])
+  @@index([tenantId, origin, originRef])
+  @@map("lesson")
+}
+
+/// ImprovementCycle (P2-D30) — a round of improvement, bounded at both ends before it starts. `start_period`
+/// and `end_period` are ordinals on the caller's grid and `periods` is the inclusive span the cadence engine
+/// derived from them, stored rather than computed on read so a filed round keeps the length it was planned at.
+/// `intent` freezes when review begins, because review judges the round against what it set out to do and an
+/// editable intent would let a round be judged against what it turned out to achieve. `lessons_recorded` is
+/// counted once at closure and is deliberately not a running total: a live count would make an open round look
+/// productive on lessons nobody had yet committed. A cycle closes only behind a settled cycle_closure gate on
+/// the governance table. Never deleted: a round is closed or abandoned, and an abandoned round with its reason
+/// is the more instructive of the two. Tenant-owned: FORCE RLS.
+model ImprovementCycle {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  cycleKey           String   @map("cycle_key")
+  intent             String
+  stage              String   @default("planning")
+  startPeriod        Int      @map("start_period")
+  endPeriod          Int      @map("end_period")
+  periods            Int
+  lessonsRecorded    Int      @default(0) @map("lessons_recorded")
+  openedBy           String   @map("opened_by") @db.Uuid
+  executionStartedAt String?  @map("execution_started_at")
+  reviewStartedAt    String?  @map("review_started_at")
+  settledAt          String?  @map("settled_at")
+  settledBy          String?  @map("settled_by") @db.Uuid
+  abandonmentReason  String?  @map("abandonment_reason")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, cycleKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, stage])
+  @@index([tenantId, startPeriod, endPeriod])
+  @@map("improvement_cycle")
+}
+
+/// MaturityAssessment (P2-D30) — where the institution stands across the ten capability areas, on a weighting
+/// it declared before anything was scored. `weights` is JSONB and immutable from opening: an institution that
+/// could reweight after seeing the readings would be scoring itself twice. `areas` holds every reading taken,
+/// including the ones the engine does not count, because a reading with no evidence behind it is a fact about
+/// the assessment worth keeping rather than an input to discard. `coverage` is reported areas over all ten and
+/// never over the ones this assessment chose to weight, which is what stops an institution improving its
+/// coverage by declaring fewer areas. `index` and `level` are derived and stored, and the event payloads
+/// withhold both until publication so an unfinished reading cannot be quoted as a score. The unique on
+/// (tenant_id, assessment_key) is TOTAL: a published assessment keeps its key, because a series that could
+/// reissue one would let a later reading overwrite the comparison it was meant to be measured against.
+/// Never deleted. Tenant-owned: FORCE RLS.
+model MaturityAssessment {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  assessmentKey  String   @map("assessment_key")
+  period         Int
+  weights        Json     @default("[]")
+  areas          Json     @default("[]")
+  publishable    Boolean  @default(false)
+  index          Float
+  level          String
+  coverage       Float    @default(0)
+  areasReported  Int      @default(0) @map("areas_reported")
+  openedBy       String   @map("opened_by") @db.Uuid
+  publishedAt    String?  @map("published_at")
+  publishedBy    String?  @map("published_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, assessmentKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, period])
+  @@index([tenantId, publishedAt])
+  @@map("maturity_assessment")
+}
+
+/// AdoptionReview (P2-D30) — what an adopted change actually delivered, against what it promised. A review may
+/// only open against an initiative that reached `adopted`, which is what makes the benefit claim answerable:
+/// there is a decision behind it that named a quorum. `benefits` is JSONB and each entry carries its own
+/// baseline, target, observation, promised and achieved movement, ratio and band — stored as measured rather
+/// than re-derived on read, because the variance floors are platform constants that could move and a
+/// recomputed band would rewrite what the institution concluded at the time. `verdict` is the severest measured
+/// band's recommendation and `worst_band` is NULL when nothing could be measured, which is why
+/// `benefits_measured` and `benefits_claimed` are separate columns: a review that claimed four benefits and
+/// measured none is `inconclusive`, and a reader who saw only one count could not tell that from a review that
+/// claimed nothing. One review per adopted change per period, TOTAL. Never deleted. Tenant-owned: FORCE RLS.
+model AdoptionReview {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  initiativeId     String   @map("initiative_id") @db.Uuid
+  reviewPeriod     Int      @map("review_period")
+  benefits         Json     @default("[]")
+  verdict          String   @default("inconclusive")
+  worstBand        String?  @map("worst_band")
+  benefitsMeasured Int      @default(0) @map("benefits_measured")
+  benefitsClaimed  Int      @default(0) @map("benefits_claimed")
+  openedAt         String   @map("opened_at")
+  openedBy         String   @map("opened_by") @db.Uuid
+  concludedAt      String?  @map("concluded_at")
+  concludedBy      String?  @map("concluded_by") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, initiativeId, reviewPeriod])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, initiativeId])
+  @@index([tenantId, verdict])
+  @@index([tenantId, concludedAt])
+  @@map("adoption_review")
+}

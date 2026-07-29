@@ -3,7 +3,102 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D29 · Program: Intelligence Core · Executive Intelligence, Governance & Institutional Command
+## [Unreleased] — P2-D30 · Program: Intelligence Core · Platform Evolution, Institutional Learning & Continuous Improvement
+
+The **sixth and final contract of Program E — the intelligence core** (D25–D30), and the final contract of
+**Phase 2's thirty-six**: how an institution changes itself on purpose, and how it knows whether the change
+worked. One `@knowget/platform-evolution` package (ADR-0049). One rule defines the contract — **lessons feed
+institutional memory; evolution always requires human governance** — and it closes the Program-E through-line held
+at every contract since D26: **AI recommends with evidence; humans approve; nothing self-modifies or
+self-deploys.** The design problem here is **self-congratulation**. Every other layer in the platform is checked by
+the world — an attendance figure is wrong in front of a teacher, a fee balance in front of a parent — but a record
+of an institution's own improvement is checked by nobody, and is the one record in the platform that can be
+entirely wrong while reading excellently.
+
+### Added
+
+- **`@knowget/platform-evolution`** — seven aggregates (`ImprovementSignal` with its accounts and citations,
+  `ImprovementInitiative` with its originating signals, `GovernanceDecision` with its ballots, `Lesson` with its
+  applicability, `ImprovementCycle`, `MaturityAssessment` with its weights and area readings, `AdoptionReview`
+  with its claimed and measured benefits) plus eight pure, deterministic, **clock-free** engines — **intake**,
+  **governance**, **lifecycle**, **cadence**, **learning**, **lineage**, **maturity** and **realization** — with
+  seven application services, **31 `evolution.*` events** and 96 typed errors, over **1154 tests**. Two absences
+  hold the contract up: the package holds **no clock**, so nothing in it depends on when it was read, and
+  **nothing in it changes anything outside it** — there is no route by which an approved initiative causes the
+  platform to deploy, configure, migrate, enable or edit anything. An approval is authority for people to act, and
+  the act belongs to whoever owns the thing being changed.
+- **Human governance as arithmetic, with nothing to route around** — `REQUIRED_DECIDERS` is a frozen total map
+  (`clarification` 1, `process` 1, `policy` 2, `structural` 3) floored at `MIN_REQUIRED_DECIDERS` with **no
+  override path anywhere in the package**, and a gate clears on a count of **distinct named people**. The
+  **proposer's ballot is discarded in both directions** — it neither carries a gate nor blocks one — and an
+  **unattributed proposal can never be satisfied** rather than trivially satisfied, because a change nobody put
+  their name to is the one most in need of somebody else's. The decider is taken from the **authenticated
+  principal** and is never a body field: a body-supplied decider would let one caller holding `evolution:govern`
+  clear a three-decider gate by naming two colleagues, and the person directory cannot catch it, because the
+  colleagues exist. The **change class is read off the initiative** and copied onto the gate at convocation, so a
+  caller cannot lower the bar by declaring a structural change a clarification on the way in.
+- **One refusal settles it, and every ballot carries a reason — including a yes** — a quorum that keeps voting
+  after a no is a quorum shopping for a yes, so a single `rejected` verdict settles the gate; `deferred` is the
+  verdict for *not yet*; and an approval nobody had to explain is indistinguishable, a year later, from an
+  approval nobody thought about. **Reversion is floored higher than adoption** (`MIN_DECIDERS_FOR_REVERSION`
+  applied as `Math.max(base, 2)`), so undoing a change is never cheaper than making it, and there is **no
+  `reverted` status at all**: undoing is a new initiative facing its own gate, with both records standing, because
+  a status that erases the decision erases the evidence that the institution once believed it.
+- **A lesson stays uncomfortable until institutional memory says otherwise** — every lesson opens `provisional`,
+  the retention ladder is one-way and terminal (`provisional → retained → superseded`, with **no route out of
+  `superseded`**), and the only thing that resolves `provisional` is the **`InstitutionalMemoryDirectory` asking
+  the P2-D25 knowledge graph, by lesson key, whether the commitment actually resolved** — never a status somebody
+  set. A lesson **cannot be superseded before it is retained**, so the uncomfortable one cannot be quietly
+  replaced on the way past, and a **superseded key stays taken**. This makes P2-D25 a real operational
+  prerequisite rather than a citation: an institution that does not run its graph will find its lessons stay
+  `provisional`, which is the honest answer and is exactly the discomfort that makes somebody commit the lesson.
+- **Priority is derived from corroboration, not from the author's adjective** — `MIN_CORROBORATION_FOR_ELEVATED`
+  (`2`) and `MIN_CORROBORATION_FOR_URGENT` (`4`) count **independent** accounts; **anonymous filing is admissible
+  and anonymous corroboration is not**, because the first protects the person raising an unwelcome observation and
+  the second would let one person be a crowd; and a **declined key stays taken**, so a refusal cannot be laundered
+  by re-filing under the same name. Improvement cycles run **without a calendar**: `MIN_LESSONS_FOR_CLOSURE` means
+  a cycle that produced nothing cannot be closed as though it had, `closed` and `abandoned` are **distinct
+  terminal stages** rather than one tidy one, and `cycle_closure` is a **real governance gate** facing the same
+  quorum as a change.
+- **A target is stated before it is measured, and `revert` reverts nothing** — a benefit must be **claimed before
+  it is observed**, **unmeasured claims stay on the record** rather than lapsing, and the verdict comes from the
+  **worst** variance band and never the average (`VARIANCE_FLOORS` — `exceeded` 1.1, `met` 0.9, `shortfall` 0.5),
+  because averaging is how one catastrophic miss disappears behind four comfortable hits. The `revert` verdict is
+  a **recommendation that acts on nothing** — the through-line at its sharpest. Maturity is scored over **ten
+  closed `CAPABILITY_AREAS`** (closed so two institutions' indices mean the same thing, and so an index stays
+  comparable with its own history), weights bounded on both sides (`MIN_AREA_WEIGHT` `0.01`, `MAX_AREA_WEIGHT`
+  `0.5`) summing to 1 within `WEIGHT_TOLERANCE` (`1e-6`), under a `MIN_AREA_COVERAGE` floor of `0.7`.
+- **The lineage ladder, which makes the other two checkable** — `LINEAGE_STAGES` is a frozen ascending ladder
+  (`unrecorded → evidence → signal → decision → outcome → memory`) and `traceLineage` returns the highest rung a
+  claim actually reaches together with one of **eight gap codes** naming what stopped it, so "we learned from
+  that" becomes a statement with a verifiable answer rather than a sentiment.
+- **Persistence** — seven FORCE-RLS tables (`improvement_signal`, `improvement_initiative`, `governance_decision`,
+  `lesson`, `improvement_cycle`, `maturity_assessment`, `adoption_review`), migration
+  `20261231000000_add_platform_evolution`, `tenant_isolation` (USING + WITH CHECK, fail-closed) on every table,
+  six absolute uniques DB-backed plus **one partial unique that holds a rule rather than a shape**:
+  `(tenant_id, initiative_id, gate) WHERE outcome = 'pending'` — one open gate at a time in front of one change,
+  held by Postgres rather than by service code. `governance_decision.initiative_id` is a **deliberate polymorphic
+  reference with no FK** (an initiative at approval, pilot exit and reversion; a cycle at closure), since a FK
+  would have forced either two nullable columns or two tables holding one rule. **No table carries a soft-delete
+  column and no repository declares a delete**: every aggregate's way out is a domain state — declined, merged,
+  withdrawn, rejected, refused, superseded, abandoned.
+- **API** — seven permission-gated controllers / 66 endpoints under `apps/api/src/domains/platform-evolution`,
+  split `evolution:read` (every read, deliberately wide, because the person who raised the signal is entitled to
+  follow it through to the decision it produced) / `evolution:contribute` (raising and corroborating) /
+  `evolution:manage` (initiatives, cycles and adoption reviews) / **`evolution:assess`** (scoring the
+  institution's own maturity, separated because that is not the same authority as running its improvement work) /
+  **`evolution:govern` standing alone — the ability to propose a change is not the authority to approve it, and no
+  scope implies it**; accountable identity always from the authenticated principal, never a body; module
+  registered in `app.module`.
+- **Boundaries** — **D30 records the institution's changes to itself; it makes none of them.** No domain→domain
+  import: the organization node, the person, every evidence citation and the memory commitment enter through four
+  directory ports, with assessment results, decision records, forecast runs and knowledge assertions resolving to
+  their owning domains by kind (P2-D10, P2-D27, P2-D28, P2-D25) and everything else through the graph by
+  `(sourceDomain, sourceRef)`. `attested_return` is the only one of eight evidence kinds demanding a named
+  attestor — a figure somebody typed is admissible, and an anonymously typed one is not. ADR-0049, TD-50.
+  **This completes Program E and Phase 2's thirty-six contracts; the next milestone is Phase 2 certification.**
+
+## P2-D29 · Program: Intelligence Core · Executive Intelligence, Governance & Institutional Command
 
 The **fifth contract of Program E — the intelligence core** (D25–D30), and the layer every domain before it was
 feeding: twenty-eight domains' worth of institutional activity reduced to the small number of figures a board
