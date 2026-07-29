@@ -414,6 +414,65 @@ export const CIRCUIT_POSTURES = Object.freeze(["closed", "open", "half_open"] as
 
 export type CircuitPosture = (typeof CIRCUIT_POSTURES)[number];
 
+/**
+ * How many failures in a row settle the question of whether an endpoint is merely having a bad moment.
+ *
+ * A consecutive count rather than a rate, because the two catch different outages and a rate alone misses the
+ * one that costs most. An endpoint that has just started refusing everything has a failure rate computed over a
+ * handful of calls, which no ratio threshold with an honest minimum sample will trip until the sample has
+ * accumulated — and every call made while it accumulates is a call the platform knew would fail.
+ */
+export const CIRCUIT_CONSECUTIVE_FAILURE_THRESHOLD = 5;
+
+/**
+ * The fewest observations a failure *rate* may be computed from.
+ *
+ * Three calls of which two failed is not a two-thirds failure rate; it is three calls. Without a floor, the
+ * first unlucky pair of timeouts after a quiet hour opens the circuit on an endpoint that is perfectly well, and
+ * the platform stops calling a vendor for the reason that almost nobody was calling the vendor.
+ */
+export const CIRCUIT_MIN_OBSERVATIONS = 20;
+
+/** The share of a large enough sample that must have failed for the circuit to open. */
+export const CIRCUIT_FAILURE_RATIO = 0.5;
+
+/**
+ * The share of failures at which an endpoint is reported as degraded while still being called.
+ *
+ * Well below the ratio that opens the circuit, and the gap between the two is the point of having both. One call
+ * in ten failing is invisible to everybody except the integration it breaks, and it is exactly the condition an
+ * operator can still act on — a certificate weeks from expiry, a vendor shedding load — while acting is cheap.
+ */
+export const CIRCUIT_DEGRADED_RATIO = 0.1;
+
+/**
+ * How long an open circuit waits before one probe is worth making.
+ *
+ * A minute: long enough that a restart, a failover or a deploy on the other side has plausibly finished, short
+ * enough that an endpoint which recovered immediately is not left cold while deliveries pile up behind it.
+ */
+export const CIRCUIT_PROBE_AFTER_SECONDS = 60;
+
+/**
+ * How many probes must succeed before an open circuit is closed again.
+ *
+ * More than one, because a single success is precisely what a partially recovered endpoint produces — one node
+ * back in the rotation and four still failing — and closing on it returns the full traffic to something that
+ * will fail it again, which is how a recovering system is kept from recovering.
+ */
+export const CIRCUIT_HALF_OPEN_SUCCESSES = 3;
+
+/**
+ * How long an endpoint may keep failing its probes before it stops being an incident and becomes a task.
+ *
+ * An hour of open, probe, fail, open is not a transient anything. Past this point the retries cost the vendor
+ * capacity and the platform queue depth with no prospect of success, and what the situation needs is a person: a
+ * credential has expired, an address has moved, an agreement has ended. {@link ENDPOINT_STATUSES} carries
+ * `quarantined` for exactly this, so that the endpoint stops being called *and* stays visible as something
+ * unresolved rather than being quietly switched off by whoever got tired of the alert.
+ */
+export const CIRCUIT_QUARANTINE_AFTER_SECONDS = 3_600;
+
 // --- Webhook delivery ------------------------------------------------------------
 
 /**

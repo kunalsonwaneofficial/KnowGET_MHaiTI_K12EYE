@@ -5,6 +5,7 @@ import type {
   ContractStatus,
   ContractStyle,
   DeliveryMode,
+  EndpointStatus,
   EnforcementDecision,
   EnforcementReason,
   HttpMethod,
@@ -461,13 +462,25 @@ export interface ConsumerView {
 
 // --- Endpoint projection ---------------------------------------------------------
 
-/** A registered outbound endpoint as an operator sees it, with the adapter it is served through. */
+/**
+ * A registered outbound endpoint as an operator sees it, with the adapter it is served through.
+ *
+ * `status` and `health` are both present and neither can be derived from the other, which is the reason a view
+ * this small carries two fields that both sound like they answer *is it working*. Health is what was observed;
+ * status is what was decided. A disabled endpoint keeps whatever health it last earned — nothing has been sent
+ * to it since, and the last thing that was sent may well have succeeded — so an operator reading health alone
+ * would see `healthy` beside an endpoint that has not been called in a fortnight. A quarantined one drifts the
+ * other way, to `unknown`, once the outcome window empties. The question an operator actually opens this list to
+ * ask is whether calls are going out, and only `status` answers it.
+ */
 export interface EndpointView {
   readonly endpointId: Uuid;
   readonly endpointKey: string;
+  readonly displayName: string;
   readonly protocol: IntegrationProtocol;
   /** The adapter implementation this endpoint is bound to. The vendor sits behind it, never in front. */
   readonly adapterKey: string;
+  readonly status: EndpointStatus;
   readonly health: EndpointHealthSummary;
 }
 

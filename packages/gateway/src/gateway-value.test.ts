@@ -3,7 +3,14 @@ import {
   AUTH_SCHEMES,
   BACKOFF_BASE_SECONDS,
   BACKOFF_JITTER_RATIO,
+  CIRCUIT_CONSECUTIVE_FAILURE_THRESHOLD,
+  CIRCUIT_DEGRADED_RATIO,
+  CIRCUIT_FAILURE_RATIO,
+  CIRCUIT_HALF_OPEN_SUCCESSES,
+  CIRCUIT_MIN_OBSERVATIONS,
   CIRCUIT_POSTURES,
+  CIRCUIT_PROBE_AFTER_SECONDS,
+  CIRCUIT_QUARANTINE_AFTER_SECONDS,
   CONSUMER_STATUSES,
   CONTRACT_STATUSES,
   CONTRACT_STYLES,
@@ -229,6 +236,25 @@ describe("integration endpoints", () => {
   it("describes health as observation, starting from not knowing", () => {
     expect(ENDPOINT_HEALTHS[0]).toBe("unknown");
     expect(CIRCUIT_POSTURES).toEqual(["closed", "open", "half_open"]);
+  });
+
+  it("reports trouble well before it acts on it", () => {
+    expect(CIRCUIT_DEGRADED_RATIO).toBeLessThan(CIRCUIT_FAILURE_RATIO);
+    expect(CIRCUIT_DEGRADED_RATIO).toBeGreaterThan(0);
+    expect(CIRCUIT_FAILURE_RATIO).toBeLessThanOrEqual(1);
+  });
+
+  it("probes an outage several times over before calling it somebody's task", () => {
+    expect(CIRCUIT_PROBE_AFTER_SECONDS).toBeLessThan(CIRCUIT_QUARANTINE_AFTER_SECONDS);
+  });
+
+  it("waits for a sample before believing a ratio, and never for a run", () => {
+    expect(CIRCUIT_MIN_OBSERVATIONS).toBeGreaterThan(CIRCUIT_CONSECUTIVE_FAILURE_THRESHOLD);
+    expect(CIRCUIT_CONSECUTIVE_FAILURE_THRESHOLD).toBeGreaterThan(1);
+  });
+
+  it("asks for more than one probe before returning the traffic", () => {
+    expect(CIRCUIT_HALF_OPEN_SUCCESSES).toBeGreaterThan(1);
   });
 });
 

@@ -3,6 +3,7 @@ import type { ISODateString } from "@knowget/types";
 import {
   CONSUMER_STATUSES,
   CONTRACT_STATUSES,
+  ENDPOINT_STATUSES,
   MIN_DEPRECATION_NOTICE_DAYS,
   ROUTE_STATUSES,
 } from "./gateway-value";
@@ -10,6 +11,7 @@ import {
   inspectConsumerTransition,
   inspectContractTransition,
   inspectDeprecation,
+  inspectEndpointTransition,
   inspectRouteTransition,
   inspectServing,
 } from "./lifecycle";
@@ -104,6 +106,39 @@ describe("route progression", () => {
       if (status === "retired") continue;
       expect(inspectRouteTransition("retired", status).refusal).toBe("terminal_status");
     }
+  });
+});
+
+describe("endpoint progression", () => {
+  it("puts an endpoint into service from registration and brings it back from either absence", () => {
+    expect(inspectEndpointTransition("registered", "active").allowed).toBe(true);
+    expect(inspectEndpointTransition("quarantined", "active").allowed).toBe(true);
+    expect(inspectEndpointTransition("disabled", "active").allowed).toBe(true);
+  });
+
+  it("draws its own conclusion only about traffic it actually sent", () => {
+    expect(inspectEndpointTransition("active", "quarantined").allowed).toBe(true);
+    expect(inspectEndpointTransition("disabled", "quarantined").refusal).toBe("not_permitted");
+    expect(inspectEndpointTransition("registered", "quarantined").refusal).toBe("not_permitted");
+  });
+
+  it("lets an operator switch off an endpoint from wherever it is", () => {
+    for (const status of ENDPOINT_STATUSES) {
+      if (status === "disabled" || status === "retired") continue;
+      expect(inspectEndpointTransition(status, "disabled").allowed).toBe(true);
+    }
+  });
+
+  it("ends the integration for good, from every status it could be in", () => {
+    for (const status of ENDPOINT_STATUSES) {
+      if (status === "retired") continue;
+      expect(inspectEndpointTransition(status, "retired").allowed).toBe(true);
+      expect(inspectEndpointTransition("retired", status).refusal).toBe("terminal_status");
+    }
+  });
+
+  it("treats a repeated request as a resubmission rather than as a bad move", () => {
+    expect(inspectEndpointTransition("disabled", "disabled").refusal).toBe("same_status");
   });
 });
 

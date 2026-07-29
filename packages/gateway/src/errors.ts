@@ -671,6 +671,30 @@ export class MissingAdapterKeyError extends PlatformError {
   }
 }
 
+/**
+ * The circuit engine was handed an outcome window that is not a tally: a negative count, a fraction, a run of
+ * consecutive failures longer than the failures observed.
+ *
+ * Non-operational and hidden from clients for the same reason {@link InvalidQuotaFigureError} is. Nobody outside
+ * the platform contributes to an outcome window; every figure in one comes from the fabric's own record of calls
+ * it made, so a figure that is not a count is a defect on this side of the boundary.
+ *
+ * Raised rather than clamped, and here the argument is sharper than it is for a quota. A clamped outcome window
+ * still produces a posture, and that posture goes on to open or close a circuit — so the cost of absorbing the
+ * defect is not a mis-counted call but an endpoint taken out of service, or left in it, on the strength of
+ * arithmetic nobody checked. An operator investigating either would find a perfectly plausible record.
+ */
+export class InvalidOutcomeCountError extends PlatformError {
+  constructor(name: string, value: number) {
+    super(`An outcome window's ${name} must be a whole count of calls; ${value} was given`, {
+      code: "INTERNAL_ERROR",
+      httpStatus: 500,
+      isOperational: false,
+      details: { name, value },
+    });
+  }
+}
+
 // --- Webhook subscriptions -------------------------------------------------------
 
 /** The requested webhook subscription does not exist in the current tenant. */

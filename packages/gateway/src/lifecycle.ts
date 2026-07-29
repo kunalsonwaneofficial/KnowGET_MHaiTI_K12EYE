@@ -2,10 +2,12 @@ import type { ISODateString } from "@knowget/types";
 import {
   type ConsumerStatus,
   type ContractStatus,
+  type EndpointStatus,
   MIN_DEPRECATION_NOTICE_DAYS,
   type RouteStatus,
   isTerminalConsumerStatus,
   isTerminalContractStatus,
+  isTerminalEndpointStatus,
   isTerminalRouteStatus,
 } from "./gateway-value";
 import type {
@@ -28,10 +30,11 @@ import type {
  *
  * **The progression maps are the whole lifecycle, written once.** A consumer moves through registration,
  * activation, suspension and retirement; a contract through draft, publication, deprecation and sunset; a route
- * through draft, activation and retirement. No map has a reverse edge out of its terminal status, and that is
- * deliberate in all three cases for the same reason: a decommissioning that can be undone is one that nobody
- * ever finishes, and the credential reference, the integrator's pinned version or the published path stays live
- * in somebody's configuration on the strength of it.
+ * through draft, activation and retirement; an outbound endpoint through registration, service, quarantine,
+ * disablement and retirement. No map has a reverse edge out of its terminal status, and that is deliberate in
+ * every case for the same reason: a decommissioning that can be undone is one that nobody ever finishes, and the
+ * credential reference, the integrator's pinned version, the published path or the address of a system nobody
+ * has spoken to in a year stays live in somebody's configuration on the strength of it.
  *
  * **Serving is a question about an instant, not about now.** {@link inspectServing} takes `asOf` and answers for
  * that moment, including moments before the deprecation was announced — at which point the contract was merely
@@ -111,6 +114,30 @@ const ROUTE_PROGRESSION: Readonly<Record<RouteStatus, readonly RouteStatus[]>> =
 });
 
 /**
+ * Where an outbound integration endpoint may go from where it is.
+ *
+ * The only map with two separate ways to stop being called, and they are kept apart because they are reached by
+ * different parties and cleared by different actions. `quarantined` is the platform's own conclusion, drawn from
+ * an endpoint that has gone on failing its probes long enough that continuing is pointless; `disabled` is an
+ * operator's decision, taken for reasons the platform has no visibility of at all — an agreement that ended, a
+ * migration, a vendor asking to be left alone during their own incident. Collapsing the two would leave an
+ * operator unable to tell which of their endpoints they switched off and which ones the fabric gave up on, which
+ * is the difference between a list of decisions and a list of unresolved failures.
+ *
+ * There is no edge from `disabled` to `quarantined`. Quarantine is a conclusion drawn from observed outcomes, and
+ * a disabled endpoint is not being called, so there are none; a platform that could quarantine one would be
+ * publishing a verdict about traffic it never sent.
+ */
+const ENDPOINT_PROGRESSION: Readonly<Record<EndpointStatus, readonly EndpointStatus[]>> =
+  Object.freeze({
+    registered: Object.freeze(["active", "disabled", "retired"]) as readonly EndpointStatus[],
+    active: Object.freeze(["quarantined", "disabled", "retired"]) as readonly EndpointStatus[],
+    quarantined: Object.freeze(["active", "disabled", "retired"]) as readonly EndpointStatus[],
+    disabled: Object.freeze(["active", "retired"]) as readonly EndpointStatus[],
+    retired: Object.freeze([]) as readonly EndpointStatus[],
+  });
+
+/**
  * The one transition rule, applied to whichever map was handed in.
  *
  * The order of the three checks is the order the caller can act on. Being told a record is already active is a
@@ -147,6 +174,13 @@ export const inspectContractTransition = (
 /** Whether a capability route may move from one status to another. */
 export const inspectRouteTransition = (from: RouteStatus, to: RouteStatus): TransitionVerdict =>
   inspectTransition(from, to, isTerminalRouteStatus, ROUTE_PROGRESSION[from]);
+
+/** Whether an integration endpoint may move from one status to another. */
+export const inspectEndpointTransition = (
+  from: EndpointStatus,
+  to: EndpointStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalEndpointStatus, ENDPOINT_PROGRESSION[from]);
 
 // --- Serving ---------------------------------------------------------------------
 
