@@ -50,6 +50,18 @@ import { PlatformError } from "@knowget/exceptions";
  *   would make every citation a reference to whatever the sentence has since become. A conclusion that has
  *   changed is a new lesson superseding this one, which is also how the institution keeps the fact that it
  *   previously believed something else.
+ * - {@link CycleWithoutLessonsError} is the same clause enforced from the other end. An improvement cycle
+ *   closes when it has produced at least one lesson, because a cycle that ran for four periods and concluded
+ *   nothing is either still running or was abandoned, and letting it close cleanly would file it in the record
+ *   as a completed improvement that the institution learned nothing from.
+ * - {@link AssessmentNotPublishableError} refuses to publish a maturity index computed from too little of the
+ *   institution. A weighted mean over three of ten capability areas is arithmetically fine and institutionally
+ *   worthless, and once published it is the number leadership quotes. The coverage floor makes the difference
+ *   between an assessment and a sample visible before the number acquires an audience rather than after.
+ * - {@link IncoherentBenefitClaimError} refuses a promised benefit that cannot be missed. A target equal to its
+ *   baseline promises no movement, and a target on the wrong side of it promises movement away from the thing
+ *   the initiative claimed to improve; either way the adoption review would later report success no matter what
+ *   happened. A benefit has to be capable of falling short before measuring it means anything.
  *
  * A refusal is a 409 or a 422 carrying the specifics an operator needs to act on it, because these are the
  * platform enforcing its contract rather than something going wrong inside it.
@@ -887,6 +899,614 @@ export class InvalidRetentionPeriodError extends PlatformError {
       httpStatus: 422,
       isOperational: true,
       details: { period },
+    });
+  }
+}
+
+// --- Improvement cycles ----------------------------------------------------------
+
+/** The requested improvement cycle does not exist in the current tenant. */
+export class ImprovementCycleNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Improvement cycle "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A cycle key is what a lesson, an initiative and a lineage trace quote when they say which round of improvement
+ * work they came out of. Two cycles on one key would make every one of those citations ambiguous about the thing
+ * the institution most wants to know: whether this was tried before, and how it went.
+ */
+export class DuplicateCycleKeyError extends PlatformError {
+  constructor(cycleKey: string) {
+    super(`Improvement cycle "${cycleKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { cycleKey },
+    });
+  }
+}
+
+/** A cycle is addressed by key by every lesson, initiative and trace that came out of it. */
+export class EmptyCycleKeyError extends PlatformError {
+  constructor() {
+    super("An improvement cycle must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A key that is not in canonical form is a cycle the records that cite it will never resolve. */
+export class InvalidCycleKeyError extends PlatformError {
+  constructor(cycleKey: string) {
+    super(`Improvement cycle key "${cycleKey}" is not a well-formed registry key`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { cycleKey },
+    });
+  }
+}
+
+/**
+ * A cycle's intent outside the length this domain will store.
+ *
+ * The intent is the sentence review judges the cycle against. Too short and it states an aspiration rather than
+ * a target; too long and it is a plan, which is a different document with different readers.
+ */
+export class CycleIntentLengthError extends PlatformError {
+  constructor(length: number, minimum: number, maximum: number) {
+    super(`An improvement cycle intent must be ${minimum}–${maximum} characters; got ${length}`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { length, minimum, maximum },
+    });
+  }
+}
+
+/**
+ * A cycle span the period grid cannot make sense of.
+ *
+ * A cycle is bounded by two period indices, and everything downstream — elapsed periods, whether a review is
+ * overdue, how long the institution took to learn something — is arithmetic on those two numbers. A span that
+ * runs backwards or sits off the grid makes all of it produce answers nobody can reconstruct.
+ */
+export class UnusableCycleSpanError extends PlatformError {
+  constructor(cycleKey: string, issues: readonly string[]) {
+    super(`Improvement cycle "${cycleKey}" does not have a usable span`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { cycleKey, issues },
+    });
+  }
+}
+
+/**
+ * A reschedule attempted after the cycle started running.
+ *
+ * A span is a commitment about when the work happens, and it is revisable exactly while the work has not
+ * started. Once a cycle is executing, moving its boundaries is how a cycle that overran becomes a cycle that
+ * always intended to take that long.
+ */
+export class CycleSpanFixedError extends PlatformError {
+  constructor(id: string, stage: string) {
+    super(`Improvement cycle "${id}" is ${stage}; its span can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, stage },
+    });
+  }
+}
+
+/**
+ * An intent edited once review had begun.
+ *
+ * Review asks whether the cycle achieved what it set out to achieve, which requires that what it set out to
+ * achieve stopped moving first. An intent editable during review lets a cycle be judged against whatever it
+ * happened to accomplish, and every cycle passes.
+ */
+export class CycleIntentFrozenError extends PlatformError {
+  constructor(id: string, stage: string) {
+    super(`Improvement cycle "${id}" is ${stage}; its intent can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, stage },
+    });
+  }
+}
+
+/** Re-entering the stage a cycle already occupies would write a transition that did not happen. */
+export class CycleAlreadyInStageError extends PlatformError {
+  constructor(id: string, stage: string) {
+    super(`Improvement cycle "${id}" is already ${stage}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, stage },
+    });
+  }
+}
+
+/**
+ * A settled cycle asked to move again.
+ *
+ * `closed` and `abandoned` are where a cycle stops, and they are the two stages later reporting counts on. A
+ * cycle that could resume after closure would make every count of completed improvement work provisional.
+ */
+export class CycleSettledError extends PlatformError {
+  constructor(id: string, stage: string) {
+    super(`Improvement cycle "${id}" is already ${stage} and cannot change stage`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, stage },
+    });
+  }
+}
+
+/** Cycles move planning → executing → reviewing → closed, or out to abandoned; nothing skips. */
+export class InvalidCycleProgressionError extends PlatformError {
+  constructor(id: string, from: string, to: string) {
+    super(`Improvement cycle "${id}" cannot move from ${from} to ${to}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, from, to },
+    });
+  }
+}
+
+/**
+ * A cycle asked to close having concluded nothing.
+ *
+ * This is *lessons feed institutional memory* enforced at the point where a cycle would otherwise become a
+ * completed row in a report. A cycle that produced no lesson did not fail — it may well have delivered
+ * everything it promised — but it has left the institution knowing exactly what it knew before, and filing it as
+ * a closed improvement cycle is how organizations end up with years of improvement activity and no memory of it.
+ * The cycle can be abandoned, which records the same work under a name that does not claim a conclusion.
+ */
+export class CycleWithoutLessonsError extends PlatformError {
+  constructor(id: string, lessonsRecorded: number, required: number) {
+    super(
+      `Improvement cycle "${id}" recorded ${lessonsRecorded} lessons; ${required} are required to close`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, lessonsRecorded, required },
+      },
+    );
+  }
+}
+
+/** Closing a cycle is a governed act; without a convened gate there is nobody it was governed by. */
+export class CycleClosureGateNotConvenedError extends PlatformError {
+  constructor(id: string, gate: string) {
+    super(`Improvement cycle "${id}" has no ${gate} gate; it cannot close without one`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, gate },
+    });
+  }
+}
+
+/** A gate still collecting ballots has not decided anything yet, whichever way it is leaning. */
+export class CycleClosureGatePendingError extends PlatformError {
+  constructor(id: string, gate: string) {
+    super(`Improvement cycle "${id}" has a ${gate} gate that is still outstanding`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, gate },
+    });
+  }
+}
+
+/** A refused closure gate is a decision, and closing anyway would record that it was ignored. */
+export class CycleClosureGateRefusedError extends PlatformError {
+  constructor(id: string, gate: string) {
+    super(`Improvement cycle "${id}" was refused at its ${gate} gate`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, gate },
+    });
+  }
+}
+
+/**
+ * An abandonment recorded without saying why.
+ *
+ * Abandonment is the honest ending, and it is only honest if it carries its reason. A cycle abandoned without
+ * one is indistinguishable a year later from a cycle nobody got around to, which is precisely the distinction
+ * the institution needs when it considers attempting the same thing again.
+ */
+export class EmptyAbandonmentReasonError extends PlatformError {
+  constructor() {
+    super("Abandoning an improvement cycle requires a stated reason", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+// --- Maturity assessments --------------------------------------------------------
+
+/** The requested maturity assessment does not exist in the current tenant. */
+export class MaturityAssessmentNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Maturity assessment "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/**
+ * A maturity assessment earns its meaning by sitting in a series: this period's index is worth reading because
+ * last period's is next to it. Two assessments answering to one key leave the series with a step that could be
+ * either of two numbers, and a trend nobody can defend.
+ */
+export class DuplicateAssessmentKeyError extends PlatformError {
+  constructor(assessmentKey: string) {
+    super(`Maturity assessment "${assessmentKey}" already exists in this tenant`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { assessmentKey },
+    });
+  }
+}
+
+/** An assessment is addressed by key by the series it is supposed to extend. */
+export class EmptyAssessmentKeyError extends PlatformError {
+  constructor() {
+    super("A maturity assessment must have a non-empty key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/** A key that is not in canonical form is an assessment no later comparison will find. */
+export class InvalidAssessmentKeyError extends PlatformError {
+  constructor(assessmentKey: string) {
+    super(`Maturity assessment key "${assessmentKey}" is not a well-formed registry key`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { assessmentKey },
+    });
+  }
+}
+
+/**
+ * A period index outside the grid this domain counts on.
+ *
+ * An assessment's whole value is that it sits at a known point in a series, so that this year's index means
+ * something next to last year's. A period off the grid produces a reading nobody can place in the series.
+ */
+export class InvalidAssessmentPeriodError extends PlatformError {
+  constructor(period: number) {
+    super(`Period ${period} is not a valid period index`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { period },
+    });
+  }
+}
+
+/**
+ * A weighting the maturity engine will not compute against.
+ *
+ * The weights decide what the institution is saying matters, and they are declared before any area is scored
+ * precisely so that they cannot be chosen once the scores are known. Weights that do not sum to one, name an
+ * area twice, or fall outside the per-area band produce an index that is a weighted mean of nothing in
+ * particular — and unlike a wrong score, nobody reading the published number can see that it happened.
+ */
+export class UnusableWeightingError extends PlatformError {
+  constructor(assessmentKey: string, issues: readonly string[]) {
+    super(`Maturity assessment "${assessmentKey}" does not have a usable weighting`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { assessmentKey, issues },
+    });
+  }
+}
+
+/**
+ * A published assessment asked to change.
+ *
+ * Publication is the moment an index acquires an audience, and from then on it is quoted, compared and planned
+ * against. An assessment that could still take readings afterwards would let the published number and the record
+ * behind it drift apart, with the record winning and nobody being told.
+ */
+export class AssessmentPublishedError extends PlatformError {
+  constructor(id: string) {
+    super(`Maturity assessment "${id}" is published and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** The capability areas are a closed set; a reading against anything else scores no part of it. */
+export class UnknownCapabilityAreaError extends PlatformError {
+  constructor(area: string) {
+    super(`"${area}" is not a capability area`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { area },
+    });
+  }
+}
+
+/** Two readings for one area leave the index depending on which of them was written last. */
+export class RepeatAreaReadingError extends PlatformError {
+  constructor(id: string, area: string) {
+    super(`Maturity assessment "${id}" already has a reading for ${area}`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, area },
+    });
+  }
+}
+
+/**
+ * A reading against an area this assessment gave no weight.
+ *
+ * An unweighted area contributes nothing to the index no matter what it scores, so recording a reading for one
+ * produces a number the assessment displays and does not use. That is worse than refusing it: the area looks
+ * assessed, and the coverage it appears to add is coverage the index does not have.
+ */
+export class UnweightedAreaError extends PlatformError {
+  constructor(area: string) {
+    super(`Capability area ${area} carries no weight in this assessment`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { area },
+    });
+  }
+}
+
+/** Scores live on a fixed scale; one outside it would be silently clamped into a different claim. */
+export class ScoreOffScaleError extends PlatformError {
+  constructor(area: string, score: number, minimum: number, maximum: number) {
+    super(`Score ${score} for ${area} is outside the ${minimum}–${maximum} maturity scale`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { area, score, minimum, maximum },
+    });
+  }
+}
+
+/**
+ * A publication attempted on too little of the institution.
+ *
+ * A weighted mean over three of ten capability areas computes perfectly and describes nothing, and the moment it
+ * is published it becomes the number leadership quotes and plans against. The coverage floor forces the gap
+ * between an assessment and a sample to be visible while it can still be closed by assessing the rest.
+ */
+export class AssessmentNotPublishableError extends PlatformError {
+  constructor(id: string, coverage: number, required: number) {
+    super(
+      `Maturity assessment "${id}" covers ${coverage} of the capability areas; ${required} is required`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { id, coverage, required },
+      },
+    );
+  }
+}
+
+// --- Adoption reviews ------------------------------------------------------------
+
+/** The requested adoption review does not exist in the current tenant. */
+export class AdoptionReviewNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Adoption review "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
+
+/** One initiative gets one review per period; a second is a rewrite of the first under a new id. */
+export class DuplicateAdoptionReviewError extends PlatformError {
+  constructor(initiativeId: string, reviewPeriod: number) {
+    super(
+      `Improvement initiative "${initiativeId}" already has an adoption review for period ${reviewPeriod}`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { initiativeId, reviewPeriod },
+      },
+    );
+  }
+}
+
+/**
+ * A review opened against an initiative that was never adopted.
+ *
+ * Adoption review asks whether a change the institution made delivered what it promised, which presupposes that
+ * the institution made it. Reviewing a rejected or withdrawn initiative measures benefits nobody was ever
+ * exposed to, and files the result alongside reviews of changes that actually happened.
+ */
+export class InitiativeNotAdoptedError extends PlatformError {
+  constructor(initiativeId: string, status: string) {
+    super(
+      `Improvement initiative "${initiativeId}" is ${status} and cannot be reviewed for adoption`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { initiativeId, status },
+      },
+    );
+  }
+}
+
+/**
+ * A period index outside the grid this domain counts on.
+ *
+ * The review period is what says how long after adoption the institution looked, which is most of what a
+ * realization verdict means. A period off the grid leaves a verdict with no interval attached to it.
+ */
+export class InvalidReviewPeriodError extends PlatformError {
+  constructor(period: number) {
+    super(`Period ${period} is not a valid period index`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { period },
+    });
+  }
+}
+
+/** A claimed benefit is addressed by measure key when its observation is filed months later. */
+export class EmptyMeasureKeyError extends PlatformError {
+  constructor() {
+    super("A claimed benefit must have a non-empty measure key", {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+    });
+  }
+}
+
+/**
+ * A claim and the observation that answers it meet by exact key equality, and they meet months apart. A key that
+ * is not in canonical form is refused where the claim is made rather than later, when the only symptom is an
+ * observation that will not file against anything and a benefit that reads as never measured.
+ */
+export class InvalidMeasureKeyError extends PlatformError {
+  constructor(measureKey: string) {
+    super(`Measure key "${measureKey}" is not a well-formed registry key`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { measureKey },
+    });
+  }
+}
+
+/** Two claims on one measure make the realization verdict depend on which was written last. */
+export class RepeatBenefitClaimError extends PlatformError {
+  constructor(id: string, measureKey: string) {
+    super(`Adoption review "${id}" already claims a benefit for measure "${measureKey}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, measureKey },
+    });
+  }
+}
+
+/**
+ * A promised benefit that cannot be missed.
+ *
+ * A target equal to its baseline promises no movement; a target on the wrong side of the baseline promises
+ * movement away from what the initiative claimed to improve. Either way the review reports success whatever the
+ * observation turns out to be, which makes the whole record an expensive way of agreeing with itself. A benefit
+ * has to be capable of falling short before measuring it tells the institution anything.
+ */
+export class IncoherentBenefitClaimError extends PlatformError {
+  constructor(measureKey: string, issues: readonly string[]) {
+    super(`Measure "${measureKey}" does not describe a benefit that can be measured`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { measureKey, issues },
+    });
+  }
+}
+
+/** An observation the measurement engine cannot use leaves a benefit that looks observed and is not. */
+export class UnmeasurableObservationError extends PlatformError {
+  constructor(measureKey: string, issues: readonly string[]) {
+    super(`The observation for measure "${measureKey}" cannot be measured`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { measureKey, issues },
+    });
+  }
+}
+
+/** An observation filed against a measure this review never claimed has nothing to be measured against. */
+export class BenefitNotClaimedError extends PlatformError {
+  constructor(id: string, measureKey: string) {
+    super(`Adoption review "${id}" claims no benefit for measure "${measureKey}"`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id, measureKey },
+    });
+  }
+}
+
+/**
+ * A second observation for a measure already observed.
+ *
+ * The first observation is what the institution saw when it looked at the interval it committed to. Replacing it
+ * is how a shortfall becomes a success by being measured again later, and the record keeps no trace that the
+ * first reading existed. A later interval is a later review, which the period on this one already allows for.
+ */
+export class BenefitAlreadyObservedError extends PlatformError {
+  constructor(id: string, measureKey: string) {
+    super(`Adoption review "${id}" already has an observation for measure "${measureKey}"`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id, measureKey },
+    });
+  }
+}
+
+/**
+ * A concluded review asked to change.
+ *
+ * Concluding is the moment a realization verdict — sustain, adjust, revert — becomes something the institution
+ * acts on. A review that could still take claims and observations afterwards would let the verdict people acted
+ * on and the evidence behind it diverge, which is the failure adoption review exists to catch elsewhere.
+ */
+export class ReviewConcludedError extends PlatformError {
+  constructor(id: string) {
+    super(`Adoption review "${id}" is concluded and can no longer be changed`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { id },
     });
   }
 }

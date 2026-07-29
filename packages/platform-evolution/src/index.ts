@@ -54,7 +54,10 @@ export * from "./errors";
 
 // --- Aggregates ------------------------------------------------------------------
 
+export * from "./adoption-review";
 export * from "./governance-decision";
+export * from "./improvement-cycle";
 export * from "./improvement-initiative";
 export * from "./improvement-signal";
 export * from "./lesson";
+export * from "./maturity-assessment";
