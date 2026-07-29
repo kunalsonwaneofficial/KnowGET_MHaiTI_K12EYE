@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API Gateway & Integration Fabric (P3-D01) — the first contract of Phase 3 and the platform's entire external surface, inbound and outbound. Thirty domain contracts modelled what the institution does; this one decides what any of it is allowed to look like from outside, and its rule is that the platform exposes capabilities and never implementation. A published contract is immutable and a route's internal target is unprojectable, so the shape an integrator builds against cannot drift when the domain behind it is refactored, and no consumer can acquire a dependency on where a capability happens to live. Nothing here holds a clock, an unseeded random source, an HTTP client or a credential: every retry schedule is a pure function of the delivery identity, every secret is a reference resolved at the composition root, and every external system sits behind a replaceable adapter. Domain events carry ids, keys, versions, statuses, decisions, reason codes and counts only — never a payload, a header, a secret or a URL.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
