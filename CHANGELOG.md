@@ -3,7 +3,82 @@
 All notable changes to KnowGET MHaiTI are documented here. The project follows
 [Semantic Versioning](https://semver.org/); phase baselines are tagged.
 
-## [Unreleased] — P2-D30 · Program: Intelligence Core · Platform Evolution, Institutional Learning & Continuous Improvement
+## [0.3.0] — 2026-07-29 — Phase 2: Enterprise Domain Engineering (certified baseline)
+
+The complete K–12 institutional domain surface, built on the frozen Phase-1 core. **Thirty domain contracts**
+(P2-D01 … P2-D30) across five programs, plus seven security-hardening contracts — 225 tables (222 under FORCE
+Row-Level Security behind a single canonical policy), 2,059 permission-gated REST routes, 704 typed domain
+event types, 41 migrations and 49 ADRs — assembling into one process with **zero domain→domain package
+imports**. Certified and frozen; see `docs/certification/P2-Phase2-Certification-Report.md`.
+
+### Added
+
+- **Program A — Identity & Organization (P2-D01, baselined at `v0.2.0`, re-verified here):** the organization
+  hierarchy, person, enterprise identity, membership, roles and relationship domains that established the
+  domain architecture pattern (ADR-0010 … ADR-0013), plus the seven post-certification security-hardening
+  contracts (ADR-0014 … ADR-0020) — live security wiring, session and revocation persistence, refresh-token
+  rotation with replay detection, distributed cache and rate limiting, distributed shared services, KMS
+  envelope key custody, and job-queue visibility.
+- **Program B — the learner & academic core (P2-D02 … P2-D11):** institutional governance, student lifecycle,
+  family & guardian, learner wellbeing, academic structure, academic scheduling, attendance & presence,
+  teaching & learning, assessment & evaluation, and learning intelligence (ADR-0021 … ADR-0030). Descriptive
+  and explainable throughout — prediction is deliberately deferred to Program E.
+- **Program C — workforce & operations (P2-D12 … P2-D18):** workforce & human capital, faculty excellence,
+  fees/finance & payroll, procurement/inventory & assets, transport & fleet, residential life, and library
+  (ADR-0031 … ADR-0037). The institution beyond the learner — money, people, things and places — with the
+  derived quantities in each computed by pure engines rather than stored.
+- **Program D — campus & engagement (P2-D19 … P2-D24):** health centre, facilities & smart environment,
+  campus security & visitors, unified communication & engagement, admissions & growth, and alumni & community
+  (ADR-0038 … ADR-0043). Closes the operational core, D01–D24.
+- **Program E — the intelligence core (P2-D25 … P2-D30):** institutional knowledge graph, agent
+  orchestration, decision intelligence, predictive intelligence, executive intelligence, and platform
+  evolution (ADR-0044 … ADR-0049). One through-line held at every contract — **AI recommends with evidence;
+  humans approve; nothing self-modifies or self-deploys** — and all seven intelligence engines are
+  **clock-free and randomness-free**, so every recommendation, forecast, briefing and lineage trace is a pure
+  function of its inputs.
+- **Phase-2 certification:** `docs/certification/P2-Phase2-Certification-Report.md` — certification across ten
+  dimensions, a **live behavioural tenant-isolation proof** (five assertions per table, executed as a
+  non-superuser, non-`BYPASSRLS` role: **222 PASS / 0 FAIL / 0 SKIP**), a migration replay from an empty
+  schema (41 of 41, 225 tables), a re-measured performance baseline, and the technical-debt review. This
+  baseline.
+
+### Fixed
+
+- **CF-01 — transcript term ordering used an inert NUL delimiter** (`@knowget/assessment-evaluation`).
+  `ReportingService.generateTranscript` ordered a learner's published academic records by `localeCompare`
+  over one key joining `academicYear` and `term` with a raw `U+0000`. `localeCompare` treats `U+0000` as
+  collation-ignorable, so the separator was inert: distinct pairs whose concatenations coincide —
+  `("2024","10")` and `("20241","0")` — compared **equal**, and their order on the transcript fell through to
+  repository insertion order. Both fields are unconstrained free text, so the collision is reachable. Fixed
+  by comparing the two fields structurally, with a regression test that fails against the previous
+  comparator. The raw NUL had also made the file binary to `git`, `grep(1)` and `file(1)`, hiding it from
+  earlier text-based audits; **the repository now contains zero raw NUL bytes.**
+
+### Resolved technical debt
+
+- TD-02 persistence · TD-03 authentication · TD-04 crypto & key management · TD-10 tracing spans · TD-11 KMS
+  key custody · TD-15 Prisma musl target · TD-16 RBAC & live security · TD-17 distributed cache & rate
+  limiter · TD-18 refresh-token rotation · TD-19 distributed shared services · TD-22 session read-through.
+- **TD-14 re-scoped** from debt awaiting removal to a retained platform conformance fixture — `data_probe` is
+  what four of the six `@knowget/database` integration tests are keyed on, and the only domain-independent
+  verification of `PrismaRepository` and `withTenant`. **TD-51 newly recorded** — three Phase-1 platform
+  tables (`audit_log`, `service_blob`, `service_search_document`) sit outside the RLS envelope, deliberately
+  so in Phase 1 and now scheduled for Phase 3. **TD-06 and TD-07 re-targeted** from the long-closed P1-M06 to
+  Phase 3.
+
+### Notes
+
+- 75 workspace projects / 70 packages; **5,987 automated tests across 613 test files** (5,978 passing, 9
+  skipped); 285 of 285 turbo tasks green; Prettier clean repo-wide; zero `TODO`/`FIXME`/`XXX`/`HACK` markers.
+- The register holds 50 items — **11 resolved, 1 re-scoped, 38 open** — grouped and assessed in §8 of the
+  certification report. Every open item sits behind a stable interface, none weakens an absolute invariant,
+  and none blocks Phase 3.
+- Every benchmark is 1.20×–1.65× slower than at `v0.1.0`, **including unchanged scrypt code whose cost is a
+  fixed work factor**; that 1.20× is the host-speed floor for this run, so the reading is host variance, not
+  regression. The `v0.3.0` column is the Phase-3 reference, and the scrypt rows are the cross-host normaliser.
+- Phase 3 — Integration, Extensibility & the External Surface — builds on this baseline.
+
+## P2-D30 · Program: Intelligence Core · Platform Evolution, Institutional Learning & Continuous Improvement
 
 The **sixth and final contract of Program E — the intelligence core** (D25–D30), and the final contract of
 **Phase 2's thirty-six**: how an institution changes itself on purpose, and how it knows whether the change
@@ -1083,7 +1158,7 @@ the intelligence core (P2-D28); a staff member is a validated Employee (P2-D12),
   competency references are stored against the validated Employee/Organization anchor (**TD-33**).
   Domain Prisma adapters remain at the composition root (**TD-21**).
 
-## [Unreleased] — P2-D12 · Program: Workforce & Operations · Workforce & Human Capital Platform
+## P2-D12 · Program: Workforce & Operations · Workforce & Human Capital Platform
 
 The first contract of **Program C** — the operational institution beyond the learner and academic
 core — on the certified `v0.2.0` baseline, the frozen Phase-1 core, and the P2-D02…D11 identity,
@@ -1145,7 +1220,7 @@ Excellence, P2-D13).
   against the validated Person/Organization anchor (**TD-32**). Domain Prisma adapters remain at the
   composition root (**TD-21**).
 
-## [Unreleased] — P2-D11 · Program: Academic Excellence Platform · Learning Intelligence & Educational Insights Platform
+## P2-D11 · Program: Academic Excellence Platform · Learning Intelligence & Educational Insights Platform
 
 The sixth and final contract of Program: Academic Excellence Platform — and the capstone of
 Program B, the learner & academic core (P2-D02…D11) — on the certified `v0.2.0` baseline, the frozen
@@ -1218,7 +1293,7 @@ recomputing them.
   monorepo typecheck 101/101 and build 54/54, 31 package + 190 API tests); the Prisma
   build/migration/tests run in CI (TD-12).
 
-## [Unreleased] — P2-D10 · Program: Academic Excellence Platform · Assessment & Evaluation Platform
+## P2-D10 · Program: Academic Excellence Platform · Assessment & Evaluation Platform
 
 The fifth contract of Program: Academic Excellence Platform, on the certified `v0.2.0` baseline,
 the frozen Phase-1 core, and the P2-D06…D09 academic structure, scheduling, attendance and
@@ -1297,7 +1372,7 @@ are explicit non-goals that consume this platform rather than living in it.
   (full monorepo typecheck 99/99 and build 53/53, 38 package + 188 API tests); the Prisma
   build/migration/tests run in CI (TD-12).
 
-## [Unreleased] — P2-D09 · Program: Academic Excellence Platform · Teaching, Learning & Instruction Intelligence Platform
+## P2-D09 · Program: Academic Excellence Platform · Teaching, Learning & Instruction Intelligence Platform
 
 The fourth contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
 baseline, the frozen Phase-1 core, and the P2-D06/D07/D08 academic structure, scheduling and
@@ -1368,7 +1443,7 @@ consume this platform rather than living in it.
   references validated). Gates green (full monorepo typecheck 97/97 and build 52/52, 32 package +
   186 API tests); the Prisma build/migration/tests run in CI (TD-12).
 
-## [Unreleased] — P2-D08 · Program: Academic Excellence Platform · Attendance & Presence Intelligence Platform
+## P2-D08 · Program: Academic Excellence Platform · Attendance & Presence Intelligence Platform
 
 The third contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
 baseline, the frozen Phase-1 core, and the P2-D06/D07 academic structure and scheduling. The
@@ -1440,7 +1515,7 @@ living in it.
   dispatch). Gates green (full monorepo typecheck 95/95 and build 51/51, 39 package + 184 API
   tests); the Prisma build/migration/tests run in CI (TD-12).
 
-## [Unreleased] — P2-D07 · Program: Academic Excellence Platform · Enterprise Academic Scheduling & Resource Orchestration Platform
+## P2-D07 · Program: Academic Excellence Platform · Enterprise Academic Scheduling & Resource Orchestration Platform
 
 The second contract of Program: Academic Excellence Platform, on the certified `v0.2.0`
 baseline, the frozen Phase-1 core, and the P2-D06 academic structure. The authoritative
@@ -1509,7 +1584,7 @@ are explicit non-goals that consume this platform rather than living in it.
   exported for downstream academic domains. New technical debt: TD-27 (three scheduling-policy
   rule types stored and version-controlled but not yet evaluated, behind a stable dispatch).
 
-## [Unreleased] — P2-D06 · Program: Academic Excellence Platform · Academic Structure & Curriculum Platform
+## P2-D06 · Program: Academic Excellence Platform · Academic Structure & Curriculum Platform
 
 The first contract of a new program — **Academic Excellence Platform** — on the certified
 `v0.2.0` baseline and the frozen Phase-1 core, alongside the completed Student Lifecycle
@@ -1567,7 +1642,7 @@ explicit non-goals that consume this platform rather than living in it.
   is a genuine no-op — with a regression test added. All eight service tokens are exported
   for downstream academic domains. No new technical debt.
 
-## [Unreleased] — P2-D05 · Program: Student Lifecycle · Learner Wellbeing, Safety & Success Platform
+## P2-D05 · Program: Student Lifecycle · Learner Wellbeing, Safety & Success Platform
 
 The third contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline and
 the frozen Phase-1 core. The authoritative model for protecting, supporting and developing
@@ -1621,7 +1696,7 @@ delivered as one `@knowget/learner-wellbeing` package (ADR-0024).
   (array columns) was fixed in-milestone and re-verified on live PostgreSQL. All seven
   service tokens are exported for downstream domains. No new technical debt.
 
-## [Unreleased] — P2-D04 · Program: Student Lifecycle · Family & Guardian Intelligence Platform
+## P2-D04 · Program: Student Lifecycle · Family & Guardian Intelligence Platform
 
 The second contract of Program: Student Lifecycle, on the certified `v0.2.0` baseline
 and the frozen Phase-1 core. The authoritative model of families and guardianship,
@@ -1664,7 +1739,7 @@ delivered as one `@knowget/family-guardian` package (ADR-0023).
 - Independent audit found no High/Medium correctness bugs; the domain was certified
   internally consistent. All seven service tokens are exported for downstream domains.
 
-## [Unreleased] — P2-D03 · Program: Student Lifecycle Intelligence Platform
+## P2-D03 · Program: Student Lifecycle Intelligence Platform
 
 The highest business domain of Phase 2, on the certified `v0.2.0` baseline and the
 frozen Phase-1 core. The authoritative model of a learner's institutional journey,
@@ -1705,7 +1780,7 @@ delivered as one `@knowget/student-lifecycle` package (ADR-0022).
   (build, lint, typecheck, 26 package + 174 API tests); the Prisma build/migration/tests
   run in CI (TD-12).
 
-## [Unreleased] — P2-D02 · Program B: Institutional Governance Platform
+## P2-D02 · Program B: Institutional Governance Platform
 
 The first contract of Phase 2 Program B, on the certified `v0.2.0` Identity &
 Organization baseline and the frozen Phase-1 core. The authoritative model for
@@ -1750,7 +1825,7 @@ institutional authority, accountability and governance, delivered as one
   from the aggregates. Gates green (build, lint, typecheck, 73 governance + 166 API
   tests); the Prisma build/migration/tests run in CI (TD-12).
 
-## [Unreleased] — Security hardening (post-0.2.0)
+## Security hardening (post-0.2.0)
 
 Post-certification hardening of the live security path, on the frozen Phase-1 core
 and the certified `v0.2.0` Identity & Organization program. All env-gated behind
