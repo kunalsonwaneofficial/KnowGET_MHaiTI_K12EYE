@@ -229,6 +229,15 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 export const isMutatingMethod = (method: HttpMethod): boolean => method !== "GET";
 
 /**
+ * The maximum length of an external path template.
+ *
+ * Five hundred and twelve characters is far more than any sane path needs, and that is the point: the limit
+ * exists to stop a path that is actually a mistake — a URL pasted whole, a query string, an entire document —
+ * from reaching the store and the router, not to express an opinion about how deep a resource tree may go.
+ */
+export const MAX_EXTERNAL_PATH_LENGTH = 512;
+
+/**
  * Where a capability route stands.
  *
  * Three states and no `deleted`. A route is how an external path became a capability, and removing the record

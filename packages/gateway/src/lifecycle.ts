@@ -3,8 +3,10 @@ import {
   type ConsumerStatus,
   type ContractStatus,
   MIN_DEPRECATION_NOTICE_DAYS,
+  type RouteStatus,
   isTerminalConsumerStatus,
   isTerminalContractStatus,
+  isTerminalRouteStatus,
 } from "./gateway-value";
 import type {
   DeprecationRequest,
@@ -25,10 +27,11 @@ import type {
  * fourteenth*, and an engine that consulted `Date.now()` could only ever answer it with a reconstruction.
  *
  * **The progression maps are the whole lifecycle, written once.** A consumer moves through registration,
- * activation, suspension and retirement; a contract through draft, publication, deprecation and sunset. Neither
- * map has a reverse edge out of its terminal status, and that is deliberate in both cases for the same reason:
- * a decommissioning that can be undone is one that nobody ever finishes, and the credential reference or the
- * integrator's pinned version stays live in somebody's configuration on the strength of it.
+ * activation, suspension and retirement; a contract through draft, publication, deprecation and sunset; a route
+ * through draft, activation and retirement. No map has a reverse edge out of its terminal status, and that is
+ * deliberate in all three cases for the same reason: a decommissioning that can be undone is one that nobody
+ * ever finishes, and the credential reference, the integrator's pinned version or the published path stays live
+ * in somebody's configuration on the strength of it.
  *
  * **Serving is a question about an instant, not about now.** {@link inspectServing} takes `asOf` and answers for
  * that moment, including moments before the deprecation was announced — at which point the contract was merely
@@ -93,6 +96,21 @@ const CONTRACT_PROGRESSION: Readonly<Record<ContractStatus, readonly ContractSta
   });
 
 /**
+ * Where a capability route may go from where it is.
+ *
+ * The shortest of the three maps, and the only one with no reversible step at all. A route is the binding
+ * between an external path and something inside the platform; while it is a draft the binding is being decided,
+ * once it is active the path is in other people's code, and retirement is the statement that it no longer is.
+ * There is no `suspended` between them, because a route that stopped answering without being retired would be
+ * an outage the platform had recorded as a configuration state and would therefore never alert on.
+ */
+const ROUTE_PROGRESSION: Readonly<Record<RouteStatus, readonly RouteStatus[]>> = Object.freeze({
+  draft: Object.freeze(["active", "retired"]) as readonly RouteStatus[],
+  active: Object.freeze(["retired"]) as readonly RouteStatus[],
+  retired: Object.freeze([]) as readonly RouteStatus[],
+});
+
+/**
  * The one transition rule, applied to whichever map was handed in.
  *
  * The order of the three checks is the order the caller can act on. Being told a record is already active is a
@@ -125,6 +143,10 @@ export const inspectContractTransition = (
   to: ContractStatus,
 ): TransitionVerdict =>
   inspectTransition(from, to, isTerminalContractStatus, CONTRACT_PROGRESSION[from]);
+
+/** Whether a capability route may move from one status to another. */
+export const inspectRouteTransition = (from: RouteStatus, to: RouteStatus): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalRouteStatus, ROUTE_PROGRESSION[from]);
 
 // --- Serving ---------------------------------------------------------------------
 

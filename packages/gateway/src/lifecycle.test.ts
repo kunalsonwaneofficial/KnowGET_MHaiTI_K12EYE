@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { ISODateString } from "@knowget/types";
-import { CONSUMER_STATUSES, CONTRACT_STATUSES, MIN_DEPRECATION_NOTICE_DAYS } from "./gateway-value";
+import {
+  CONSUMER_STATUSES,
+  CONTRACT_STATUSES,
+  MIN_DEPRECATION_NOTICE_DAYS,
+  ROUTE_STATUSES,
+} from "./gateway-value";
 import {
   inspectConsumerTransition,
   inspectContractTransition,
   inspectDeprecation,
+  inspectRouteTransition,
   inspectServing,
 } from "./lifecycle";
 
@@ -79,6 +85,25 @@ describe("contract progression", () => {
 
   it("never lets a draft skip straight to being on notice", () => {
     expect(inspectContractTransition("draft", "deprecated").allowed).toBe(false);
+  });
+});
+
+describe("route progression", () => {
+  it("activates a draft and retires one that never went live", () => {
+    expect(inspectRouteTransition("draft", "active").allowed).toBe(true);
+    expect(inspectRouteTransition("draft", "retired").allowed).toBe(true);
+  });
+
+  it("offers no way back to a draft once the path is in other people's code", () => {
+    expect(inspectRouteTransition("active", "draft").refusal).toBe("not_permitted");
+  });
+
+  it("has no state between active and retired, because that state would be an outage", () => {
+    expect(inspectRouteTransition("active", "retired").allowed).toBe(true);
+    for (const status of ROUTE_STATUSES) {
+      if (status === "retired") continue;
+      expect(inspectRouteTransition("retired", status).refusal).toBe("terminal_status");
+    }
   });
 });
 

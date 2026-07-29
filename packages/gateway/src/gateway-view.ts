@@ -85,6 +85,18 @@ export interface PublicRouteView {
   readonly idempotent: boolean;
 }
 
+/**
+ * One route the resolver is allowed to consider, paired with the identifier that finds it again.
+ *
+ * The engine is handed candidates rather than a repository, which is what keeps it pure, and it is handed
+ * *public views* rather than route records, which is what keeps it honest. A resolver that held the full route
+ * could return the internal target by accident; this one has never seen it.
+ */
+export interface RouteCandidate {
+  readonly routeId: Uuid;
+  readonly view: PublicRouteView;
+}
+
 /** What the routing engine is asked to resolve: an inbound call, described in external terms only. */
 export interface RouteResolutionRequest {
   readonly capabilityKey: string;
@@ -108,6 +120,36 @@ export interface RouteResolution {
   readonly routeId: Uuid | null;
   readonly view: PublicRouteView | null;
   readonly refusal: RouteRefusal | null;
+}
+
+/**
+ * What is wrong with an external path template, in the terms the person who typed it can act on.
+ *
+ * Separate members for a malformed literal segment and a malformed parameter because the two mistakes look
+ * nothing alike to the author: one is a stray capital or a space in a path, the other is a brace they forgot to
+ * close. A single `malformed` would make the operator re-read the whole template to find out which they made.
+ */
+export type PathIssue =
+  | "not_absolute"
+  | "too_long"
+  | "trailing_slash"
+  | "empty_segment"
+  | "malformed_segment"
+  | "malformed_parameter"
+  | "duplicate_parameter";
+
+/**
+ * Whether an external path may be published, and what it binds.
+ *
+ * `parameters` travels on the verdict because extracting them is the same walk as validating them, and a caller
+ * that had to parse the template a second time to learn its parameters would be a caller with a second, subtly
+ * different idea of what the template says.
+ */
+export interface PathVerdict {
+  readonly valid: boolean;
+  readonly issue: PathIssue | null;
+  /** The parameter names the template binds, in the order they appear. Empty for a fully literal path. */
+  readonly parameters: readonly string[];
 }
 
 // --- Version negotiation ---------------------------------------------------------
