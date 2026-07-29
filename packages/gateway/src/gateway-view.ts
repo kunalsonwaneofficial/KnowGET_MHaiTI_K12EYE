@@ -37,6 +37,29 @@ import type {
  * caller precisely so that the payload itself never has to arrive here.
  */
 
+// --- Status progression ----------------------------------------------------------
+
+/**
+ * Why a status change was refused.
+ *
+ * Three refusals rather than one because they have three different remedies. `same_status` is a resubmitted
+ * form and nothing is wrong. `terminal_status` says the record has finished and no remedy exists. Only
+ * `not_permitted` means the caller asked for something the lifecycle genuinely disallows.
+ */
+export type TransitionRefusal = "same_status" | "terminal_status" | "not_permitted";
+
+/**
+ * Whether a status change is permitted.
+ *
+ * One shape serves all five progressions here — consumers, contracts, routes, endpoints and subscriptions —
+ * because they differ in which moves they allow and not at all in how a refusal is shaped. Five identical
+ * verdict types would be five places to forget the same fix.
+ */
+export interface TransitionVerdict {
+  readonly allowed: boolean;
+  readonly refusal: TransitionRefusal | null;
+}
+
 // --- Routing ---------------------------------------------------------------------
 
 /**
