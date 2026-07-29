@@ -1,4 +1,4 @@
-# Performance Baseline — Phase 1
+# Performance Baseline
 
 Reproducible microbenchmarks used for **regression detection** across milestones.
 Run with:
@@ -25,6 +25,32 @@ throughput. Absolute numbers vary with hardware.
 | jwt sign+verify (HS256)   |     20,000 | 8.55 µs  | 117k/s  |
 | password hash (scrypt)    |         25 | 38.6 ms  | 25.9/s  |
 | password verify (scrypt)  |         25 | 38.7 ms  | 25.8/s  |
+
+## Re-measured at Phase-2 certification (`v0.3.0`)
+
+Median of three consecutive runs on the certification host. Same harness, same iteration counts, same
+built packages.
+
+| Operation                 | Iterations | `v0.1.0` | `v0.3.0` | Ratio |
+| ------------------------- | ---------: | -------: | -------: | ----: |
+| cache set+get             |    200,000 |   836 ns |  1.33 µs |  1.59 |
+| search query (1k docs)    |     50,000 | 281.8 µs | 417.2 µs |  1.48 |
+| metrics counter.inc       |    500,000 |   518 ns |   648 ns |  1.25 |
+| event publish             |    200,000 |  2.05 µs |  2.76 µs |  1.35 |
+| workflow start+transition |    200,000 |  1.27 µs |  1.68 µs |  1.32 |
+| jwt sign+verify (HS256)   |     20,000 |  8.55 µs | 14.09 µs |  1.65 |
+| password hash (scrypt)    |         25 |  38.6 ms |  46.6 ms |  1.21 |
+| password verify (scrypt)  |         25 |  38.7 ms |  46.4 ms |  1.20 |
+
+Every row is 1.20×–1.65× slower, **including the two scrypt rows — code that has not changed since
+`v0.1.0` and whose cost is a fixed work factor.** Unchanged code cannot regress, so that 1.20× is the
+host-speed floor for this run, and every other operation sits within 1.0×–1.4× of it. The reading is a
+slower certification host, not a regression: no operation moved by an order of magnitude, and none moved
+relative to the floor.
+
+**Use scrypt as the cross-host normaliser.** It is the only operation in the harness whose cost is fixed
+by construction, so dividing every other ratio by the scrypt ratio removes host speed from the comparison.
+Compare normalised ratios across milestones; compare raw nanoseconds only within a single host.
 
 ## Interpretation
 
