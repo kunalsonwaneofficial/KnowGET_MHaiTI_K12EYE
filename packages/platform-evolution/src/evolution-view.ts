@@ -1,4 +1,5 @@
 import type {
+  CapabilityArea,
   ChangeClass,
   CycleStage,
   DecisionVerdict,
@@ -6,6 +7,9 @@ import type {
   GateOutcome,
   GovernanceGate,
   InitiativeStatus,
+  LessonCategory,
+  LessonOrigin,
+  LessonRetention,
   SignalPriority,
   SignalSource,
   SignalStatus,
@@ -286,4 +290,183 @@ export interface StageChangeVerdict {
   readonly gate: GovernanceGate | null;
   /** `null` when the move is allowed. */
   readonly refusal: StageRefusal | null;
+}
+
+// --- Institutional learning ------------------------------------------------------
+
+/**
+ * A lesson as somebody has written it, before the institution has agreed it is one.
+ *
+ * `originRef` sits beside the origin rather than being folded into it because the origin says what kind of event
+ * produced the lesson and the reference says which one. A lesson whose origin is `cycle_retrospective` and whose
+ * reference is blank is the shape institutional folklore arrives in — a conclusion with a category and no event
+ * behind it — and separating the two fields is what lets the engine refuse it without refusing the category.
+ *
+ * `applicability` is loose strings rather than {@link CapabilityArea} values because this is a draft: a person
+ * has typed or picked something and the engine's job is to say which of those the institution recognises. Typing
+ * the field as the closed union would move that check to the compiler, where a caller reading a form submission
+ * cannot satisfy it without casting, and a cast is how unknown areas get in.
+ */
+export interface LessonDraft {
+  readonly statement: string;
+  readonly category: LessonCategory;
+  readonly origin: LessonOrigin;
+  /** The record the lesson came out of, inside the origin's own identifier scheme. Never dereferenced here. */
+  readonly originRef: string;
+  /** Capability areas the lesson claims to speak to, as submitted. */
+  readonly applicability: readonly string[];
+}
+
+/** One thing wrong with a lesson draft, and the applicability entry it is wrong at when that is meaningful. */
+export interface LessonIssue {
+  readonly code: string;
+  /** The offending applicability entry's index, or `null` when the issue is a property of the lesson itself. */
+  readonly areaIndex: number | null;
+}
+
+/**
+ * Whether a lesson is well enough formed to be recorded, and which areas of the institution it speaks to.
+ *
+ * `areas` is the surviving applicability, normalized and deduplicated, and it is returned even when the draft is
+ * unusable. A caller correcting a statement that is forty characters short should not also lose the six areas
+ * they picked correctly, and an engine that returned nothing on failure would make that the caller's problem to
+ * solve by re-reading the request it just sent.
+ */
+export interface LessonVerdict {
+  readonly usable: boolean;
+  /** Recognised applicability, in submitted order, with unknown and repeated entries removed. */
+  readonly areas: readonly CapabilityArea[];
+  readonly issues: readonly LessonIssue[];
+}
+
+/**
+ * A proposed move of a lesson between retention states, with what the move stands on.
+ *
+ * `commitmentResolved` is a boolean rather than a commitment record because whether a memory commitment resolved
+ * against the institutional knowledge graph is P2-D25's question, answered in P2-D25's vocabulary, and a domain
+ * that modelled the commitment here would be holding a second opinion about a fact it does not own.
+ *
+ * `lessonKey` is present for one rule: a lesson may not supersede itself. It looks like a rule nobody needs
+ * until a caller passes the key it is editing into both fields and the institution acquires a lesson that is its
+ * own replacement, readable forever and pointing at nothing.
+ */
+export interface RetentionChangeRequest {
+  readonly from: LessonRetention;
+  readonly to: LessonRetention;
+  /** This lesson's own key, so a lesson cannot be recorded as replacing itself. */
+  readonly lessonKey: string;
+  /** Whether the memory commitment for this lesson has resolved against the knowledge graph (P2-D25). */
+  readonly commitmentResolved: boolean;
+  /** The lesson that replaces this one, or `null` when none has been named. */
+  readonly supersededBy: string | null;
+}
+
+/** Why a lesson may not move to the retention state somebody asked for. */
+export type RetentionRefusal =
+  | "same_retention"
+  | "terminal_retention"
+  | "unreachable_retention"
+  | "commitment_unresolved"
+  | "no_superseding_lesson"
+  | "self_supersession";
+
+/** Whether a lesson may make this retention move, and if not, which kind of not. */
+export interface RetentionVerdict {
+  readonly allowed: boolean;
+  readonly from: LessonRetention;
+  readonly to: LessonRetention;
+  /** `null` when the move is allowed. */
+  readonly refusal: RetentionRefusal | null;
+}
+
+/**
+ * Where a lesson stands against its review interval.
+ *
+ * Nothing here demotes, expires or deletes anything, and `reviewDue` is a derived flag rather than a stored
+ * state for exactly that reason. A lesson does not stop being true because eight periods passed; what has
+ * happened is that nobody has looked at it since, which is a fact about the institution rather than about the
+ * lesson. Keeping it derived also means it is decidable from the record alone, at any period a reader cares to
+ * ask about, rather than depending on when a job last ran.
+ */
+export interface ReviewStanding {
+  readonly retention: LessonRetention;
+  /** Whether the review interval has elapsed. Only ever true for a lesson that reached memory. */
+  readonly reviewDue: boolean;
+  /** Whole periods completed since the lesson entered memory. `0` when it never has. */
+  readonly periodsSinceRetention: number;
+  /** Periods still to run before review falls due. `0` once it has, and `0` for a lesson not in memory. */
+  readonly periodsUntilDue: number;
+}
+
+// --- Lineage ---------------------------------------------------------------------
+
+/**
+ * How far back a change's record can be read: from nothing at all to a lesson that reached memory.
+ *
+ * The six stages are a ladder rather than a set, and each rung is a claim the institution can make about a
+ * change it made. `unrecorded` is the honest bottom — something happened and nothing links back to why.
+ * `memory` is the top, and it is the only stage at which the change has actually finished the round trip this
+ * whole contract describes.
+ */
+export type LineageStage = "unrecorded" | "evidence" | "signal" | "decision" | "outcome" | "memory";
+
+/**
+ * One signal in a chain, reduced to the two facts lineage cares about.
+ *
+ * `evidenceCited` is a count rather than the citations themselves because {@link EvidenceVerdict} has already
+ * inspected them. Re-checking here would mean two engines holding an opinion about the same citations, and the
+ * first time they disagreed the institution would have two answers about whether its own record was sound.
+ */
+export interface LineageSignal {
+  readonly status: SignalStatus;
+  /** Citations that survived inspection. Counted, never re-inspected. */
+  readonly evidenceCited: number;
+}
+
+/** One gate in a chain, reduced to which gate it was and where it ended up. */
+export interface LineageGate {
+  readonly gate: GovernanceGate;
+  readonly outcome: GateOutcome;
+}
+
+/** One lesson in a chain, reduced to whether it reached institutional memory. */
+export interface LineageLesson {
+  readonly retention: LessonRetention;
+}
+
+/**
+ * Everything the institution holds about one change, assembled for reading backwards.
+ *
+ * A chain is built by the caller out of records this package owns; the engine does not fetch anything. That
+ * keeps the trace reproducible — the same chain always yields the same verdict — and it keeps the engine honest
+ * about what it is doing, which is reading a record rather than establishing one.
+ */
+export interface LineageChain {
+  readonly signals: readonly LineageSignal[];
+  readonly initiativeStatus: InitiativeStatus;
+  readonly gates: readonly LineageGate[];
+  readonly lessons: readonly LineageLesson[];
+}
+
+/** One place a chain stops or thins, and the link it happens at when the link exists to point at. */
+export interface LineageGap {
+  readonly code: string;
+  /** The offending link's index within its own list, or `null` when the gap is a whole link's absence. */
+  readonly linkIndex: number | null;
+}
+
+/**
+ * How far a change's record reads back, and everywhere it is thinner than it should be.
+ *
+ * `reachedStage` and `gaps` answer different questions and both are needed. The stage is where the chain stops,
+ * which is what a person asking "can we show how this decision was reached" wants. The gaps are every weakness
+ * found, including ones above the break — a chain that stops at `decision` may also have two signals citing no
+ * evidence, and an institution repairing its records should be told about both rather than led through them one
+ * release at a time.
+ */
+export interface LineageVerdict {
+  /** Whether the chain reads all the way back to a lesson in memory. */
+  readonly traceable: boolean;
+  readonly reachedStage: LineageStage;
+  readonly gaps: readonly LineageGap[];
 }

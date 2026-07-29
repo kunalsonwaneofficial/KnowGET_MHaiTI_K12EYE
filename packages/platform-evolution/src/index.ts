@@ -42,4 +42,6 @@ export * from "./evolution-view";
 export * from "./cadence";
 export * from "./governance";
 export * from "./intake";
+export * from "./learning";
 export * from "./lifecycle";
+export * from "./lineage";
