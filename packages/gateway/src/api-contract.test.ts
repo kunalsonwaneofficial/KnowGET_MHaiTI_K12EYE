@@ -240,10 +240,16 @@ describe("serving", () => {
 });
 
 describe("immutability", () => {
-  it("never mutates the contract it was handed", () => {
+  it("never mutates the contract it puts on notice", () => {
     const contract = published();
     const before = { ...contract };
     deprecateApiContract(contract, JAN, DEC, "v3");
+    expect({ ...contract }).toEqual(before);
+  });
+
+  it("never mutates the contract it takes out of service", () => {
+    const contract = deprecated();
+    const before = { ...contract };
     sunsetApiContract(contract);
     expect({ ...contract }).toEqual(before);
   });

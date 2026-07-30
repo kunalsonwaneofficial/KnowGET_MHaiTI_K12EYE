@@ -72,7 +72,7 @@ describe("contract progression", () => {
   });
 
   it("refuses to sunset a published version without deprecating it first", () => {
-    expect(inspectContractTransition("published", "sunset").allowed).toBe(true);
+    expect(inspectContractTransition("published", "sunset").refusal).toBe("not_permitted");
     expect(inspectContractTransition("published", "deprecated").allowed).toBe(true);
   });
 

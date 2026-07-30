@@ -92,11 +92,23 @@ const CONSUMER_PROGRESSION: Readonly<Record<ConsumerStatus, readonly ConsumerSta
  * There is no edge from `deprecated` back to `published`. Un-deprecating is not a correction an integrator can
  * benefit from — they have already been told to move, and some of them already have — and a notice that can be
  * withdrawn is a notice the next one gets read as.
+ *
+ * There is no edge from `published` straight to `sunset` either, and this is the absence that carries the notice
+ * floor. `MIN_DEPRECATION_NOTICE_DAYS` is enforced on the move *into* `deprecated`, so a version that could reach
+ * `sunset` without passing through it would leave the floor as something the platform checks only when asked —
+ * ninety days of notice for an operator who deprecates, none at all for one who skips the step. The route out of
+ * service for anything that was ever published therefore runs through the notice, without exception.
+ *
+ * The case this refuses is the emergency withdrawal: a published version that turns out to leak. That need is
+ * real and this is not where it is served. Retiring the route stops the traffic now, and suspending the consumer
+ * stops one caller now; both say what happened. Sunset carries no reason and no urgency, so an emergency pushed
+ * through it is recorded as a version that ended on schedule — a fact about the incident lost in the only place
+ * anyone would later look for it.
  */
 const CONTRACT_PROGRESSION: Readonly<Record<ContractStatus, readonly ContractStatus[]>> =
   Object.freeze({
     draft: Object.freeze(["published", "sunset"]) as readonly ContractStatus[],
-    published: Object.freeze(["deprecated", "sunset"]) as readonly ContractStatus[],
+    published: Object.freeze(["deprecated"]) as readonly ContractStatus[],
     deprecated: Object.freeze(["sunset"]) as readonly ContractStatus[],
     sunset: Object.freeze([]) as readonly ContractStatus[],
   });
