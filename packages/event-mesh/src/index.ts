@@ -87,3 +87,5 @@ export * from "./errors";
 
 export * from "./event-stream";
 export * from "./event-type-definition";
+export * from "./mesh-subscription";
+export * from "./stream-binding";
