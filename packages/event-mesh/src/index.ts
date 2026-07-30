@@ -71,8 +71,10 @@ export * from "./mesh-view";
 // --- Engines ---------------------------------------------------------------------
 
 export * from "./compatibility";
+export * from "./delivery";
 export * from "./envelope";
 export * from "./partitioning";
+export * from "./retention";
 export * from "./routing";
 
 // --- Errors ----------------------------------------------------------------------

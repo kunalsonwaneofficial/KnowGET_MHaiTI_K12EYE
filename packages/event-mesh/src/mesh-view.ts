@@ -1,8 +1,13 @@
 import type { CorrelationId, ISODateString, TenantId, Uuid } from "@knowget/types";
 import type {
   CompatibilityMode,
+  DeadLetterReason,
+  DeliverySemantics,
+  DeliveryVerdict,
   FilterPredicate,
+  LagBand,
   OrderingGuarantee,
+  PayloadRetention,
   SchemaField,
   SchemaFieldType,
   SubscriptionStatus,
@@ -302,4 +307,123 @@ export interface RoutingVerdict {
   readonly decisions: readonly RoutingDecision[];
   /** The keys of the reached subscriptions, in the same order they appear in `decisions`. */
   readonly reached: readonly string[];
+}
+
+// --- Delivery --------------------------------------------------------------------
+
+/**
+ * Everything the delivery decision is a function of, and nothing else.
+ *
+ * The fields are the facts a delivery loop already holds at the moment it is about to hand a message over: what
+ * the subscription was promised, whether routing said it is entitled to this message, whether the ledger has
+ * seen it, how many attempts have already failed and what the last one failed with. Assembling them into a
+ * record rather than passing a subscription aggregate keeps the engine callable from a loop that has read only
+ * the columns it needs, and keeps it testable against a literal.
+ *
+ * `matched` is the routing verdict reduced to a boolean, carried in rather than recomputed. Routing and
+ * delivery are two decisions and the second depends on the first, but re-evaluating a filter here would let the
+ * same message be routed to a subscription and then withheld from it for a reason the routing verdict never
+ * mentioned — and the operator reading the two records would have no way to tell which was wrong.
+ */
+export interface DeliveryRequest {
+  readonly subscriptionKey: string;
+  readonly semantics: DeliverySemantics;
+  /** What the subscription allows before a message is dead-lettered. */
+  readonly attemptCeiling: number;
+  /** How many attempts have already been made and failed. Zero on the first pass over a message. */
+  readonly attemptsMade: number;
+  /** Whether the routing verdict said this message reaches this subscription. */
+  readonly matched: boolean;
+  /** Whether the deduplication ledger has already recorded a hand-over of this message. */
+  readonly alreadyDelivered: boolean;
+  /** What the previous attempt failed with, or `null` when nothing has been tried yet. */
+  readonly lastFailure: DeadLetterReason | null;
+}
+
+/**
+ * What the mesh decided, and the two facts the decision is acted on with.
+ *
+ * There is no free-text explanation here, and the omission is deliberate rather than something to be filled in
+ * later. A schema change carries a description because it names fields and cannot be enumerated in advance; a
+ * delivery outcome is one of five verdicts and one of seven reasons, both closed sets, and a sentence beside
+ * them would be a second statement of the same fact that the next person has to keep true. The prose an
+ * operator reads is composed at the surface, from these.
+ */
+export interface DeliveryDecision {
+  readonly subscriptionKey: string;
+  readonly verdict: DeliveryVerdict;
+  /** The attempt this authorises, numbered from one. `null` unless the verdict is `deliver`. */
+  readonly attempt: number | null;
+  /** Why it will not be tried again. `null` unless the verdict is `dead_letter` or `abandoned`. */
+  readonly reason: DeadLetterReason | null;
+}
+
+// --- Consumer lag ----------------------------------------------------------------
+
+/**
+ * One checkpoint, read against the stream it is a position in.
+ *
+ * Per partition rather than per subscription, because a checkpoint is per partition and a subscription reading
+ * eight of them can be current on seven and stopped on the eighth. An assessment that summed or averaged them
+ * would report a healthy subscription with a dead consumer inside it, which is the precise failure the bands
+ * exist to name.
+ */
+export interface LagRequest {
+  readonly subscriptionKey: string;
+  readonly partition: number;
+  /** The sequence the subscription has committed, or `UNCOMMITTED_POSITION` where it has committed nothing. */
+  readonly committedPosition: number;
+  /** The highest sequence on this partition of the stream, or zero where nothing has been published. */
+  readonly streamHead: number;
+  /** When the committed position last advanced. A fresh checkpoint carries the moment it was created. */
+  readonly positionMovedAt: ISODateString;
+  readonly asOf: ISODateString;
+}
+
+/** How far behind one checkpoint is, and how long it has been where it is. */
+export interface LagAssessment {
+  readonly subscriptionKey: string;
+  readonly partition: number;
+  readonly band: LagBand;
+  /** How many messages lie between the committed position and the head. */
+  readonly lag: number;
+  /** How long the committed position has been unchanged, in whole seconds. */
+  readonly idleSeconds: number;
+}
+
+// --- Retention -------------------------------------------------------------------
+
+/** One message, read against what the stream carrying it promised to keep and for how long. */
+export interface RetentionRequest {
+  readonly streamKey: string;
+  readonly retention: PayloadRetention;
+  readonly retentionSeconds: number;
+  /**
+   * When the message was recorded on the stream.
+   *
+   * Retention runs from this rather than from {@link MeshEnvelope.occurredAt}, because a message published
+   * late — by a relay that was down, or by a replay — would otherwise arrive already expired and be swept
+   * before any consumer saw it. The mesh keeps what it carried for as long as it said it would, counted from
+   * when it took custody.
+   */
+  readonly recordedAt: ISODateString;
+  readonly asOf: ISODateString;
+}
+
+/**
+ * What is left of one message at a given moment.
+ *
+ * `retained` and `replayable` are two different questions, and both are answered here because the two ways a
+ * replay is refused are indistinguishable to the person who requested it: the window has passed, or the stream
+ * was never keeping anything to replay. A single boolean would send them to whoever knows which.
+ */
+export interface RetentionVerdict {
+  readonly streamKey: string;
+  /** The instant the message stops being retained, in the fixed width every comparison here assumes. */
+  readonly expiresAt: ISODateString;
+  readonly retained: boolean;
+  /** Whether it could be replayed with its payload intact: still retained, on a stream that keeps payloads. */
+  readonly replayable: boolean;
+  /** How long the message has left, in whole seconds, floored at zero once it has expired. */
+  readonly remainingSeconds: number;
 }
