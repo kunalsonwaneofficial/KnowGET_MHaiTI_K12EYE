@@ -388,6 +388,27 @@ export class SunsetBeforeAnnouncementError extends PlatformError {
   }
 }
 
+/**
+ * The version named as a deprecation's successor is not something an integrator could move onto.
+ *
+ * A deprecation notice is only half a message. The other half is *go here instead*, and it is the half that
+ * decides whether the notice is actionable or merely a countdown. Naming a successor that does not exist, or
+ * that is itself a draft, or that has already been sunset, produces a notice that reads as a migration plan
+ * and functions as a dead end — and the integrator discovers the difference at the moment they act on it,
+ * which is the moment the old version stops answering. The three refusals share one class because they are
+ * one mistake from the caller's side: the successor was not checked before it was published as advice.
+ */
+export class UnusableSuccessorVersionError extends PlatformError {
+  constructor(capabilityKey: string, contractVersion: string, issue: string) {
+    super(`Version "${contractVersion}" of "${capabilityKey}" ${issue} and cannot be a successor`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { capabilityKey, contractVersion, issue },
+    });
+  }
+}
+
 // --- Routes ----------------------------------------------------------------------
 
 /** The requested capability route does not exist in the current tenant. */
@@ -482,6 +503,48 @@ export class MissingInternalTargetError extends PlatformError {
       httpStatus: 400,
       isOperational: true,
       details: { capabilityKey },
+    });
+  }
+}
+
+/**
+ * Two routes that have not been retired cannot claim the same method and public address.
+ *
+ * The sibling rule to {@link DuplicateRouteError}, and a separate one, because the two collisions arrive from
+ * opposite directions. That one is about resolution — two routes for one capability, version and method give
+ * the fabric a choice it has no basis to make. This one is about the address, and the two routes involved are
+ * usually for *different* capabilities, published by different people, neither of whom knew about the other.
+ *
+ * A retired route frees its address. That is deliberate: retiring the old route and activating a replacement on
+ * the same path is the ordinary shape of a migration, and a platform that held addresses forever would force
+ * every correction to be published at a URL that says what went wrong.
+ */
+export class RouteAddressTakenError extends PlatformError {
+  constructor(method: string, externalPath: string) {
+    super(`${method} "${externalPath}" is already claimed by a route that has not been retired`, {
+      code: "CONFLICT",
+      httpStatus: 409,
+      isOperational: true,
+      details: { method, externalPath },
+    });
+  }
+}
+
+/**
+ * The route names an internal target that does not resolve to anything that answers.
+ *
+ * Refused at registration, which is the only moment it is cheap. The internal target is the one field the
+ * fabric holds and never discloses, so nobody outside will ever notice it is wrong — and the person who does
+ * notice is an integrator who pinned to a published contract, wrote code against it and is now receiving a
+ * failure whose cause is invisible from their side and unfixable from it.
+ */
+export class UnresolvableInternalTargetError extends PlatformError {
+  constructor(capabilityKey: string, internalTarget: string) {
+    super(`Internal target "${internalTarget}" for "${capabilityKey}" does not resolve`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { capabilityKey, internalTarget },
     });
   }
 }
@@ -695,6 +758,26 @@ export class InvalidOutcomeCountError extends PlatformError {
   }
 }
 
+/**
+ * The endpoint names an adapter the registry does not have, or one that does not speak the stated protocol.
+ *
+ * One refusal for both because the caller's correction is the same — look at the registry — and because the
+ * second failure is the more dangerous of the two precisely by resembling the first less. An endpoint bound to
+ * a real adapter under the wrong protocol does not fail at registration and does not fail obviously in service;
+ * it fails at the first call, in whatever way a mismatched wire format fails, and it is investigated as a
+ * network problem by people who have no reason to suspect configuration.
+ */
+export class UnknownAdapterError extends PlatformError {
+  constructor(adapterKey: string, protocol: string) {
+    super(`No adapter "${adapterKey}" speaking ${protocol} is registered`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { adapterKey, protocol },
+    });
+  }
+}
+
 // --- Webhook subscriptions -------------------------------------------------------
 
 /** The requested webhook subscription does not exist in the current tenant. */
@@ -772,6 +855,26 @@ export class SubscriptionNotSendingError extends PlatformError {
       httpStatus: 503,
       isOperational: true,
       details: { subscriptionKey, status },
+    });
+  }
+}
+
+/**
+ * The subscription asks for an event type nothing in the platform emits.
+ *
+ * The one refusal in this package that exists purely to prevent silence. Subscriptions match event types
+ * exactly and deliberately, with no wildcards, so a mistyped type is not a subscription that misbehaves — it is
+ * one that is permanently, quietly empty. Nothing errors, nothing is dead-lettered, no counter moves; the
+ * consumer simply never hears about the thing they asked for, and finds out when somebody downstream notices
+ * their data is weeks stale. Subscription time is the only moment anybody is looking at the string.
+ */
+export class UnknownEventTypeError extends PlatformError {
+  constructor(eventType: string) {
+    super(`No published event type "${eventType}" exists to subscribe to`, {
+      code: "VALIDATION_ERROR",
+      httpStatus: 422,
+      isOperational: true,
+      details: { eventType },
     });
   }
 }
@@ -859,6 +962,25 @@ export class InvalidAttemptNumberError extends PlatformError {
 }
 
 // --- Idempotency -----------------------------------------------------------------
+
+/**
+ * The requested idempotency record does not exist in the current tenant.
+ *
+ * Raised only by the reads an operator performs — a record fetched by id or by key while investigating a
+ * duplicate. The guarded write path never reaches this: a missing record there is the ordinary case and means
+ * *proceed*, which is what {@link IdempotencyKeyConflictError} and {@link OperationInFlightError} exist to
+ * distinguish it from.
+ */
+export class IdempotencyRecordNotFoundError extends PlatformError {
+  constructor(id: string) {
+    super(`Idempotency record "${id}" not found`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { id },
+    });
+  }
+}
 
 /** An idempotency key exceeded the length the platform will accept. */
 export class IdempotencyKeyTooLongError extends PlatformError {
