@@ -93,3 +93,11 @@ export * from "./mesh-subscription";
 export * from "./replay-request";
 export * from "./stream-binding";
 export * from "./subscription-checkpoint";
+
+// --- Ports -----------------------------------------------------------------------
+
+export * from "./ports";
+
+// --- Events ----------------------------------------------------------------------
+
+export * from "./mesh-events";
