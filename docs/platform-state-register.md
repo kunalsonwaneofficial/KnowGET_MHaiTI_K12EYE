@@ -117,6 +117,22 @@ Phase-2 certification closes the phase:
 | ----------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | P2-Phase2 Certification | ✅ Complete | Phase 2 **CERTIFIED** and baselined `v0.3.0`: 41 migrations replayed from an empty schema to 225 tables; 222 tables verified under FORCE RLS by a live five-assertion behavioural sweep as a non-superuser (222 PASS / 0 FAIL); 2,059 routes audited for permission gating (11 deliberate `@Public()`, all platform); 704 collision-free event types; zero domain→domain imports; zero clock or randomness in the seven intelligence engines. Three findings — CF-01 fixed, CF-02 (TD-14 re-scoped), CF-03 (TD-51 recorded). See `docs/certification/P2-Phase2-Certification-Report.md`. |
 
+## Phase 3 — Enterprise Integration Engineering
+
+> **Phase 3 — Enterprise Integration Engineering opens on the certified
+> `v0.3.0` baseline.** Twelve contracts (P3-D01…D12) turn thirty domains into
+> a platform other systems can reach, following the domain architecture
+> pattern (ADR-0010). The integration spine comes first — gateway, event mesh,
+> federation — because every external vendor sits behind an adapter, and the
+> rule the phase is built on is **expose capabilities, never implementation**.
+
+Program: Integration Spine (D01–D03) opens the phase on the certified `v0.3.0`
+baseline, following the domain architecture pattern (ADR-0010):
+
+| Contract                                | Status        | Notes                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3-D01 API Gateway & Integration Fabric | 🟡 Pending CI | The integration spine and the first contract of Phase 3 — eight aggregates plus eight pure engines as `@knowget/gateway` (ADR-0050); a published contract cannot be edited, a deprecation carries at least ninety days, and the internal target appears in no view, event or error. 8 RLS tables (three partial uniques), 36 events, 82 routes, 948 package tests. Awaiting CI. |
+
 ## Reusable capabilities available now
 
 | Package                          | Capability                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -1700,3 +1716,80 @@ All seven service tokens are exported for **in-process cross-domain use**. Resid
 layer that gives the platform one definition of institutional improvement, so a claim that something got better
 carries who approved it, what evidence it rests on, whether the benefit was measured against a target set
 beforehand, and whether the lesson ever reached institutional memory.
+
+## API Gateway & Integration Fabric (P3-D01, Program: Integration Spine · ADR-0050)
+
+The `@knowget/gateway` package is how the platform is reached from outside it, and the **first contract of Phase 3**
+(D01–D12) — the integration spine the phase plan puts before everything else, because every external vendor sits
+behind an adapter. It follows the domain architecture (ADR-0010): a pure package — **eight aggregates plus eight
+pure engines** — behind repository ports, Prisma/RLS adapters at the `apps/api` composition root, application
+services on the platform event bus, and permission-gated, tenant-scoped REST controllers. One contract rule defines
+it — **expose capabilities, never implementation** — and the design problem is that the rule is broken by
+convenience rather than by intent: the shortest path from an external caller to a working integration always runs
+through naming the thing that actually does the work, and once a handler name, a queue, a table or a hostname has
+appeared in a contract an integrator depends on, the platform can no longer refactor without breaking somebody. So
+the rule is held by **structure rather than by discipline**. **The internal target appears in no view, no event and
+no error** — a capability can be moved, split or rewritten with one `retargetCapabilityRoute` call and no integrator
+learns that it happened — and an external address resolves through the **`CapabilityTargetDirectory`**, so a route
+cannot be pointed at something the platform does not know how to invoke. **A published contract cannot be edited**:
+there is no flag for a small change, because a small change to a promise somebody has built against is still a
+change to the promise, and the way to change one is to publish the next version beside it. **A deprecation carries
+at least ninety days** (`MIN_DEPRECATION_NOTICE_DAYS`), with **no field anywhere that could request less**, so two
+or more versions of a capability are live at once permanently and that is the design — the platform carries the
+maintenance of every version it has not sunset, and an institution running one version at a time is one that breaks
+its integrators every release. **Admission refuses in a fixed order** (`admitRequest`), with **authorisation settled
+before existence** — a caller whose scope does not cover a capability is refused identically whether the capability
+exists or not, which closes the enumeration oracle a natural does-it-exist-first ordering would open — and payload
+size before quota, since a request too large to serve should not spend a quota it was never going to use; a
+`deprecated` notice travels **even on refusals**, because the integrator being refused today is the one who most
+needs to know the version is going away. **Quota windows are realigned rather than restarted** (`assessQuota`), so a
+caller cannot mint a fresh allowance by pausing; **`throttle` and `deny` stay different words** because they imply
+opposite remedies — wait, versus stop and ask somebody — and collapsing them into one refusal is how an integrator
+retries forever against a limit that will never lift. **Policy specificity is an index into a frozen array**
+(`POLICY_SCOPES`, `policySpecificity`) rather than a comparator anybody can change, so which of two overlapping
+policies governs a call is a property of the vocabulary and not of the order rows were written. **Retry backoff is a
+written table with FNV-1a jitter mixed with the attempt** (`BACKOFF_BASE_SECONDS`, six attempts,
+`BACKOFF_JITTER_RATIO`), so a delivery's whole schedule is recomputable from its row months later and the package
+holds **no random source at all**. Egress is held to the same standard as ingress: **only a digest of a payload
+reaches the package**, never the payload; the delivery mode is **snapshotted at schedule** so a subscription edited
+mid-flight cannot retroactively change what a pending delivery promised; **`dead_lettered` and `abandoned` are
+different ends** and **only the first may be replayed**, as a new record beside the original rather than a reset of
+it; endpoint **health is observed while status is decided by a person** (`inspectCircuit` reports, and nothing in
+the package disables an endpoint on its own). **Delivery mechanics are exposed nowhere** — `dispatch`, `schedule`,
+`recordSuccess`, `recordFailure`, `recordOutcome(s)`, `begin` and `complete` have no routes at all — because a route
+letting an operator mark a delivery delivered would let the record say the institution told somebody something it
+never told them, which is the one claim that table exists to make unfalsifiable. Idempotency preserves the caller's
+key **exactly as written** (`MAX_IDEMPOTENCY_KEY_LENGTH` 255, no normalisation), `conflicted` is enterable **only
+from `in_flight`**, and expiry is **read rather than enforced** (`IDEMPOTENCY_RETENTION_SECONDS`), so a sweep is a
+decision somebody takes and not a silent erasure. Eight **FORCE-RLS** tables, each `tenant_isolation` (USING + WITH
+CHECK, fail-closed) and tenant-indexed, with five absolute uniques DB-backed and **three partial uniques that hold
+rules rather than shapes**: `(tenant_id, method, external_path) WHERE status <> 'retired'` so one public address is
+served by one live route while a retired route's address can be reissued; `(tenant_id, subscription_id, event_id)
+WHERE replay_of_delivery_id IS NULL` so an original send is once-only while replaying a dead-lettered delivery stays
+possible at all; and `(tenant_id, scope, consumer_id, capability_key) NULLS NOT DISTINCT WHERE active`, where `NULLS
+NOT DISTINCT` is load-bearing because a `global` policy carries NULL in both subject columns and default semantics
+would admit two of them. There is **no GIN index on any of the three `TEXT[]` columns**, and that is a finding
+rather than an omission — `arraycontains`, `arrayoverlap` and `jsonb_contains` are all non-leakproof, so under FORCE
+RLS a containment test on a policy-protected table is always demoted to a post-security Filter and such an index is
+unreachable at any cardinality in any index shape. **No table carries a soft-delete column and no repository
+declares a delete** — every aggregate's way out is a domain state: retired, sunset, revoked, suspended, disabled,
+dead-lettered, abandoned, conflicted. **Five permission scopes** split 82 endpoints — `gateway:read`,
+`gateway:publish` (contracts and routes), **`gateway:admit` standing apart** because admitting a caller decides _who
+may reach the institution_ while arranging an integration only decides where the institution's own notifications go,
+and bundling them would hand the ability to issue external access to everybody who ever needed to add a webhook,
+`gateway:integrate` (endpoints and subscriptions) and `gateway:operate`. Six directory ports resolve the
+organization node, the person, the **scope catalogue**, the **capability target**, the **adapter registry** and the
+**event-type catalogue** — the last four each carrying a rule of the contract rather than a convenience, since they
+are what make "the scope exists", "the target is invocable", "the adapter is built" and "the event is published"
+checked claims — with **no domain→domain package import** anywhere and **every port a read**. `ADAPTER_MANIFEST` is
+an honestly empty `Map`, so every endpoint registration is currently refused for naming an adapter this build does
+not carry, and `PUBLISHED_EVENT_TYPES` is a frozen twenty-one-member set, so a subscription can only be taken out on
+an event the institution has decided to promise externally. Value-, prose- and PII-free `gateway.*` events (36)
+publish onto the shared bus, with **no credential handle and no internal target in any payload** including the
+rotation events whose entire subject is that a handle changed. The DI-graph spec asserts all six ports bind, since a
+port that silently failed to bind would turn four of the contract's guarantees into claims nothing checked while
+every guard in the package still appeared to pass. All eight service tokens are exported for **in-process
+cross-domain use**. Residual deferrals are **TD-52**; the first HTTPS adapter arrives with the vendor contracts
+D04–D08 and the delivery worker with TD-01's streaming backbone, which is **P3-D02**, the next contract. The layer
+that gives the platform one front door, so a capability can be reached, versioned, deprecated, rate-limited and
+audited without any caller ever learning what implements it.

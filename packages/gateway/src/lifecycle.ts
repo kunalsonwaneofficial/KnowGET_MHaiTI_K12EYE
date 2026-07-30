@@ -1,0 +1,314 @@
+import type { ISODateString } from "@knowget/types";
+import {
+  type ConsumerStatus,
+  type ContractStatus,
+  type EndpointStatus,
+  MIN_DEPRECATION_NOTICE_DAYS,
+  type RouteStatus,
+  type SubscriptionStatus,
+  isTerminalConsumerStatus,
+  isTerminalContractStatus,
+  isTerminalEndpointStatus,
+  isTerminalRouteStatus,
+  isTerminalSubscriptionStatus,
+} from "./gateway-value";
+import type {
+  DeprecationRequest,
+  DeprecationVerdict,
+  ServingRequest,
+  ServingVerdict,
+  TransitionVerdict,
+} from "./gateway-view";
+
+/**
+ * What may move where, whether a version still answers, and whether a sunset gives enough notice.
+ *
+ * This is the first of the package's engines and it holds the rules that decide the fate of every integration
+ * built against the platform. Nothing here reads a clock, touches a repository or throws: each function takes a
+ * record of plain values and hands back a verdict, which is what lets a serving decision made eight months ago
+ * be reproduced exactly by replaying the row it was made from. That property is not decoration. The commonest
+ * question an integration support conversation has to answer is *why did this call stop working on the
+ * fourteenth*, and an engine that consulted `Date.now()` could only ever answer it with a reconstruction.
+ *
+ * **The progression maps are the whole lifecycle, written once.** A consumer moves through registration,
+ * activation, suspension and retirement; a contract through draft, publication, deprecation and sunset; a route
+ * through draft, activation and retirement; an outbound endpoint through registration, service, quarantine,
+ * disablement and retirement; a webhook subscription through service, pause, suspension and revocation. No map
+ * has a reverse edge out of its terminal status, and that is deliberate in every case for the same reason: a
+ * decommissioning that can be undone is one that nobody ever finishes, and the credential reference, the
+ * integrator's pinned version, the published path or the address of a system nobody has spoken to in a year
+ * stays live in somebody's configuration on the strength of it.
+ *
+ * **Serving is a question about an instant, not about now.** {@link inspectServing} takes `asOf` and answers for
+ * that moment, including moments before the deprecation was announced — at which point the contract was merely
+ * published and the verdict says so. A caller reconstructing what a consumer was told last quarter gets what
+ * they were actually told rather than today's answer applied backwards.
+ *
+ * **The notice floor is not a parameter.** {@link inspectDeprecation} refuses a sunset announced with less than
+ * {@link MIN_DEPRECATION_NOTICE_DAYS} days of warning and offers no override, because an operator under pressure
+ * to retire a version always has a reason why this one is different and the cost of agreeing lands entirely on
+ * integrators who are not in the conversation.
+ */
+
+// --- Time ------------------------------------------------------------------------
+
+/** Whole days in milliseconds. Notice periods are counted in days because that is how notice is given. */
+const MILLISECONDS_PER_DAY = 86_400_000;
+
+/** Whole days from `from` to `to`, floored. Negative when `to` precedes `from`. */
+const daysBetween = (from: ISODateString, to: ISODateString): number =>
+  Math.floor((Date.parse(to) - Date.parse(from)) / MILLISECONDS_PER_DAY);
+
+/** Whether `instant` has arrived as of `asOf`. Equal instants count as arrived. */
+const hasArrived = (instant: ISODateString, asOf: ISODateString): boolean =>
+  Date.parse(asOf) >= Date.parse(instant);
+
+// --- Status progression ----------------------------------------------------------
+
+/**
+ * Where an API consumer may go from where it is.
+ *
+ * Suspension is reversible and retirement is not, and the asymmetry carries the meaning. Suspension answers
+ * something happening now — a runaway loop, an expired contract, an incident — and is expected to be undone.
+ * Retirement is the institution's statement that an integration is over, and a retired consumer that could be
+ * revived would leave the reference to its credential looking temporarily dormant rather than finished.
+ */
+const CONSUMER_PROGRESSION: Readonly<Record<ConsumerStatus, readonly ConsumerStatus[]>> =
+  Object.freeze({
+    registered: Object.freeze(["active", "retired"]) as readonly ConsumerStatus[],
+    active: Object.freeze(["suspended", "retired"]) as readonly ConsumerStatus[],
+    suspended: Object.freeze(["active", "retired"]) as readonly ConsumerStatus[],
+    retired: Object.freeze([]) as readonly ConsumerStatus[],
+  });
+
+/**
+ * Where a capability contract may go from where it is.
+ *
+ * A draft may reach `sunset` without ever being published, which is how a version that will not ship is
+ * withdrawn. Sunset describes whether a version answers rather than how it stopped answering, and a fifth
+ * status meaning *never shipped* would give routing one more thing to check and tell an integrator nothing they
+ * could act on: a version that was never published is a version they never saw.
+ *
+ * There is no edge from `deprecated` back to `published`. Un-deprecating is not a correction an integrator can
+ * benefit from — they have already been told to move, and some of them already have — and a notice that can be
+ * withdrawn is a notice the next one gets read as.
+ *
+ * There is no edge from `published` straight to `sunset` either, and this is the absence that carries the notice
+ * floor. `MIN_DEPRECATION_NOTICE_DAYS` is enforced on the move *into* `deprecated`, so a version that could reach
+ * `sunset` without passing through it would leave the floor as something the platform checks only when asked —
+ * ninety days of notice for an operator who deprecates, none at all for one who skips the step. The route out of
+ * service for anything that was ever published therefore runs through the notice, without exception.
+ *
+ * The case this refuses is the emergency withdrawal: a published version that turns out to leak. That need is
+ * real and this is not where it is served. Retiring the route stops the traffic now, and suspending the consumer
+ * stops one caller now; both say what happened. Sunset carries no reason and no urgency, so an emergency pushed
+ * through it is recorded as a version that ended on schedule — a fact about the incident lost in the only place
+ * anyone would later look for it.
+ */
+const CONTRACT_PROGRESSION: Readonly<Record<ContractStatus, readonly ContractStatus[]>> =
+  Object.freeze({
+    draft: Object.freeze(["published", "sunset"]) as readonly ContractStatus[],
+    published: Object.freeze(["deprecated"]) as readonly ContractStatus[],
+    deprecated: Object.freeze(["sunset"]) as readonly ContractStatus[],
+    sunset: Object.freeze([]) as readonly ContractStatus[],
+  });
+
+/**
+ * Where a capability route may go from where it is.
+ *
+ * The shortest of the three maps, and the only one with no reversible step at all. A route is the binding
+ * between an external path and something inside the platform; while it is a draft the binding is being decided,
+ * once it is active the path is in other people's code, and retirement is the statement that it no longer is.
+ * There is no `suspended` between them, because a route that stopped answering without being retired would be
+ * an outage the platform had recorded as a configuration state and would therefore never alert on.
+ */
+const ROUTE_PROGRESSION: Readonly<Record<RouteStatus, readonly RouteStatus[]>> = Object.freeze({
+  draft: Object.freeze(["active", "retired"]) as readonly RouteStatus[],
+  active: Object.freeze(["retired"]) as readonly RouteStatus[],
+  retired: Object.freeze([]) as readonly RouteStatus[],
+});
+
+/**
+ * Where an outbound integration endpoint may go from where it is.
+ *
+ * The only map with two separate ways to stop being called, and they are kept apart because they are reached by
+ * different parties and cleared by different actions. `quarantined` is the platform's own conclusion, drawn from
+ * an endpoint that has gone on failing its probes long enough that continuing is pointless; `disabled` is an
+ * operator's decision, taken for reasons the platform has no visibility of at all — an agreement that ended, a
+ * migration, a vendor asking to be left alone during their own incident. Collapsing the two would leave an
+ * operator unable to tell which of their endpoints they switched off and which ones the fabric gave up on, which
+ * is the difference between a list of decisions and a list of unresolved failures.
+ *
+ * There is no edge from `disabled` to `quarantined`. Quarantine is a conclusion drawn from observed outcomes, and
+ * a disabled endpoint is not being called, so there are none; a platform that could quarantine one would be
+ * publishing a verdict about traffic it never sent.
+ */
+const ENDPOINT_PROGRESSION: Readonly<Record<EndpointStatus, readonly EndpointStatus[]>> =
+  Object.freeze({
+    registered: Object.freeze(["active", "disabled", "retired"]) as readonly EndpointStatus[],
+    active: Object.freeze(["quarantined", "disabled", "retired"]) as readonly EndpointStatus[],
+    quarantined: Object.freeze(["active", "disabled", "retired"]) as readonly EndpointStatus[],
+    disabled: Object.freeze(["active", "retired"]) as readonly EndpointStatus[],
+    retired: Object.freeze([]) as readonly EndpointStatus[],
+  });
+
+/**
+ * Where a webhook subscription may go from where it is.
+ *
+ * Two ways to stop sending again, and the same argument that separates quarantine from disablement separates
+ * these — except that here the two parties are the consumer and the platform rather than the platform and an
+ * operator. `paused` is the consumer's own choice, taken because their receiver is being deployed or their
+ * downstream is being migrated; `suspended` is the platform's, taken because the receiver has been refusing
+ * everything for long enough that continuing to send is costing both sides capacity for nothing. A consumer
+ * returning from a maintenance window needs to know which of the two they are in, because a pause is cleared by
+ * remembering to clear it and a suspension is cleared by fixing something.
+ *
+ * There is no edge from `paused` to `suspended`. A paused subscription is not being sent to, so there are no
+ * failures for the platform to draw a conclusion from, and suspending one would be the fabric announcing a
+ * verdict about deliveries it chose not to attempt.
+ *
+ * Both absences lead back to `active` rather than to each other. A suspension is not converted into a pause by
+ * the consumer noticing it, and a pause is not escalated into a suspension by lasting a long time; each is
+ * cleared by the party that caused it, and the record says which party that was.
+ */
+const SUBSCRIPTION_PROGRESSION: Readonly<
+  Record<SubscriptionStatus, readonly SubscriptionStatus[]>
+> = Object.freeze({
+  active: Object.freeze(["paused", "suspended", "revoked"]) as readonly SubscriptionStatus[],
+  paused: Object.freeze(["active", "revoked"]) as readonly SubscriptionStatus[],
+  suspended: Object.freeze(["active", "revoked"]) as readonly SubscriptionStatus[],
+  revoked: Object.freeze([]) as readonly SubscriptionStatus[],
+});
+
+/**
+ * The one transition rule, applied to whichever map was handed in.
+ *
+ * The order of the three checks is the order the caller can act on. Being told a record is already active is a
+ * duplicate submission and needs no action at all; being told it is terminal says no action exists; only the
+ * last case is a genuine request for a move the lifecycle declines. Checking permission first would answer the
+ * resubmitted form with an error about the shape of the lifecycle.
+ */
+function inspectTransition<TStatus extends string>(
+  from: TStatus,
+  to: TStatus,
+  isTerminal: (status: TStatus) => boolean,
+  permitted: readonly TStatus[],
+): TransitionVerdict {
+  if (from === to) return { allowed: false, refusal: "same_status" };
+  if (isTerminal(from)) return { allowed: false, refusal: "terminal_status" };
+  if (!permitted.includes(to)) return { allowed: false, refusal: "not_permitted" };
+  return { allowed: true, refusal: null };
+}
+
+/** Whether an API consumer may move from one status to another. */
+export const inspectConsumerTransition = (
+  from: ConsumerStatus,
+  to: ConsumerStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalConsumerStatus, CONSUMER_PROGRESSION[from]);
+
+/** Whether a capability contract may move from one status to another. */
+export const inspectContractTransition = (
+  from: ContractStatus,
+  to: ContractStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalContractStatus, CONTRACT_PROGRESSION[from]);
+
+/** Whether a capability route may move from one status to another. */
+export const inspectRouteTransition = (from: RouteStatus, to: RouteStatus): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalRouteStatus, ROUTE_PROGRESSION[from]);
+
+/** Whether an integration endpoint may move from one status to another. */
+export const inspectEndpointTransition = (
+  from: EndpointStatus,
+  to: EndpointStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalEndpointStatus, ENDPOINT_PROGRESSION[from]);
+
+/** Whether a webhook subscription may move from one status to another. */
+export const inspectSubscriptionTransition = (
+  from: SubscriptionStatus,
+  to: SubscriptionStatus,
+): TransitionVerdict =>
+  inspectTransition(from, to, isTerminalSubscriptionStatus, SUBSCRIPTION_PROGRESSION[from]);
+
+// --- Serving ---------------------------------------------------------------------
+
+/**
+ * Whether a contract answers as of a named instant, and on what terms.
+ *
+ * The `asOf` parameter does more work here than it looks like it does. A deprecated contract asked about an
+ * instant *before* its announcement is reported as served and not deprecated, with no sunset date, because that
+ * is what was true then and what the consumer was told at the time. Anything else would let an audit of last
+ * quarter's traffic conclude that callers had been warned when they had not been.
+ *
+ * `daysUntilSunset` is clamped at zero rather than going negative. A date in the past has no days remaining, and
+ * a countdown that runs backwards past zero reads as a system that has lost track of the date rather than as a
+ * version that stopped answering on schedule.
+ */
+export function inspectServing(request: ServingRequest): ServingVerdict {
+  if (request.status === "sunset") {
+    return { served: false, deprecated: false, daysUntilSunset: 0, reason: "contract_sunset" };
+  }
+  if (request.status === "draft") {
+    return {
+      served: false,
+      deprecated: false,
+      daysUntilSunset: null,
+      reason: "contract_not_servable",
+    };
+  }
+
+  const announced =
+    request.status === "deprecated" &&
+    request.deprecatedAt !== null &&
+    hasArrived(request.deprecatedAt, request.asOf);
+
+  if (!announced) {
+    return { served: true, deprecated: false, daysUntilSunset: null, reason: "within_limits" };
+  }
+
+  if (request.sunsetAt === null) {
+    return { served: true, deprecated: true, daysUntilSunset: null, reason: "within_limits" };
+  }
+
+  if (hasArrived(request.sunsetAt, request.asOf)) {
+    return { served: false, deprecated: true, daysUntilSunset: 0, reason: "contract_sunset" };
+  }
+
+  return {
+    served: true,
+    deprecated: true,
+    daysUntilSunset: Math.max(0, daysBetween(request.asOf, request.sunsetAt)),
+    reason: "within_limits",
+  };
+}
+
+// --- Deprecation -----------------------------------------------------------------
+
+/**
+ * Whether a deprecation may be announced on the terms proposed.
+ *
+ * Three checks in the order a caller can fix them. A draft cannot be deprecated at all, so the status is settled
+ * before the dates are read; a sunset earlier than its own announcement is a transposed pair of arguments rather
+ * than a short notice period, and reporting it as *too short* would send somebody to argue about the floor when
+ * what they have is a bug; and only then is the notice measured against the floor.
+ *
+ * `noticeDays` travels on every verdict, including the refusals, because the number is the argument. An operator
+ * told they gave sixty days when ninety are required knows exactly what to change, and an operator told only
+ * *not enough* has to guess.
+ */
+export function inspectDeprecation(request: DeprecationRequest): DeprecationVerdict {
+  if (request.status !== "published") {
+    return { allowed: false, noticeDays: 0, refusal: "contract_not_published" };
+  }
+
+  const noticeDays = daysBetween(request.announcedAt, request.sunsetAt);
+  if (noticeDays < 0) {
+    return { allowed: false, noticeDays: 0, refusal: "sunset_before_announcement" };
+  }
+  if (noticeDays < MIN_DEPRECATION_NOTICE_DAYS) {
+    return { allowed: false, noticeDays, refusal: "notice_too_short" };
+  }
+  return { allowed: true, noticeDays, refusal: null };
+}
