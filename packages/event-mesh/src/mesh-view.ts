@@ -4,12 +4,16 @@ import type {
   DeadLetterReason,
   DeliverySemantics,
   DeliveryVerdict,
+  EventTypeStatus,
   FilterPredicate,
   LagBand,
   OrderingGuarantee,
   PayloadRetention,
+  ReplayRefusalReason,
+  ReplayStatus,
   SchemaField,
   SchemaFieldType,
+  StreamStatus,
   SubscriptionStatus,
 } from "./mesh-value";
 
@@ -426,4 +430,178 @@ export interface RetentionVerdict {
   readonly replayable: boolean;
   /** How long the message has left, in whole seconds, floored at zero once it has expired. */
   readonly remainingSeconds: number;
+}
+
+// --- Lifecycle -------------------------------------------------------------------
+
+/**
+ * Why a status change was refused.
+ *
+ * Three refusals rather than one because they have three different remedies. `same_status` is a resubmitted
+ * form and nothing is wrong. `terminal_status` says the record has finished and no remedy exists. Only
+ * `not_permitted` means the caller asked for something the lifecycle genuinely disallows.
+ */
+export type TransitionRefusal = "same_status" | "terminal_status" | "not_permitted";
+
+/**
+ * Whether a status change is permitted.
+ *
+ * One shape serves all six progressions in this package — event types, streams, bindings, subscriptions, dead
+ * letters and replay requests — because they differ in which moves they allow and not at all in how a refusal
+ * is shaped. Six identical verdict types would be six places to forget the same fix.
+ */
+export interface TransitionVerdict {
+  readonly allowed: boolean;
+  readonly refusal: TransitionRefusal | null;
+}
+
+/**
+ * Why a proposed deprecation was refused.
+ *
+ * `retirement_before_announcement` is kept apart from `notice_too_short` although both are failures of the same
+ * arithmetic, because they are different mistakes. A retirement date earlier than its own announcement is a
+ * transposed pair of arguments; reporting it as short notice would send somebody to argue about the floor when
+ * what they have is a bug.
+ */
+export type EventTypeDeprecationRefusal =
+  "not_published" | "retirement_before_announcement" | "notice_too_short";
+
+/**
+ * A proposed deprecation of one event type version, and the two dates that bound the notice it gives.
+ *
+ * The version travels with the key because deprecation in this package is per version rather than per type. A
+ * consumer reading `student-lifecycle.enrolment` v2 is unaffected by v1 being withdrawn, and a notice addressed
+ * to the type would tell every consumer of every version to migrate.
+ */
+export interface EventTypeDeprecationRequest {
+  readonly eventTypeKey: string;
+  readonly version: number;
+  readonly status: EventTypeStatus;
+  /** When the deprecation is announced to consumers. */
+  readonly announcedAt: ISODateString;
+  /** When the version is proposed to stop being publishable. */
+  readonly retireAt: ISODateString;
+}
+
+/** Whether a deprecation may be announced on the terms proposed, and the notice those terms actually give. */
+export interface EventTypeDeprecationVerdict {
+  readonly allowed: boolean;
+  /** Whole days from announcement to retirement. Zero where the dates do not describe a notice period. */
+  readonly noticeDays: number;
+  readonly refusal: EventTypeDeprecationRefusal | null;
+}
+
+/**
+ * Why an event type version does or does not accept a publication at the instant asked about.
+ *
+ * `within_notice` covers both the undeprecated version and the deprecated one whose retirement has not arrived,
+ * because in both cases the answer to the caller is the same — publish — and the difference between them is
+ * carried by {@link PublicationVerdict.deprecated} rather than by a second reason nobody would branch on.
+ */
+export type PublicationReason =
+  "within_notice" | "event_type_retired" | "event_type_not_publishable";
+
+/** One event type version, read against the deprecation calendar it is on at a named instant. */
+export interface PublicationRequest {
+  readonly eventTypeKey: string;
+  readonly version: number;
+  readonly status: EventTypeStatus;
+  /** When the deprecation was announced, or `null` where none has been. */
+  readonly deprecatedAt: ISODateString | null;
+  /** When the version stops being publishable, or `null` where no date has been set. */
+  readonly retireAt: ISODateString | null;
+  readonly asOf: ISODateString;
+}
+
+/**
+ * Whether the mesh accepts a publication of this version at this instant, and on what terms.
+ *
+ * `deprecated` is on the verdict rather than derived from the status by the caller, because it is a statement
+ * about the instant asked about rather than about the record: a version deprecated in June, asked about in
+ * March, was not deprecated then and the producer was not told to move. An audit that read the status column
+ * instead would conclude that callers had been warned when they had not been.
+ */
+export interface PublicationVerdict {
+  readonly publishable: boolean;
+  readonly deprecated: boolean;
+  /** Whole days until retirement, floored at zero. `null` where no retirement date has been set. */
+  readonly daysUntilRetirement: number | null;
+  readonly reason: PublicationReason;
+}
+
+// --- Replay ----------------------------------------------------------------------
+
+/**
+ * A proposed replay: which subscription, over which stream, across which window, judged at which instant.
+ *
+ * Everything the refusal rules read arrives here as a plain value, including the three facts that come from
+ * other records — what the stream retains, what state it is in, what state the subscription is in. That is what
+ * makes a refusal reproducible: the row that was refused in March can be re-judged in November and give the
+ * same answer, which is the only way to settle an argument about whether a replay should have been allowed.
+ *
+ * {@link ReplayWindowRequest.messageCount} is counted by the caller rather than estimated here, because
+ * only the store knows how many messages a window actually holds, and a ceiling enforced against a guess is
+ * not a ceiling.
+ */
+export interface ReplayWindowRequest {
+  readonly subscriptionKey: string;
+  readonly streamKey: string;
+  /**
+   * The first instant of the window.
+   *
+   * Read against {@link RetentionRequest.recordedAt} rather than against when the facts occurred, so that the
+   * window a requester asks for is the window retention is measured in. A replay bounded by occurrence would
+   * ask for messages that were recorded outside it.
+   */
+  readonly fromInstant: ISODateString;
+  /** The last instant of the window. Equal to the first for a window covering a single moment. */
+  readonly toInstant: ISODateString;
+  /** How many messages the window holds, counted from the store by the caller. */
+  readonly messageCount: number;
+  readonly retention: PayloadRetention;
+  readonly retentionSeconds: number;
+  readonly streamStatus: StreamStatus;
+  readonly subscriptionStatus: SubscriptionStatus;
+  readonly asOf: ISODateString;
+}
+
+/**
+ * Whether the replay may run, and the three figures a refused requester needs to ask again successfully.
+ *
+ * Every figure travels on every verdict, refusals included, for the reason {@link EventTypeDeprecationVerdict}
+ * carries its notice: a requester told only *too wide* has to guess, and one told the width they asked for, the
+ * count it covers and the instant their window has to start after can fix the request without asking anybody.
+ */
+export interface ReplayWindowVerdict {
+  readonly subscriptionKey: string;
+  readonly allowed: boolean;
+  readonly refusal: ReplayRefusalReason | null;
+  /** The width of the window in whole seconds. Zero where the window could not be read as one. */
+  readonly windowSeconds: number;
+  readonly messageCount: number;
+  /** The instant at or before which everything has expired. A replayable window starts after it. */
+  readonly retentionCutoff: ISODateString;
+}
+
+/** Why an approval was refused. */
+export type ReplayApprovalRefusal = "not_awaiting_approval" | "self_approval";
+
+/**
+ * Somebody approving a replay request that somebody raised.
+ *
+ * Both people are on the request rather than only the approver, because the rule this exists to enforce is that
+ * they are different people, and a check that could only see one of them would have to trust the caller to have
+ * compared them.
+ */
+export interface ReplayApprovalRequest {
+  readonly replayId: Uuid;
+  readonly status: ReplayStatus;
+  readonly requestedBy: Uuid;
+  readonly approvedBy: Uuid;
+}
+
+/** Whether the approval stands. */
+export interface ReplayApprovalVerdict {
+  readonly allowed: boolean;
+  readonly refusal: ReplayApprovalRefusal | null;
 }

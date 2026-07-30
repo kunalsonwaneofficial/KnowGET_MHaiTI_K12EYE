@@ -73,7 +73,9 @@ export * from "./mesh-view";
 export * from "./compatibility";
 export * from "./delivery";
 export * from "./envelope";
+export * from "./lifecycle";
 export * from "./partitioning";
+export * from "./replay";
 export * from "./retention";
 export * from "./routing";
 
