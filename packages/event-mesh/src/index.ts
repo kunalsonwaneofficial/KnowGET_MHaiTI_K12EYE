@@ -82,3 +82,8 @@ export * from "./routing";
 // --- Errors ----------------------------------------------------------------------
 
 export * from "./errors";
+
+// --- Aggregates ------------------------------------------------------------------
+
+export * from "./event-stream";
+export * from "./event-type-definition";
