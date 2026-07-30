@@ -280,6 +280,8 @@ export const createWebhookSubscriptionSchema = z.object({
   secretRef: nonEmpty.nullable(),
 });
 
+export const renameWebhookSubscriptionSchema = z.object({ displayName: nonEmpty });
+
 /** Replace what the subscription is interested in. Wholesale, because the filter is one decision. */
 export const resubscribeWebhookSubscriptionSchema = z.object({
   eventTypes: z.array(key).min(1),
