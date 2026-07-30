@@ -196,16 +196,22 @@ export class TrafficPolicyService {
    * The subject named in the refusal is the tuple in the form an operator would recognise it, rather than the
    * row id of the policy that got there first — because the operator's next action is to find the existing
    * policy, and they will find it by looking for the consumer or the capability, not by looking up an id.
+   *
+   * "In force" is the port's half of the rule rather than a filter applied to the result here, and it has to be:
+   * a tuple accumulates the policies that have been released from it, so a lookup free to return any row on the
+   * tuple returns one of several, and a caller asking whether the tuple is free would be answered about whatever
+   * row happened to come back. Checking `active` on that answer does not repair it — the row is unrelated to the
+   * question either way. See {@link TrafficPolicyRepository.findActiveByScopeTuple}.
    */
   private async requireTupleFree(policy: TrafficPolicy): Promise<void> {
-    const holder = await this.repository.findByScopeTuple(
+    const holder = await this.repository.findActiveByScopeTuple(
       policy.tenantId,
       policy.organizationId,
       policy.scope,
       policy.consumerId,
       policy.capabilityKey,
     );
-    if (holder && holder.id !== policy.id && isTrafficPolicyActive(holder)) {
+    if (holder && holder.id !== policy.id) {
       throw new DuplicatePolicyScopeError(policy.scope, describeSubject(policy));
     }
   }

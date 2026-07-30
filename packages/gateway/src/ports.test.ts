@@ -255,7 +255,7 @@ describe("nothing a repository holds crosses a tenant boundary", () => {
     await repository.save(policy);
 
     expect(await repository.findById(OTHER, policy.id)).toBeNull();
-    expect(await repository.findByScopeTuple(OTHER, ORG, "global", null, null)).toBeNull();
+    expect(await repository.findActiveByScopeTuple(OTHER, ORG, "global", null, null)).toBeNull();
     expect(await repository.listActive(OTHER, ORG)).toEqual([]);
   });
 
@@ -343,13 +343,27 @@ describe("the reads that stop there being two of something", () => {
     await repository.save(global);
     await repository.save(perConsumer);
 
-    expect(await repository.findByScopeTuple(TENANT, ORG, "global", null, null)).toEqual(global);
-    expect(await repository.findByScopeTuple(TENANT, ORG, "consumer", CONSUMER, null)).toEqual(
-      perConsumer,
+    expect(await repository.findActiveByScopeTuple(TENANT, ORG, "global", null, null)).toEqual(
+      global,
     );
     expect(
-      await repository.findByScopeTuple(TENANT, ORG, "consumer", SECOND_CONSUMER, null),
+      await repository.findActiveByScopeTuple(TENANT, ORG, "consumer", CONSUMER, null),
+    ).toEqual(perConsumer);
+    expect(
+      await repository.findActiveByScopeTuple(TENANT, ORG, "consumer", SECOND_CONSUMER, null),
     ).toBeNull();
+  });
+
+  it("keeps a policy released from its tuple out of the tuple lookup, so the tuple reads as free", async () => {
+    const repository = new InMemoryTrafficPolicyRepository();
+    const released = policyIn(TENANT, { active: false, deactivatedAt: AT });
+    const inForce = policyIn(TENANT, { id: "policy-2" as Uuid });
+    await repository.save(released);
+    await repository.save(inForce);
+
+    expect(await repository.findActiveByScopeTuple(TENANT, ORG, "global", null, null)).toEqual(
+      inForce,
+    );
   });
 
   it("scopes a subscription key to its consumer, so two consumers may both have one", async () => {

@@ -377,10 +377,18 @@ export class InMemoryCapabilityRouteRepository implements CapabilityRouteReposit
 /**
  * Storage contract for traffic policies. Tenant-scoped (explicit argument + RLS).
  *
- * `findByScopeTuple` backs the rule that one scope tuple carries one policy. The consumer and capability
+ * `findActiveByScopeTuple` backs the rule that one scope tuple carries one policy. The consumer and capability
  * arguments are nullable because two of the four scopes do not use them, and passing the whole tuple rather
  * than a discriminated pair keeps the uniqueness question in one shape: a global policy is the tuple with both
  * nulls, and it is unique for the same reason and by the same check as every other.
+ *
+ * The `Active` in the name is the load-bearing half. The rule is that one policy is *in force* on a tuple, not
+ * that one row exists on it — deactivation releases a tuple, so a tuple legitimately accumulates a history of
+ * policies that no longer apply. A lookup that returned any row on the tuple would therefore have to return one
+ * of several, and whichever one it picked, the caller would be asking *is this tuple free* and getting an answer
+ * about a row that stopped mattering months ago. Filtering here makes the read single-row by construction and
+ * puts it in exact correspondence with the partial unique index on the tuple `WHERE active` that enforces the
+ * same rule in the database, so the two cannot drift.
  *
  * `listActive` is the candidate set the policy engine resolves over. Resolution is a pure function of the
  * candidates and the request, so this read is the entirety of what selection needs — and because a deactivated
@@ -394,7 +402,8 @@ export class InMemoryCapabilityRouteRepository implements CapabilityRouteReposit
  */
 export interface TrafficPolicyRepository {
   findById(tenantId: TenantId, id: Uuid): Promise<TrafficPolicy | null>;
-  findByScopeTuple(
+  /** The policy *in force* on this tuple, if there is one. At most one can be, by the rule this read serves. */
+  findActiveByScopeTuple(
     tenantId: TenantId,
     organizationId: Uuid,
     scope: PolicyScope,
@@ -415,7 +424,7 @@ export class InMemoryTrafficPolicyRepository implements TrafficPolicyRepository 
     return policy && policy.tenantId === tenantId ? policy : null;
   }
 
-  async findByScopeTuple(
+  async findActiveByScopeTuple(
     tenantId: TenantId,
     organizationId: Uuid,
     scope: PolicyScope,
@@ -429,7 +438,8 @@ export class InMemoryTrafficPolicyRepository implements TrafficPolicyRepository 
           p.organizationId === organizationId &&
           p.scope === scope &&
           p.consumerId === consumerId &&
-          p.capabilityKey === capabilityKey,
+          p.capabilityKey === capabilityKey &&
+          isTrafficPolicyActive(p),
       ) ?? null
     );
   }
