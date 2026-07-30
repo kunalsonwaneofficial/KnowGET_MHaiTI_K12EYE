@@ -147,6 +147,9 @@ importers:
       '@knowget/enterprise-identity':
         specifier: workspace:*
         version: link:../../packages/enterprise-identity
+      '@knowget/event-mesh':
+        specifier: workspace:*
+        version: link:../../packages/event-mesh
       '@knowget/events':
         specifier: workspace:*
         version: link:../../packages/events
