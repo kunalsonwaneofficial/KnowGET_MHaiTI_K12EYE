@@ -106,5 +106,7 @@ export * from "./mesh-events";
 
 export * from "./event-stream-service";
 export * from "./event-type-definition-service";
+export * from "./mesh-message-service";
 export * from "./mesh-subscription-service";
 export * from "./stream-binding-service";
+export * from "./subscription-checkpoint-service";
