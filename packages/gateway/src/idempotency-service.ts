@@ -11,6 +11,7 @@ import {
   completeIdempotentOperation,
   inspectIdempotency,
   markIdempotencyConflict,
+  renewIdempotentOperation,
   requireIdempotencyKey,
   requireUsableIdempotency,
 } from "./idempotency-record";
@@ -93,6 +94,10 @@ export class IdempotencyService {
    * by doing the work and calling {@link IdempotencyService.complete}, `replay` by answering from
    * `verdict.recordedStatus` and the record's `responseRef` — and a caller that forgets to look at the
    * disposition has a bug that a union type would only move.
+   *
+   * A proceed that stepped over an expired record renews that record rather than writing beside it, because the
+   * store holds one row per key and the sweep that would have removed the old one is allowed to be late. See
+   * {@link renewIdempotentOperation}.
    */
   async begin(params: BeginIdempotentOperationParams): Promise<GuardedOperation> {
     const idempotencyKey = requireIdempotencyKey(params.idempotencyKey);
@@ -116,7 +121,11 @@ export class IdempotencyService {
       return { disposition: "replay", record: existing, verdict };
     }
 
-    const record = beginIdempotentOperation({ ...params, idempotencyKey });
+    const claim = { ...params, idempotencyKey };
+    const record =
+      verdict.expired && existing
+        ? renewIdempotentOperation(existing, claim)
+        : beginIdempotentOperation(claim);
     await this.repository.save(record);
     return { disposition: "proceed", record, verdict };
   }

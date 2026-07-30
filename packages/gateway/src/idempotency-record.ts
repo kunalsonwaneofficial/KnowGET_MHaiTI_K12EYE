@@ -200,6 +200,26 @@ export function beginIdempotentOperation(
   };
 }
 
+/**
+ * Claim a key whose previous record has outlived its retention, reusing that record's row.
+ *
+ * The ledger holds one row per `(tenant, consumer, key)` and holds it for good, which is the shape the unique
+ * constraint {@link beginIdempotentOperation} leans on actually takes. Minting a second row for the same triple
+ * would put the insert straight into that constraint — turning the expired proceed the ledger has just
+ * authorised into a failure on a request nothing is wrong with, at exactly the moment the module comment
+ * promises the sweep can run late without changing an answer. Renewal is what makes that promise true.
+ *
+ * The identity is the triple, not the operation, so the row's id survives and everything else is rebuilt from
+ * the new request. Carrying a predecessor's fingerprint, status or completion instant forward would let a record
+ * the ledger has already declared absent answer for a request it has never seen.
+ */
+export function renewIdempotentOperation(
+  expired: IdempotencyRecord,
+  params: BeginIdempotentOperationParams,
+): IdempotencyRecord {
+  return { ...beginIdempotentOperation(params), id: expired.id };
+}
+
 // --- Ending ----------------------------------------------------------------------
 
 /**
