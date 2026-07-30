@@ -303,6 +303,15 @@ export const suspendWebhookSubscriptionSchema = z.object({ reason: nonEmpty });
 // --- Outbound deliveries ---------------------------------------------------------
 
 /**
+ * The instant a due-delivery read is judged against (`gateway:read`).
+ *
+ * Required rather than defaulted, unlike the equivalent elsewhere in the platform, because the caller here is a
+ * delivery worker rather than a screen. A worker that let the server pick the instant could not say afterwards
+ * which window it had drained, and re-running a drain against a past instant is how a missed run gets audited.
+ */
+export const dueDeliveriesQuerySchema = z.object({ asOf: isoDate });
+
+/**
  * Give up on a delivery for good (`gateway:operate`).
  *
  * The reason is the whole point of the operation. A dead-lettered delivery is the platform saying it could not
