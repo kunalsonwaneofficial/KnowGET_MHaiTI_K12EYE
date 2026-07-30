@@ -45,6 +45,7 @@
     "@knowget/family-guardian": "workspace:*",
     "@knowget/files": "workspace:*",
     "@knowget/financial": "workspace:*",
+    "@knowget/gateway": "workspace:*",
     "@knowget/governance": "workspace:*",
     "@knowget/health": "workspace:*",
     "@knowget/health-centre": "workspace:*",

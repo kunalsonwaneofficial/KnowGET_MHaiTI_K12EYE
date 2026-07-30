@@ -171,6 +171,9 @@ importers:
       '@knowget/financial':
         specifier: workspace:*
         version: link:../../packages/financial
+      '@knowget/gateway':
+        specifier: workspace:*
+        version: link:../../packages/gateway
       '@knowget/governance':
         specifier: workspace:*
         version: link:../../packages/governance
