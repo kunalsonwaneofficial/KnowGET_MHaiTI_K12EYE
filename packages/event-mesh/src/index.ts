@@ -104,9 +104,11 @@ export * from "./mesh-events";
 
 // --- Services --------------------------------------------------------------------
 
+export * from "./dead-letter-service";
 export * from "./event-stream-service";
 export * from "./event-type-definition-service";
 export * from "./mesh-message-service";
 export * from "./mesh-subscription-service";
+export * from "./replay-request-service";
 export * from "./stream-binding-service";
 export * from "./subscription-checkpoint-service";

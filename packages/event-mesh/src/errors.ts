@@ -1254,6 +1254,29 @@ export class ReplayTooManyMessagesError extends PlatformError {
   }
 }
 
+/**
+ * A second replay was started into a consumer that is already being replayed to.
+ *
+ * The two runs interleave two stretches of history in an order neither requester asked for, and the consumer on
+ * the far side — written to read a stream forwards — has no way to tell that it is being handed two. Nothing
+ * errors while it happens: both replays report themselves complete, and what is left behind is a projection
+ * built from a sequence of facts that never occurred in that order. Refusing the second start is the only
+ * moment at which that can be prevented.
+ */
+export class ConcurrentReplayError extends PlatformError {
+  constructor(subscriptionKey: string, runningReplayId: string) {
+    super(
+      `Mesh subscription "${subscriptionKey}" is already replaying under request "${runningReplayId}"`,
+      {
+        code: "CONFLICT",
+        httpStatus: 409,
+        isOperational: true,
+        details: { subscriptionKey, runningReplayId },
+      },
+    );
+  }
+}
+
 /** A replay was started before anybody approved it. */
 export class ReplayNotApprovedError extends PlatformError {
   constructor(id: string, status: string) {
