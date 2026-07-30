@@ -135,6 +135,25 @@ const failing = (endpoint: IntegrationEndpoint, overrides: Partial<OutcomeWindow
     ...overrides,
   });
 
+/**
+ * The instant an endpoint's circuit opened, read off the record. Anything just driven open carries
+ * `circuitOpenedAt`; the posture stamp is the fallback that keeps the type total.
+ */
+const openedAt = (endpoint: IntegrationEndpoint): ISODateString =>
+  endpoint.circuitOpenedAt ?? endpoint.postureSince;
+
+/**
+ * The later of two circuits' opening instants, which is the only sound sweep bound when both endpoints have
+ * to be found. Each endpoint takes its posture stamp from the clock at activation, so two activated back to
+ * back need not share a millisecond, and a bound measured from one leaves the other short of the threshold
+ * by exactly that skew.
+ */
+const lastOpened = (a: IntegrationEndpoint, b: IntegrationEndpoint): ISODateString => {
+  const left = openedAt(a);
+  const right = openedAt(b);
+  return Date.parse(right) > Date.parse(left) ? right : left;
+};
+
 const types = (events: ReturnType<typeof recorder>): string[] =>
   events.published.map((event) => event.type);
 
@@ -571,10 +590,7 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const { events, service } = harness();
     const endpoint = await live(service);
     const opened = await service.recordOutcomes(TENANT, endpoint.id, failing(endpoint));
-    const due = shift(
-      opened.circuitOpenedAt ?? opened.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS,
-    );
+    const due = shift(openedAt(opened), CIRCUIT_QUARANTINE_AFTER_SECONDS);
 
     const swept = await service.sweepQuarantine(TENANT, due);
 
@@ -587,10 +603,7 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const { events, service } = harness();
     const endpoint = await live(service);
     const opened = await service.recordOutcomes(TENANT, endpoint.id, failing(endpoint));
-    const tooEarly = shift(
-      opened.circuitOpenedAt ?? opened.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS - 1,
-    );
+    const tooEarly = shift(openedAt(opened), CIRCUIT_QUARANTINE_AFTER_SECONDS - 1);
 
     const swept = await service.sweepQuarantine(TENANT, tooEarly);
 
@@ -603,11 +616,8 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const first = await live(service);
     const second = await live(service, { endpointKey: OTHER_KEY, displayName: "Stripe" });
     const openedFirst = await service.recordOutcomes(TENANT, first.id, failing(first));
-    await service.recordOutcomes(TENANT, second.id, failing(second));
-    const due = shift(
-      openedFirst.circuitOpenedAt ?? openedFirst.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS,
-    );
+    const openedSecond = await service.recordOutcomes(TENANT, second.id, failing(second));
+    const due = shift(lastOpened(openedFirst, openedSecond), CIRCUIT_QUARANTINE_AFTER_SECONDS);
 
     const swept = await service.sweepQuarantine(TENANT, due);
 
@@ -618,10 +628,7 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const { events, service } = harness();
     const endpoint = await live(service);
     const opened = await service.recordOutcomes(TENANT, endpoint.id, failing(endpoint));
-    const due = shift(
-      opened.circuitOpenedAt ?? opened.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS,
-    );
+    const due = shift(openedAt(opened), CIRCUIT_QUARANTINE_AFTER_SECONDS);
     await service.sweepQuarantine(TENANT, due);
 
     const again = await service.sweepQuarantine(TENANT, due);
@@ -635,10 +642,7 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const endpoint = await live(service);
     const opened = await service.recordOutcomes(TENANT, endpoint.id, failing(endpoint));
     await service.disable(TENANT, endpoint.id, "vendor migration");
-    const due = shift(
-      opened.circuitOpenedAt ?? opened.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS,
-    );
+    const due = shift(openedAt(opened), CIRCUIT_QUARANTINE_AFTER_SECONDS);
 
     expect(await service.sweepQuarantine(TENANT, due)).toEqual([]);
   });
@@ -649,10 +653,7 @@ describe("IntegrationEndpointService — the quarantine sweep", () => {
     const theirs = await live(service, { tenantId: OTHER });
     const openedMine = await service.recordOutcomes(TENANT, mine.id, failing(mine));
     await service.recordOutcomes(OTHER, theirs.id, failing(theirs));
-    const due = shift(
-      openedMine.circuitOpenedAt ?? openedMine.postureSince,
-      CIRCUIT_QUARANTINE_AFTER_SECONDS,
-    );
+    const due = shift(openedAt(openedMine), CIRCUIT_QUARANTINE_AFTER_SECONDS);
 
     const swept = await service.sweepQuarantine(TENANT, due);
 
