@@ -1,5 +1,12 @@
 import type { CorrelationId, ISODateString, TenantId, Uuid } from "@knowget/types";
-import type { CompatibilityMode, SchemaField, SchemaFieldType } from "./mesh-value";
+import type {
+  CompatibilityMode,
+  FilterPredicate,
+  OrderingGuarantee,
+  SchemaField,
+  SchemaFieldType,
+  SubscriptionStatus,
+} from "./mesh-value";
 
 /**
  * The shapes the mesh's engines take in and hand back.
@@ -186,4 +193,113 @@ export interface CompatibilityVerdict {
   readonly changes: readonly SchemaChange[];
   /** The `description` of each breaking change, in the order the changes were found. */
   readonly breakingChanges: readonly string[];
+}
+
+// --- Partitioning ----------------------------------------------------------------
+
+/**
+ * What a stream says about how it spreads what it carries.
+ *
+ * The three fields are one decision rather than three, which is why they travel together and are validated
+ * together. An ordering guarantee is a claim about partitions, a partition count is what makes the claim
+ * affordable or impossible, and the key path is what a publisher has to key on for the claim to mean anything.
+ * Any one of them read alone is a setting; the three read together are a promise the mesh can be held to.
+ *
+ * This shape is also what a stream may never change once it has carried a message. Re-mapping keys onto a
+ * different number of partitions leaves everything already published where it was, so a consumer that had been
+ * reading a learner's enrolments in order starts finding half of them in a partition it has already passed —
+ * arriving out of order, with the record still saying they are ordered, and with nothing raised anywhere.
+ */
+export interface PartitionDeclaration {
+  readonly streamKey: string;
+  readonly ordering: OrderingGuarantee;
+  /** How many partitions the stream is spread across. Exactly one where the ordering is `global`. */
+  readonly partitionCount: number;
+  /**
+   * What the stream says a partition is keyed on — for example `aggregate.aggregateId`.
+   *
+   * Recorded and never parsed, and the honesty of that limit matters more than the field. Verifying that a
+   * publisher actually keyed on what the stream declared would mean reading payloads, which is the one thing
+   * this package will not do. What gets hashed is {@link MeshEnvelope.partitionKey}, which the envelope engine
+   * settles; this is the declaration a consumer reads to know what ordering it is being offered, and an
+   * operator reads when the ordering turns out not to be the one they assumed.
+   */
+  readonly partitionKeyPath: string | null;
+}
+
+/**
+ * Where one message lands, and under which promise.
+ *
+ * Carries the count and the guarantee alongside the index rather than only the index, because a partition
+ * number is meaningless without the modulus it was taken against: partition 3 of 8 and partition 3 of 64 are
+ * different places, and a stored assignment that recorded only the 3 could not be checked against the stream it
+ * was computed for.
+ */
+export interface PartitionAssignment {
+  /** The key that was hashed, after trimming. Held so an assignment can be recomputed from the record alone. */
+  readonly partitionKey: string;
+  /** The partition index, numbered from zero. */
+  readonly partition: number;
+  readonly partitionCount: number;
+  readonly ordering: OrderingGuarantee;
+}
+
+// --- Routing ---------------------------------------------------------------------
+
+/**
+ * One subscription, reduced to the three things that decide whether a message reaches it.
+ *
+ * A projection of the subscription aggregate rather than the aggregate itself, because routing runs once per
+ * message per subscription and everything else a subscription holds — its consumer group, its semantics, its
+ * attempt ceiling, who registered it — belongs to the delivery decision that comes after this one. Keeping the
+ * routing input this narrow is also what lets the engine be tested against a literal.
+ */
+export interface RoutingCandidate {
+  readonly subscriptionKey: string;
+  /** The stream the subscription is registered against. A message from any other stream does not reach it. */
+  readonly streamKey: string;
+  readonly status: SubscriptionStatus;
+  /** Conjunctive: every predicate must hold. An empty filter is a subscription to everything on the stream. */
+  readonly filter: readonly FilterPredicate[];
+}
+
+/**
+ * Why a message did not reach a subscription.
+ *
+ * Three members and no free text, because the first question asked of an empty subscription is *which of these
+ * is it*, and the three have three different answers: the subscription is on another stream and always was, the
+ * subscription is registered or paused rather than active, or the filter it declared excluded this message. A
+ * routing engine that returned only a boolean would send every one of those investigations to the logs.
+ */
+export type RoutingRefusal = "different_stream" | "not_deliverable" | "filtered";
+
+/** What the routing engine concluded about one subscription. `refusal` is `null` exactly when `reached`. */
+export interface RoutingDecision {
+  readonly subscriptionKey: string;
+  readonly reached: boolean;
+  readonly refusal: RoutingRefusal | null;
+}
+
+/** One completed envelope, and every subscription that might be entitled to it. */
+export interface RoutingRequest {
+  readonly envelope: MeshEnvelope;
+  readonly candidates: readonly RoutingCandidate[];
+}
+
+/**
+ * Which subscriptions a message reaches, and what happened to the ones it did not.
+ *
+ * Both lists are returned for the same reason {@link CompatibilityVerdict} returns both of its: they answer two
+ * different questions and a caller usually has one of each. The delivery loop wants `reached` and nothing else;
+ * the operator asking why a subscription has been silent for a week wants `decisions`, and deriving it a second
+ * time in whatever surface answers them would be a second implementation of the same rule.
+ *
+ * `decisions` is ordered by subscription key rather than by the order the candidates arrived, so that the same
+ * message and the same subscriptions produce the same verdict whatever order they were read out of the store.
+ */
+export interface RoutingVerdict {
+  readonly streamKey: string;
+  readonly decisions: readonly RoutingDecision[];
+  /** The keys of the reached subscriptions, in the same order they appear in `decisions`. */
+  readonly reached: readonly string[];
 }

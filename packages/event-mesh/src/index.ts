@@ -72,6 +72,8 @@ export * from "./mesh-view";
 
 export * from "./compatibility";
 export * from "./envelope";
+export * from "./partitioning";
+export * from "./routing";
 
 // --- Errors ----------------------------------------------------------------------
 

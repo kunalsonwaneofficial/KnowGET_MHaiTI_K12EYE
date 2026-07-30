@@ -9,6 +9,7 @@ import {
   MAX_KEY_LENGTH,
   MAX_SCHEMA_FIELDS,
   type SchemaField,
+  compareText,
 } from "./mesh-value";
 import type {
   CompatibilityRequest,
@@ -116,12 +117,6 @@ export function validateSchemaFields(
 }
 
 // --- Difference ------------------------------------------------------------------
-
-/** Code-point ordering, so that a diff reads the same on every machine regardless of its locale. */
-const compareText = (left: string, right: string): number => {
-  if (left < right) return -1;
-  return left > right ? 1 : 0;
-};
 
 /** One difference, with the sentence an operator reads when it is the reason something was refused. */
 const change = (

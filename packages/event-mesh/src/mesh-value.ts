@@ -73,6 +73,20 @@ export const isValidKey = (value: string): boolean =>
   value.length > 0 && value.length <= MAX_KEY_LENGTH && KEY_PATTERN.test(value);
 
 /**
+ * Code-point ordering, so that every list this package produces reads the same on every machine.
+ *
+ * Deliberately not `localeCompare`. A locale-aware comparison orders `_` against a letter differently depending
+ * on the ICU data the process was built against, so a schema diff computed on an engineer's laptop and the same
+ * diff computed on a server can list the same changes in a different order — and the disagreement presents as a
+ * failing assertion nobody can reproduce. Every ordering here that a person or a test will read goes through
+ * this, and the deployment collation is `C.UTF-8` so the store agrees with it.
+ */
+export const compareText = (left: string, right: string): number => {
+  if (left < right) return -1;
+  return left > right ? 1 : 0;
+};
+
+/**
  * Render an instant in the one width every comparison in this package assumes: milliseconds, `Z`, no offset.
  *
  * The mesh compares instants lexically in places where the store does the comparing — a retention sweep, a
