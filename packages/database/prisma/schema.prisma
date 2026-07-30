@@ -6419,3 +6419,402 @@ model AdoptionReview {
   @@index([tenantId, concludedAt])
   @@map("adoption_review")
 }
+
+/// ApiConsumer (P3-D01) — a named external integration and the terms it was admitted on. `credential_ref` is a
+/// reference into the platform's secret store and never a secret: the value objects refuse anything that looks
+/// like a key, a token or a bearer header, because a gateway is exactly where a leaked credential is worth the
+/// most and a column that has ever held one has to be treated as compromised forever. `granted_scopes` is JSONB
+/// on the aggregate rather than a child table, because admission asks one question — does this consumer hold the
+/// scope this route requires — and a scope row that could be inserted on its own would widen a consumer's reach
+/// without the consumer being rewritten. The unique on (tenant_id, consumer_key) is TOTAL and holds retired
+/// consumers included: an audit trail, a delivery log and a support conversation all resolve an integration
+/// through its key, and reissuing one under a new meaning is how those three come to disagree about who called.
+/// `owner_id` is a person inside the institution who answers for the integration, and it is NOT NULL because an
+/// integration nobody owns is the one that stays live years after the project that needed it ended.
+/// `registered_by` is nullable, for the ones the platform provisioned itself. Never deleted: a consumer is
+/// retired, and a retired consumer's key stays claimed. Tenant-owned: FORCE RLS.
+model ApiConsumer {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  consumerKey      String   @map("consumer_key")
+  displayName      String   @map("display_name")
+  authScheme       String   @map("auth_scheme")
+  credentialRef    String   @map("credential_ref")
+  grantedScopes    String[] @map("granted_scopes")
+  status           String   @default("registered")
+  ownerId          String   @map("owner_id") @db.Uuid
+  registeredBy     String?  @map("registered_by") @db.Uuid
+  suspensionReason String?  @map("suspension_reason")
+  activatedAt      String?  @map("activated_at")
+  suspendedAt      String?  @map("suspended_at")
+  retiredAt        String?  @map("retired_at")
+  rotatedAt        String?  @map("rotated_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, consumerKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, ownerId])
+  @@map("api_consumer")
+}
+
+/// ApiContract (P3-D01) — one version of one capability's published shape. The unique on (tenant_id,
+/// capability_key, contract_version) is TOTAL and is the schema's half of the contract's central rule: a
+/// published shape is immutable, so a change is a new version beside this row rather than an edit to it. An
+/// integrator who built against a shape is entitled to keep finding it, and a version number that could be
+/// reissued would make every client's pinned dependency a lie it cannot detect. `specification_ref` points at
+/// the machine-readable specification in the document store; the specification itself is deliberately not here,
+/// because a 200-kilobyte OpenAPI document in a row that admission reads on the hot path is a cost paid on every
+/// request to serve a read nobody performs at request time. `superseded_by_version` is a version string and not
+/// a foreign key: it names the successor an integrator should migrate to, and the successor may legitimately not
+/// exist yet at the moment a deprecation is announced. Never deleted — draft, published, deprecated and sunset
+/// are the whole lifecycle, and a sunset contract stays readable so a caller still holding it can be told
+/// precisely what happened to what it was built against. Tenant-owned: FORCE RLS.
+model ApiContract {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  capabilityKey       String   @map("capability_key")
+  contractVersion     String   @map("contract_version")
+  title               String
+  summary             String
+  style               String   @default("rest")
+  status              String   @default("draft")
+  specificationRef    String   @map("specification_ref")
+  publishedAt         String?  @map("published_at")
+  publishedBy         String?  @map("published_by") @db.Uuid
+  deprecatedAt        String?  @map("deprecated_at")
+  sunsetAt            String?  @map("sunset_at")
+  supersededByVersion String?  @map("superseded_by_version")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by") @db.Uuid
+  updatedBy           String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, capabilityKey, contractVersion])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, capabilityKey])
+  @@index([tenantId, sunsetAt])
+  @@map("api_contract")
+}
+
+/// CapabilityRoute (P3-D01) — one addressable operation on a published contract, and the only table in the
+/// platform that knows which internal capability answers an external address. `internal_target` is the reason
+/// this table exists and the reason nothing may project it: the contract's rule is that the platform exposes
+/// capabilities and never implementation, so no view, event or error carries this column, and a consumer
+/// therefore cannot acquire a dependency on where a capability currently lives. The domain behind a route can be
+/// split, renamed or moved and the only row that changes is this one.
+///
+/// One unique is PARTIAL, which is why it is in the add_gateway migration and not expressible here (like RLS, a
+/// migration-only feature). Two routes may not answer at one address:
+/// UNIQUE (tenant_id, method, external_path) WHERE status <> 'retired'. It is partial rather than total because
+/// a retired route keeps its row — the retirement is the record of an address having once meant something else,
+/// and a total unique would either force that history to be deleted or make an address unreusable for the life
+/// of the institution. `path_parameters` is derived from `external_path` at registration and stored, so the
+/// binding a router performs does not re-parse a template on every request. `idempotent` says whether this route
+/// demands an idempotency key, which is why the ledger and the router agree without consulting each other.
+/// Tenant-owned: FORCE RLS.
+model CapabilityRoute {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  contractId      String   @map("contract_id") @db.Uuid
+  capabilityKey   String   @map("capability_key")
+  contractVersion String   @map("contract_version")
+  method          String
+  externalPath    String   @map("external_path")
+  pathParameters  String[] @map("path_parameters")
+  style           String   @default("rest")
+  status          String   @default("draft")
+  requiredScope   String   @map("required_scope")
+  internalTarget  String   @map("internal_target")
+  idempotent      Boolean  @default(false)
+  activatedAt     String?  @map("activated_at")
+  retiredAt       String?  @map("retired_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, contractId])
+  // Two routes may not answer at one address, enforced by a PARTIAL unique index on
+  // (tenant_id, method, external_path) WHERE status <> 'retired', created in the
+  // add_gateway migration. Retired routes keep their row, so an address that once
+  // meant something else stays on the record and can later be reissued.
+  @@index([tenantId, method, externalPath])
+  @@map("capability_route")
+}
+
+/// TrafficPolicy (P3-D01) — which numbers apply to which caller. This table holds limits and nothing else: it
+/// counts no requests and decides nothing about a live one, because counting belongs to the shared rate limiter
+/// the platform already owns and deciding belongs to the admission engine. What is settled here is the question
+/// neither of those can answer alone — *which limits apply to this call* — as a row an operator can read, change
+/// and be held to.
+///
+/// `limits` is JSONB holding requests-per-window, the window, the burst allowance, the payload ceiling and the
+/// timeout, every one of them nullable and an unset one unenforced. It is one column rather than five because
+/// the coherence rules run across them: half a rate limit — a count with no window, or a window with no count —
+/// is refused by the aggregate, and a five-column shape invites a migration that adds a sixth limit to only some
+/// of the rows.
+///
+/// One unique is PARTIAL and, uniquely in this schema, NULLS NOT DISTINCT — see the add_gateway migration. One
+/// active policy may exist per scope tuple: UNIQUE (tenant_id, scope, consumer_id, capability_key) NULLS NOT
+/// DISTINCT WHERE active. The NULLS NOT DISTINCT clause is the load-bearing half. A `global` policy names
+/// neither a consumer nor a capability and a `capability` policy names no consumer, so under Postgres's default
+/// NULLS DISTINCT two active global policies would both satisfy an ordinary unique and the resolver would
+/// silently apply whichever it found first — the exact failure the aggregate's scope/subject coherence check
+/// exists to prevent, arrived at through the database instead. It is partial on `active` because a deactivated
+/// policy keeps its row: an operator has to be able to see the limits that used to be in force during the
+/// incident they are reading about. Tenant-owned: FORCE RLS.
+model TrafficPolicy {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  scope          String
+  consumerId     String?  @map("consumer_id") @db.Uuid
+  capabilityKey  String?  @map("capability_key")
+  displayName    String   @map("display_name")
+  limits         Json     @default("{}")
+  active         Boolean  @default(true)
+  deactivatedAt  String?  @map("deactivated_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, active])
+  // One active policy per scope tuple, enforced by a PARTIAL unique index on
+  // (tenant_id, scope, consumer_id, capability_key) NULLS NOT DISTINCT WHERE active,
+  // created in the add_gateway migration. NULLS NOT DISTINCT is required rather than
+  // stylistic: global and capability policies leave consumer_id NULL, and under the
+  // default NULLS DISTINCT two active global policies would not collide.
+  @@index([tenantId, scope, consumerId, capabilityKey])
+  @@map("traffic_policy")
+}
+
+/// IntegrationEndpoint (P3-D01) — an external system the platform calls out to, described as a protocol, an
+/// adapter key and a credential *reference*. There is no URL, no header set and no client configuration here,
+/// and that is the point: `adapter_key` names the adapter that knows how to reach the system, the adapter is
+/// resolved at the composition root, and the vendor behind it can be replaced without one row of this table
+/// changing meaning. `credential_ref` is nullable because some protocols are anonymous, and it is never a secret.
+///
+/// `posture`, `consecutive_failures` and `posture_since` are the circuit breaker's *record*, not its
+/// implementation — runtime breaking belongs to the reliability package. They are stored because the decision
+/// has to survive a process restart: a breaker whose state lives only in memory reopens the floodgates on every
+/// deploy, and the failing vendor gets the stampede a second time. `posture_since` is NOT NULL and is set at
+/// registration, because a half-open probe is decided by how long the posture has held and a NULL would make
+/// that arithmetic unanswerable at exactly the moment it matters.
+///
+/// `health` and `status` are separate on purpose and answer different questions. `status` is the institution's
+/// intent — registered, active, quarantined, disabled, retired — and only a person changes it. `health` is what
+/// the platform has observed. An endpoint the vendor has broken is `active` and `unreachable`; one the
+/// institution has switched off is `disabled` whatever its last reading said, and its failures stop being
+/// counted against anyone. The unique on (tenant_id, endpoint_key) is TOTAL: a delivery log resolves an endpoint
+/// through its key long after the endpoint is retired. Tenant-owned: FORCE RLS.
+model IntegrationEndpoint {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  endpointKey         String   @map("endpoint_key")
+  displayName         String   @map("display_name")
+  protocol            String
+  adapterKey          String   @map("adapter_key")
+  credentialRef       String?  @map("credential_ref")
+  status              String   @default("registered")
+  health              String   @default("unknown")
+  posture             String   @default("closed")
+  consecutiveFailures Int      @default(0) @map("consecutive_failures")
+  postureSince        String   @map("posture_since")
+  circuitOpenedAt     String?  @map("circuit_opened_at")
+  lastOutcomeAt       String?  @map("last_outcome_at")
+  activatedAt         String?  @map("activated_at")
+  quarantinedAt       String?  @map("quarantined_at")
+  disabledAt          String?  @map("disabled_at")
+  disabledReason      String?  @map("disabled_reason")
+  retiredAt           String?  @map("retired_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by") @db.Uuid
+  updatedBy           String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, endpointKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, posture])
+  @@index([tenantId, adapterKey])
+  @@map("integration_endpoint")
+}
+
+/// WebhookSubscription (P3-D01) — one integration's standing request to be told when something happens.
+/// `event_types` is TEXT[] and deliberately carries no GIN index. Under FORCE RLS the tenant predicate arrives as
+/// a security qual, and PostgreSQL will not evaluate a non-leakproof qual ahead of one; array containment (`@>`)
+/// is not leakproof, so on a policy-protected table it can never be an index condition and is always demoted to a
+/// filter. The add_gateway migration records the measurement. The interest predicate is pure and lives on the
+/// aggregate; the adapter pushes the same decision into SQL as a containment test, and the two are required to
+/// agree. At an institution's cardinality the read is served by (tenant_id, organization_id, status).
+///
+/// `secret_ref` is a reference to the signing secret and never the secret, so rotating one is a write to the
+/// vault and an updated_at here. `consecutive_failures` is the subscription's own count and is deliberately
+/// separate from the endpoint's: several subscriptions may share an endpoint, and a subscription whose own
+/// receiver is refusing everything should be suspended without penalising the others that are healthy on the
+/// same connection.
+///
+/// `status` distinguishes paused from suspended, which is the distinction an operator needs most. Paused is the
+/// institution's choice and resumes on request; suspended is the platform's, carries the reason it decided, and
+/// exists so that a receiver which has been failing for a week stops generating deliveries nobody will ever
+/// accept. Revoked is terminal and keeps its row, because the deliveries it produced are still in the log and
+/// still have to resolve to the subscription that asked for them. The unique on (tenant_id, consumer_id,
+/// subscription_key) is TOTAL for the same reason. Tenant-owned: FORCE RLS.
+model WebhookSubscription {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  consumerId          String   @map("consumer_id") @db.Uuid
+  subscriptionKey     String   @map("subscription_key")
+  displayName         String   @map("display_name")
+  endpointId          String   @map("endpoint_id") @db.Uuid
+  eventTypes          String[] @map("event_types")
+  deliveryMode        String   @default("at_least_once") @map("delivery_mode")
+  secretRef           String?  @map("secret_ref")
+  status              String   @default("active")
+  consecutiveFailures Int      @default(0) @map("consecutive_failures")
+  lastDeliveryAt      String?  @map("last_delivery_at")
+  lastSuccessAt       String?  @map("last_success_at")
+  pausedAt            String?  @map("paused_at")
+  suspendedAt         String?  @map("suspended_at")
+  suspendedReason     String?  @map("suspended_reason")
+  revokedAt           String?  @map("revoked_at")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by") @db.Uuid
+  updatedBy           String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, consumerId, subscriptionKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, consumerId])
+  @@index([tenantId, endpointId])
+  @@map("webhook_subscription")
+}
+
+/// OutboundDelivery (P3-D01) — one attempt-bearing record of one event owed to one subscription. This table
+/// holds the *schedule* and not the mechanism: nothing here opens a socket, signs a body or sleeps until the
+/// next attempt, because delivery mechanics belong to the jobs package and the transactional outbox belongs to
+/// the events package. What this row settles is when the next attempt is due and how many remain, and it settles
+/// it as a pure function of the delivery's own identity — retry jitter is a hash of the id, so a schedule is
+/// reproducible in a support conversation and two thousand deliveries created in the same second do not retry in
+/// the same millisecond.
+///
+/// `payload_fingerprint` is a digest and never a payload. The event body lives wherever the publishing domain
+/// put it; a copy here would make this table the largest in the platform, and one that has to be encrypted at
+/// rest because it would then contain student data.
+///
+/// One unique is PARTIAL — see the add_gateway migration. An event is owed to a subscription once:
+/// UNIQUE (tenant_id, subscription_id, event_id) WHERE replay_of_delivery_id IS NULL. The predicate is what lets
+/// an operator replay a dead letter at all: the replay is a new row naming the same event, and a total unique
+/// would make the recovery path unrepresentable. It also means a re-dispatch of an event already owed is
+/// refused by the original row rather than by the replay, which is the behaviour the dedupe read was shaped
+/// around. `last_error` is truncated by the aggregate before it arrives, because a vendor that returns its
+/// entire HTML error page should not be able to decide the size of this table. Tenant-owned: FORCE RLS.
+model OutboundDelivery {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  subscriptionId     String   @map("subscription_id") @db.Uuid
+  endpointId         String   @map("endpoint_id") @db.Uuid
+  eventType          String   @map("event_type")
+  eventId            String   @map("event_id") @db.Uuid
+  payloadFingerprint String   @map("payload_fingerprint")
+  deliveryMode       String   @default("at_least_once") @map("delivery_mode")
+  outcome            String   @default("pending")
+  attempts           Int      @default(0)
+  nextAttemptAt      String?  @map("next_attempt_at")
+  lastAttemptedAt    String?  @map("last_attempted_at")
+  lastStatusCode     Int?     @map("last_status_code")
+  lastError          String?  @map("last_error")
+  deliveredAt        String?  @map("delivered_at")
+  deadLetteredAt     String?  @map("dead_lettered_at")
+  abandonedAt        String?  @map("abandoned_at")
+  abandonedReason    String?  @map("abandoned_reason")
+  replayOfDeliveryId String?  @map("replay_of_delivery_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, outcome])
+  @@index([tenantId, subscriptionId])
+  @@index([tenantId, endpointId])
+  @@index([tenantId, outcome, nextAttemptAt])
+  @@index([tenantId, replayOfDeliveryId])
+  // An event is owed to a subscription once, enforced by a PARTIAL unique index on
+  // (tenant_id, subscription_id, event_id) WHERE replay_of_delivery_id IS NULL,
+  // created in the add_gateway migration. The predicate is what makes replaying a
+  // dead letter representable at all.
+  @@index([tenantId, subscriptionId, eventId])
+  @@map("outbound_delivery")
+}
+
+/// IdempotencyRecord (P3-D01) — the platform's memory that a named operation has already been attempted, and
+/// what came of it. This is the hottest table in the package: one row per guarded write, on every mutating
+/// request the institution serves.
+///
+/// The unique on (tenant_id, consumer_id, idempotency_key) is TOTAL and is the constraint the whole module
+/// rests on — it is what resolves a race between two nodes that both read nothing and both decide to proceed.
+/// It is deliberately NOT partial on expiry, for a reason worth stating because the alternative looks
+/// attractive: a partial index would need `WHERE expires_at > now()`, and Postgres cannot index on a
+/// non-immutable function. A row therefore holds its key for good, which is exactly why the aggregate offers
+/// renewal — a request that legitimately recycles a key after retention rewrites the expired row rather than
+/// inserting beside it, and the sweep that would eventually have removed it is free to run late without
+/// changing an answer the ledger gives.
+///
+/// `idempotency_key` is the caller's own opaque token, trimmed and otherwise preserved — case included, and
+/// checked against no grammar — because a support conversation about a duplicate charge has to be about the same
+/// string on both sides of it. `payload_fingerprint` is a digest, so a key reused across two different requests
+/// is detectable without this table holding either request. `response_ref` points at the stored response and is
+/// never the response, which keeps a replay cheap and keeps student data out of a table this wide.
+/// `expires_at` is NOT NULL and computed from the instant the caller handed in, never from a clock in the
+/// engine. Tenant-owned: FORCE RLS.
+model IdempotencyRecord {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  consumerId         String   @map("consumer_id") @db.Uuid
+  idempotencyKey     String   @map("idempotency_key")
+  capabilityKey      String   @map("capability_key")
+  method             String
+  payloadFingerprint String   @map("payload_fingerprint")
+  state              String   @default("in_flight")
+  recordedStatus     Int?     @map("recorded_status")
+  responseRef        String?  @map("response_ref")
+  completedAt        String?  @map("completed_at")
+  conflictedAt       String?  @map("conflicted_at")
+  expiresAt          String   @map("expires_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, consumerId, idempotencyKey])
+  @@index([tenantId])
+  @@index([tenantId, consumerId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, expiresAt])
+  @@map("idempotency_record")
+}
