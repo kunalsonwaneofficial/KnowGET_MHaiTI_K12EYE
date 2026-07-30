@@ -6818,3 +6818,402 @@ model IdempotencyRecord {
   @@index([tenantId, expiresAt])
   @@map("idempotency_record")
 }
+
+/// EventTypeDefinition (P3-D02) — one version of one event's payload shape, and the compatibility promise made
+/// about it. The unique on (tenant_id, event_type_key, version) is TOTAL and is the schema's half of the rule
+/// the compatibility engine rests on: a published shape is frozen, so a change is a new version beside this row
+/// rather than an edit to it. A consumer written against version N holds a dependency it cannot see being
+/// rewritten, and a version number that could be reissued would make every such dependency a lie the consumer
+/// has no way to detect. `superseded_by_version` is an integer and not a foreign key: it names the version a
+/// producer should move to, and at the moment a deprecation is announced that version may legitimately not
+/// exist yet.
+///
+/// `schema_fields` is JSONB rather than a child table, and the reason is the same one that keeps every other
+/// child in this contract inside its aggregate — a field row that could be inserted on its own would change an
+/// event's shape without the definition being rewritten, which is precisely the change the compatibility engine
+/// exists to judge. The shape is a small closed set of seven field types rather than JSON Schema, because the
+/// engine has to answer whether a consumer written against version N can read version N+1, and that question is
+/// decidable only over a decidable schema language. Never deleted: draft, published, deprecated and retired are
+/// the whole lifecycle, and a retired definition stays readable so a message recorded years ago can still be
+/// explained. Tenant-owned: FORCE RLS.
+model EventTypeDefinition {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String   @map("tenant_id") @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  eventTypeKey        String   @map("event_type_key")
+  version             Int      @default(1)
+  title               String
+  summary             String
+  compatibilityMode   String   @default("backward") @map("compatibility_mode")
+  status              String   @default("draft")
+  schemaFields        Json     @default("[]") @map("schema_fields")
+  publishedAt         String?  @map("published_at")
+  publishedBy         String?  @map("published_by") @db.Uuid
+  deprecatedAt        String?  @map("deprecated_at")
+  retireAt            String?  @map("retire_at")
+  supersededByVersion Int?     @map("superseded_by_version")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  createdBy           String?  @map("created_by") @db.Uuid
+  updatedBy           String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, eventTypeKey, version])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@index([tenantId, eventTypeKey])
+  @@map("event_type_definition")
+}
+
+/// EventStream (P3-D02) — one named ordered channel, the types it accepts, and how much of each message it
+/// keeps. The unique on (tenant_id, stream_key) is TOTAL and holds retired streams included: a message, a
+/// binding, a subscription, a checkpoint and a replay all resolve a stream through its key, and reissuing one
+/// under a new meaning is how those five come to disagree about what was published where.
+///
+/// `event_type_keys` is TEXT[] and deliberately carries no GIN index, for the reason the gateway migration
+/// already established about webhook_subscription.event_types. Under FORCE RLS the tenant predicate arrives as
+/// a security qual, and PostgreSQL will not evaluate a qual whose operator is not leakproof ahead of one — that
+/// would let the qual read a row the policy has not yet admitted. Array containment (@>) and overlap (&&) are
+/// both non-leakproof, so on a policy-protected table a containment test can never become an index condition.
+/// A GIN index here would cost write amplification on every stream write, be read zero times, and leave the
+/// schema looking as though the accepts-this-type read were served when it is not. What serves it instead is
+/// cardinality: an institution's streams number in the tens, so the whole set is a page or two and the read
+/// completes without consulting an index at all. Giving event types a table of their own would make the qual a
+/// leakproof equality and would also make a row able to widen a stream's acceptance without the stream being
+/// rewritten, which is the invariant this column exists to keep.
+///
+/// `partition_count` and `partition_key_path` are on the stream rather than derived per message because
+/// repartitioning is an act with a date: a message records the count that was in force when it was published,
+/// so the partition it landed on stays explicable after the stream is widened. `retention_seconds` is what the
+/// sweep reads and `retention` is what a replay's admissibility is judged on — a stream keeping digests cannot
+/// be replayed no matter how long it keeps them. Tenant-owned: FORCE RLS.
+model EventStream {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  streamKey        String   @map("stream_key")
+  title            String
+  summary          String
+  status           String   @default("draft")
+  ordering         String   @default("partition")
+  partitionCount   Int      @default(8) @map("partition_count")
+  partitionKeyPath String?  @map("partition_key_path")
+  retention        String   @default("digest")
+  retentionSeconds Int      @default(2592000) @map("retention_seconds")
+  eventTypeKeys    String[] @map("event_type_keys")
+  activatedAt      String?  @map("activated_at")
+  activatedBy      String?  @map("activated_by") @db.Uuid
+  retiredAt        String?  @map("retired_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, streamKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  @@map("event_stream")
+}
+
+/// StreamBinding (P3-D02) — which backbone actually carries one stream, and in what state. `transport_ref` is a
+/// reference into configuration or the secret store and never a broker credential, for the reason the gateway's
+/// credential_ref columns exist: a column that has ever held a secret has to be treated as compromised forever,
+/// and rotating one should be a write to the vault and an updated_at here.
+///
+/// Two constraints, and only one of them is expressible in this file. The unique on (tenant_id, stream_key,
+/// transport) is TOTAL and holds in every state including retired, because re-declaring a stream on a backbone
+/// it was once bound to is how a drained migration silently becomes a double-delivery. The second is PARTIAL
+/// and therefore lives in the add_event_mesh migration: UNIQUE (tenant_id, stream_key) WHERE status = 'active'.
+/// At most one binding per stream may be carrying, which is what keeps the stream single-writer and therefore
+/// what makes its sequence a sequence. The domain enforces it too, and the two are not redundant — the domain
+/// check is a read followed by a write, and a database that cannot refuse the second writer turns a swap
+/// performed during a deployment into two brokers both believing they own the ordering. It is partial rather
+/// than total because declared, draining and retired bindings all keep their rows: a swap is precisely the
+/// interval in which two bindings exist on one stream, and only one of them is active.
+///
+/// No separate index on (tenant_id, stream_key) — the total unique above leads with those two columns and
+/// serves the by-stream read. Tenant-owned: FORCE RLS.
+model StreamBinding {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  streamKey      String   @map("stream_key")
+  transport      String   @default("outbox")
+  transportRef   String   @map("transport_ref")
+  status         String   @default("declared")
+  activatedAt    String?  @map("activated_at")
+  activatedBy    String?  @map("activated_by") @db.Uuid
+  drainingSince  String?  @map("draining_since")
+  retiredAt      String?  @map("retired_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+  updatedBy      String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, streamKey, transport])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status])
+  // At most one binding per stream may carry, enforced by a PARTIAL unique index on
+  // (tenant_id, stream_key) WHERE status = 'active', created in the add_event_mesh
+  // migration. Declared, draining and retired bindings keep their rows, because a
+  // swap is exactly the interval in which two bindings exist on one stream.
+  @@map("stream_binding")
+}
+
+/// MeshSubscription (P3-D02) — one consumer's standing interest in one stream, and the promise the mesh made it
+/// about delivery. The unique on (tenant_id, subscription_key) is TOTAL and holds retired subscriptions
+/// included, for the reason every other key in this contract is total: a checkpoint, a dead letter and a replay
+/// all name a subscription, and those records outlive the consumer that produced them.
+///
+/// `filter` is JSONB rather than a child table because a predicate row that could be inserted on its own would
+/// widen or narrow a consumer's interest without the subscription being rewritten — and narrowing is the
+/// dangerous direction, since a consumer that silently stops being offered a class of event looks exactly like
+/// a class of event that stopped happening. `semantics` and `max_attempts` sit together because they are read
+/// together: exactly-once obliges the mesh to keep a deduplication ledger for this consumer, and the attempt
+/// budget is what decides when a failing delivery becomes a dead letter rather than a retry.
+///
+/// The index on (tenant_id, stream_key, status) serves both stream-scoped reads — every subscription on a
+/// stream, and the deliverable subset a dispatch fans out to — which is the read the mesh performs most often
+/// and the only one on its hot path. Tenant-owned: FORCE RLS.
+model MeshSubscription {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  subscriptionKey String   @map("subscription_key")
+  streamKey       String   @map("stream_key")
+  consumerGroup   String   @map("consumer_group")
+  title           String
+  semantics       String   @default("at_least_once")
+  maxAttempts     Int      @default(5) @map("max_attempts")
+  filter          Json     @default("[]")
+  status          String   @default("registered")
+  activatedAt     String?  @map("activated_at")
+  activatedBy     String?  @map("activated_by") @db.Uuid
+  pausedAt        String?  @map("paused_at")
+  retiredAt       String?  @map("retired_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, subscriptionKey])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, streamKey, status])
+  @@map("mesh_subscription")
+}
+
+/// SubscriptionCheckpoint (P3-D02) — how far one consumer has got through one partition. The unique on
+/// (tenant_id, subscription_id, partition) is TOTAL and is the whole of the table's integrity: a consumer with
+/// two checkpoints on one partition has two answers to the only question this table exists to answer, and the
+/// one a dispatch happens to read decides whether an event is delivered twice or not at all.
+///
+/// `committed_position` moves forward and is refused backwards by the aggregate, because a position that can
+/// regress turns at-least-once into a redelivery storm nobody asked for. A deliberate rewind is therefore not a
+/// smaller number written over the old one but a reset: `reset_at`, `reset_by` and `reset_reason` are all NOT
+/// NULL together or NULL together, and the reason is required because rewinding a live consumer re-delivers
+/// everything after the new position to a system that has already acted on it. `position_moved_at` is NOT NULL
+/// and set when the checkpoint opens, because lag is measured from it and a NULL would make a consumer that has
+/// never committed indistinguishable from one that committed at an unknown time — which are opposite
+/// diagnoses. `subscription_key` and `stream_key` are denormalised off the subscription so an operator reading
+/// a lag report is not required to join to learn what is behind. Tenant-owned: FORCE RLS.
+model SubscriptionCheckpoint {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  subscriptionId    String   @map("subscription_id") @db.Uuid
+  subscriptionKey   String   @map("subscription_key")
+  streamKey         String   @map("stream_key")
+  partition         Int
+  committedPosition Int      @map("committed_position")
+  positionMovedAt   String   @map("position_moved_at")
+  resetAt           String?  @map("reset_at")
+  resetBy           String?  @map("reset_by") @db.Uuid
+  resetReason       String?  @map("reset_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by") @db.Uuid
+  updatedBy         String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, subscriptionId, partition], map: "subscription_checkpoint_partition_key")
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@map("subscription_checkpoint")
+}
+
+/// MeshMessage (P3-D02) — one fact the mesh accepted, at the position it was accepted at. This is the largest
+/// table the contract adds and the only one on the publish path, and two TOTAL uniques carry everything the
+/// mesh promises about it.
+///
+/// (tenant_id, event_id) is the deduplication ledger. A producer that retries after a timeout it never learned
+/// the outcome of publishes the same event twice, and this constraint is what makes the second attempt a no-op
+/// instead of a second fact. It is total because an event id means one occurrence for the life of the
+/// institution, not for a retention window.
+///
+/// (tenant_id, stream_key, sequence) is what makes a sequence a sequence. Allocating the next position is a
+/// read followed by a write, and two publishers that both read the same head both decide to write the same
+/// number; the domain cannot see that happen and the database can. Losing the race is not an error the caller
+/// should see, so the adapter re-reads and retries rather than surfacing it — which is only sound because this
+/// constraint exists to lose the race against.
+///
+/// `recorded_at`, `occurred_at` and every other instant is TEXT in fixed-width ISO-8601 with milliseconds and a
+/// `Z`, normalised on write by the domain's fixedWidthInstant. That is load-bearing rather than cosmetic here:
+/// replay windows and the retention sweep both range-compare `recorded_at` in the database, ISO-8601 admits
+/// several spellings of one moment whose lexical order is not their chronological order, and the deployment
+/// collation is C.UTF-8 so byte order is code-point order. Fixed width is what makes a text btree a
+/// chronological index. `partition_count` records the count that was in force at publication, so a message's
+/// partition stays explicable after the stream is widened.
+///
+/// `payload` is JSONB and nullable, and `payload_digest` is a digest and never a payload. A stream keeping
+/// `none` or `digest` retention holds no payload at all, and `payload_forgotten_at` records an erasure
+/// performed under a data-protection request — which is why forgetting is a column here rather than a delete:
+/// the fact that an event occurred is not erased when its contents are. Tenant-owned: FORCE RLS.
+model MeshMessage {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  streamKey          String   @map("stream_key")
+  partition          Int
+  partitionCount     Int      @map("partition_count")
+  partitionKey       String   @map("partition_key")
+  sequence           Int
+  eventId            String   @map("event_id") @db.Uuid
+  eventTypeKey       String   @map("event_type_key")
+  eventTypeVersion   Int      @map("event_type_version")
+  aggregateType      String   @map("aggregate_type")
+  aggregateId        String   @map("aggregate_id") @db.Uuid
+  producerKey        String   @map("producer_key")
+  correlationId      String   @map("correlation_id")
+  causationId        String?  @map("causation_id") @db.Uuid
+  traceId            String   @map("trace_id")
+  occurredAt         String   @map("occurred_at")
+  recordedAt         String   @map("recorded_at")
+  retention          String   @default("digest")
+  payloadDigest      String?  @map("payload_digest")
+  payload            Json?
+  payloadForgottenAt String?  @map("payload_forgotten_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  createdBy          String?  @map("created_by") @db.Uuid
+  updatedBy          String?  @map("updated_by") @db.Uuid
+
+  @@unique([tenantId, eventId])
+  @@unique([tenantId, streamKey, sequence])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, streamKey, partition, sequence])
+  @@index([tenantId, streamKey, recordedAt])
+  @@map("mesh_message")
+}
+
+/// DeadLetter (P3-D02) — one delivery the mesh gave up on, and what somebody decided about it. Every column
+/// describing the failure is copied from the subscription and the message rather than supplied by the delivery
+/// loop, which supplies only the four facts it alone holds: which reason, how many attempts, which trace, and
+/// when the last attempt failed. A record read months later by somebody reconstructing what was lost cannot
+/// then contradict the code that failed to deliver it.
+///
+/// The unique is PARTIAL and lives in the add_event_mesh migration: UNIQUE (tenant_id, subscription_id,
+/// message_id) WHERE status = 'open'. Partial is the whole point. Two failures of one message separated by a
+/// settlement are two rows, because they are two events and collapsing them would erase the fact that somebody
+/// intervened in between. But a consumer restarted every ninety seconds against a message it will never process
+/// would otherwise fill the morning worklist with a thousand rows describing one broken projector, so while
+/// nothing has been decided a repeat failure is the same undecided work item. The domain returns the open
+/// record unchanged; this index is what makes that hold when two delivery workers race.
+///
+/// The index on (tenant_id, subscription_id, message_id) is the total counterpart the partial unique cannot
+/// serve — the by-message read has to find settled records too — and it leads with the columns the
+/// by-subscription read needs, so no separate index for that. (tenant_id, organization_id, status, failed_at)
+/// carries the worklist read including its ordering, which is oldest failure first because that is the one that
+/// has been costing the institution longest. Tenant-owned: FORCE RLS.
+model DeadLetter {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  subscriptionId  String   @map("subscription_id") @db.Uuid
+  subscriptionKey String   @map("subscription_key")
+  streamKey       String   @map("stream_key")
+  messageId       String   @map("message_id") @db.Uuid
+  eventId         String   @map("event_id") @db.Uuid
+  eventTypeKey    String   @map("event_type_key")
+  partition       Int
+  sequence        Int
+  reason          String
+  attempts        Int
+  traceId         String   @map("trace_id")
+  failedAt        String   @map("failed_at")
+  status          String   @default("open")
+  settledAt       String?  @map("settled_at")
+  settledBy       String?  @map("settled_by") @db.Uuid
+  discardReason   String?  @map("discard_reason")
+  replayId        String?  @map("replay_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, status, failedAt])
+  // One undecided record per message per consumer, enforced by a PARTIAL unique index
+  // on (tenant_id, subscription_id, message_id) WHERE status = 'open', created in the
+  // add_event_mesh migration. Settled records keep their rows, so a message that failed,
+  // was settled and failed again is two rows rather than one overwritten one.
+  @@index([tenantId, subscriptionId, messageId])
+  @@map("dead_letter")
+}
+
+/// ReplayRequest (P3-D02) — a request to send a stretch of a stream to a consumer again, and the decisions made
+/// about it. Replaying is the most consequential thing the mesh can be asked to do — it delivers facts a
+/// consumer has already acted on to a consumer that will act on them again — so the row records not just the
+/// window but who asked, who agreed, how many messages they were told it covered, and how many actually went.
+/// `message_count` is the estimate shown to the approver and `delivered_count` is what the run reported, and
+/// they are separate columns because a run that delivered a different number than was approved is the single
+/// most useful thing this table can tell an investigator.
+///
+/// The unique is PARTIAL and lives in the add_event_mesh migration: UNIQUE (tenant_id, subscription_id) WHERE
+/// status = 'running'. Two replays into one consumer interleave two stretches of history in an order neither
+/// requester asked for, and the consumer — written to read a stream forwards — cannot tell it is being handed
+/// two. Nothing errors while it happens: both runs report themselves complete, and what is left is a projection
+/// built from a sequence of facts that never occurred in that order. The domain refuses the second start; this
+/// index is what makes the refusal hold when two operators press the button at once. It is partial because
+/// every other status may repeat freely — a consumer may have a hundred completed replays and one requested.
+///
+/// `from_instant` and `to_instant` are fixed-width ISO-8601 for the same reason mesh_message.recorded_at is:
+/// they are compared against that column, and a window whose bounds sort differently from the messages inside
+/// it selects the wrong messages. Tenant-owned: FORCE RLS.
+model ReplayRequest {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  subscriptionId   String   @map("subscription_id") @db.Uuid
+  subscriptionKey  String   @map("subscription_key")
+  streamKey        String   @map("stream_key")
+  fromInstant      String   @map("from_instant")
+  toInstant        String   @map("to_instant")
+  reason           String
+  status           String   @default("requested")
+  requestedBy      String   @map("requested_by") @db.Uuid
+  approvedBy       String?  @map("approved_by") @db.Uuid
+  approvedAt       String?  @map("approved_at")
+  messageCount     Int?     @map("message_count")
+  startedAt        String?  @map("started_at")
+  settledAt        String?  @map("settled_at")
+  settledBy        String?  @map("settled_by") @db.Uuid
+  settlementReason String?  @map("settlement_reason")
+  deliveredCount   Int?     @map("delivered_count")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  // One running replay per consumer, enforced by a PARTIAL unique index on
+  // (tenant_id, subscription_id) WHERE status = 'running', created in the
+  // add_event_mesh migration. Every other status may repeat freely, so a
+  // consumer may hold a hundred completed replays and one requested.
+  @@index([tenantId, subscriptionId])
+  @@map("replay_request")
+}
