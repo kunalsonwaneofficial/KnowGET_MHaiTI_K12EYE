@@ -101,3 +101,8 @@ export * from "./ports";
 // --- Events ----------------------------------------------------------------------
 
 export * from "./mesh-events";
+
+// --- Services --------------------------------------------------------------------
+
+export * from "./event-stream-service";
+export * from "./event-type-definition-service";

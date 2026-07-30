@@ -111,6 +111,48 @@ export class ReasonTooLongError extends PlatformError {
   }
 }
 
+// --- Directories -----------------------------------------------------------------
+
+/**
+ * The organization (institution node, P2-D01-M01) this mesh record was to hang off does not exist.
+ *
+ * Every aggregate in this package carries one, and the reason is not bookkeeping. A mesh is the surface on
+ * which one school's enrolments are kept apart from another's inside the same tenant, and the organization is
+ * the only column that says which school a stream, a subscription or a dead letter belongs to. A record
+ * attached to an organization that resolves to nobody is a record no institutional boundary applies to.
+ */
+export class OrganizationNotFoundForMeshError extends PlatformError {
+  constructor(organizationId: string) {
+    super(`Organization "${organizationId}" not found; cannot attach the mesh record to it`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { organizationId },
+    });
+  }
+}
+
+/**
+ * A person named on a mesh record — who published an event type, who activated a stream, who requested a replay
+ * or approved one, who discarded a dead letter — is not in this tenant.
+ *
+ * Four of the acts governed here are irreversible or nearly so, and each of them is defensible only through the
+ * person who performed it. The approval pair is the sharpest case. The mesh refuses a self-approved replay by
+ * comparing two identifiers, and that comparison is only as good as the claim that both resolve to people: an
+ * approver who resolves to nobody satisfies it and defeats the reason for it. The institution finds out when it
+ * asks who authorised the re-delivery of a term's worth of results and gets a UUID back.
+ */
+export class PersonNotFoundForMeshError extends PlatformError {
+  constructor(personId: string, role: string) {
+    super(`No person "${personId}" exists in this tenant; they cannot be the ${role}`, {
+      code: "NOT_FOUND",
+      httpStatus: 404,
+      isOperational: true,
+      details: { personId, role },
+    });
+  }
+}
+
 // --- Event types and schemas -----------------------------------------------------
 
 /** The requested event type definition does not exist in the current tenant. */
