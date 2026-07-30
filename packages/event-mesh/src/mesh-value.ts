@@ -111,11 +111,13 @@ export type SchemaFieldType = (typeof SCHEMA_FIELD_TYPES)[number];
 /**
  * One declared field of an event payload.
  *
- * `required` is the field that makes compatibility decidable in both directions: adding a required field breaks
- * a consumer reading the new version with old expectations only if it validates strictly, while adding a
- * *required* field breaks every **producer** still writing the old shape. The engine treats the two directions
- * separately, which it can only do because requiredness is declared rather than inferred from the examples
- * somebody happened to send.
+ * `required` is the field that makes compatibility decidable in both directions, and the two directions ask
+ * opposite questions of it. Removing a field that a reader requires breaks that reader, which is what the
+ * *forward* direction protects against. Adding a field that a reader requires breaks every writer still
+ * producing the older shape, which is what the *backward* direction protects against. The engine can treat the
+ * two separately only because requiredness is declared rather than inferred from the examples somebody happened
+ * to send, and the whole compatibility check reduces to one rule applied twice: a reader can read a payload when
+ * every field it requires is present and required there, and every field the two share agrees on its type.
  */
 export interface SchemaField {
   readonly name: string;
@@ -140,11 +142,20 @@ export const MAX_SCHEMA_FIELDS = 64;
  * somebody else's code in somebody else's deployment, and it breaks at the moment the first event of the new
  * shape arrives rather than at the moment the change was made.
  *
- * - `backward` — a consumer of the *old* version can read the *new* one. Fields may be added optionally and
- *   removed only if they were optional. This is the default because it is what a subscriber needs.
- * - `forward` — a consumer of the *new* version can read the *old* one. Fields may be removed and added only as
- *   required. This is what a *replayer* needs: code written today reading a year of history.
- * - `full` — both, which in practice permits optional additions and nothing else.
+ * The four members carry their long-established registry meanings, named from the point of view of the
+ * *reader*, because a mode whose name means something else here than it means everywhere else is a trap laid
+ * for the first integrator who assumes it does not.
+ *
+ * - `backward` — a consumer running the **new** schema can read data written under the **old** one. A version
+ *   may remove fields and may add them only as optional. This is the default, because it is the promise a
+ *   consumer can actually rely on while it upgrades ahead of every producer, and it is exactly what a
+ *   *replayer* needs: code written today reading a year of history.
+ * - `forward` — a consumer still running the **old** schema can read data written under the **new** one. A
+ *   version may add fields and may remove them only if they were optional. This is what a producer needs when
+ *   it moves ahead of subscribers that have not been redeployed.
+ * - `full` — both, which in practice permits optional additions and optional removals and nothing else. It is
+ *   not a third rule but the union of the other two, and the engine computes it that way so the claim cannot
+ *   drift from the code.
  * - `none` — no promise. Legitimate for a stream with exactly one consumer that ships with the producer, and a
  *   red flag anywhere else, which is why it has to be chosen by name.
  */
@@ -153,7 +164,7 @@ export const COMPATIBILITY_MODES = Object.freeze(["backward", "forward", "full",
 /** The compatibility rule an event type promises across versions. */
 export type CompatibilityMode = (typeof COMPATIBILITY_MODES)[number];
 
-/** The mode a new event type takes unless it says otherwise — what a subscriber needs. */
+/** The mode a new event type takes unless it says otherwise — what an upgrading reader and a replayer need. */
 export const DEFAULT_COMPATIBILITY_MODE: CompatibilityMode = "backward";
 
 /**
