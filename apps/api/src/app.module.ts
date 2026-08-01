@@ -14,6 +14,7 @@ import { PredictiveIntelligenceModule } from "./domains/predictive-intelligence/
 import { ExecutiveIntelligenceModule } from "./domains/executive-intelligence/executive-intelligence.module";
 import { PlatformEvolutionModule } from "./domains/platform-evolution/platform-evolution.module";
 import { GatewayModule } from "./domains/gateway/gateway.module";
+import { EventMeshModule } from "./domains/event-mesh/event-mesh.module";
 import { EngagementModule } from "./domains/engagement/engagement.module";
 import { FacilitiesModule } from "./domains/facilities/facilities.module";
 import { FamilyGuardianModule } from "./domains/family-guardian/family-guardian.module";
@@ -128,6 +129,7 @@ const persistedServices =
     ExecutiveIntelligenceModule,
     PlatformEvolutionModule,
     GatewayModule,
+    EventMeshModule,
     ...persistedSecurity,
     ...persistedServices,
   ],
