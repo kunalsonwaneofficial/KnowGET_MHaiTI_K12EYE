@@ -129,9 +129,10 @@ Phase-2 certification closes the phase:
 Program: Integration Spine (D01–D03) opens the phase on the certified `v0.3.0`
 baseline, following the domain architecture pattern (ADR-0010):
 
-| Contract                                | Status      | Notes                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P3-D01 API Gateway & Integration Fabric | ✅ Complete | The integration spine and the first contract of Phase 3 — eight aggregates plus eight pure engines as `@knowget/gateway` (ADR-0050); a published contract cannot be edited, a deprecation carries at least ninety days, and the internal target appears in no view, event or error. 8 RLS tables (three partial uniques), 36 events, 82 routes, 948 package tests. CI green; RLS verified on live PostgreSQL. Live on `main`. |
+| Contract                                 | Status        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3-D01 API Gateway & Integration Fabric  | ✅ Complete   | The integration spine and the first contract of Phase 3 — eight aggregates plus eight pure engines as `@knowget/gateway` (ADR-0050); a published contract cannot be edited, a deprecation carries at least ninety days, and the internal target appears in no view, event or error. 8 RLS tables (three partial uniques), 36 events, 82 routes, 948 package tests. CI green; RLS verified on live PostgreSQL. Live on `main`.                   |
+| P3-D02 Event Mesh, Streaming & Messaging | 🟡 Pending CI | The second spine contract — eight aggregates plus eight pure engines as `@knowget/event-mesh` (ADR-0051); it governs the traffic rather than carrying it, so `@knowget/events` still owns the bus and the outbox. A published event type cannot be edited, a stream cannot activate without a carrying binding, and a replay needs a second person. 8 RLS tables (three partial uniques), 35 events, 82 routes, 856 package tests. Awaiting CI. |
 
 ## Reusable capabilities available now
 
@@ -1793,3 +1794,74 @@ cross-domain use**. Residual deferrals are **TD-52**; the first HTTPS adapter ar
 D04–D08 and the delivery worker with TD-01's streaming backbone, which is **P3-D02**, the next contract. The layer
 that gives the platform one front door, so a capability can be reached, versioned, deprecated, rate-limited and
 audited without any caller ever learning what implements it.
+
+## Event Mesh, Streaming & Messaging (P3-D02, Program: Integration Spine · ADR-0051)
+
+The `@knowget/event-mesh` package is the platform's account of what it carries, and the **second contract of Phase
+3** — the middle of the integration spine, between the front door and federation. It follows the domain architecture
+(ADR-0010): a pure package — **eight aggregates plus eight pure engines** — behind repository ports, Prisma/RLS
+adapters at the `apps/api` composition root, application services on the platform event bus, and permission-gated,
+tenant-scoped REST controllers. The first thing to say about it is what it deliberately does not do: **it does not
+add a second bus.** `@knowget/events` still owns fan-out and the transactional outbox, `@knowget/jobs` still owns
+delivery mechanics and the scheduler, `@knowget/reliability` still owns runtime retry, timeout and circuit
+execution, `@knowget/security` still counts rate limits, and `@knowget/gateway` still owns the external edge. A mesh
+that re-implemented any of those would have given the platform two answers to _did this fact get delivered_, which
+is worse than having none. This package holds the **account** of the traffic and not the traffic itself. The design
+problem is that **an event backbone is the one part of a platform where the failure mode is silence** — a broken
+route returns a 500 somebody sees within the minute, but a subscription whose filter quietly stops matching returns
+nothing at all, and nothing at all is indistinguishable from _nothing happened_, which in a school is the difference
+between an attendance escalation that was never raised and an afternoon on which everybody was present. So the
+structure is aimed squarely at that: **make silence impossible to mistake for quiet.** **A stream cannot activate
+without a carrying binding**, held by a partial unique `(tenant_id, stream_key) WHERE status = 'active'` rather than
+by the service alone, because a stream that looks live while nothing leaves the process is the one failure here that
+reads as success; and a binding resolves its backbone through the **`TransportRegistry`** port, so it cannot name a
+transport this build cannot speak. **A published event type cannot be edited** — `revise` refuses a published
+version, so a successor is a new version rather than a quiet rewrite of the shape consumers are already reading —
+and a version must be the next one after the highest already published under its key rather than any number the
+caller prefers. Publishing is reviewable before it is done: `assessPublication` reports which fields were added,
+removed or retyped and whether that is compatible under the declared mode (`backward`, `forward`, `full`, `none`),
+**taking the instant as an argument rather than reading a clock**, so _would this have been publishable when we
+shipped it_ stays askable after an incident. **There is no message-recorded event and no checkpoint-committed
+event**, and both absences are deliberate: an event per recorded message would put every institutional fact on the
+bus twice, and an event per commit would be the platform narrating its own throughput — `mesh.checkpoint.reset` is
+the only checkpoint event, because a rewind is a decision somebody took and a commit is just work proceeding. Lag is
+reported in three bands (`current`, `behind`, `stalled`) rather than as a raw number nobody has agreed how to read.
+**A replay needs a second person**: the aggregate refuses an approver who is the requester, the actor is taken from
+the authenticated principal and never from the body anywhere in this domain, and a running replay is once-only per
+subscription under a partial unique `(tenant_id, subscription_id) WHERE status = 'running'`. Replay is bounded
+before it is authorised — `MAX_REPLAY_WINDOW_SECONDS` (31 days), `MAX_REPLAY_MESSAGES` (100,000) — and refused with
+one of **seven named reasons** rather than a bare no, because _the window is outside retention_ and _the payload was
+never retained_ call for opposite remedies. Retention is bounded at both ends (`MIN_RETENTION_SECONDS` one hour,
+`MAX_RETENTION_SECONDS` one year, default thirty days) and **only `full` payload retention is replayable**, so what
+can be re-delivered is a property of what was promised rather than of what happens to still be on disk. A dead
+letter is opened once per failing message and a **repeat failure folds into the open record rather than opening a
+second**, backed by `(tenant_id, subscription_id, message_id) WHERE status = 'open'`; `replayed` and `discarded` are
+different ends, and neither is a delete. Eight **FORCE-RLS** tables, each `tenant_isolation` (USING + WITH CHECK,
+fail-closed) and tenant-indexed, verified on live PostgreSQL: 44 indexes of which 18 are unique — eight primary
+keys, seven absolute and **three partial uniques that hold rules rather than shapes**. There is **no GIN index on
+the one `TEXT[]` column** (`event_stream.event_type_keys`), reproducing the P3-D01 finding independently —
+`arraycontains`, `arrayoverlap` and `jsonb_contains` are all non-leakproof, so under FORCE RLS a containment test on
+a policy-protected table is always demoted to a post-security Filter and such an index is unreachable at any
+cardinality. **No table carries a soft-delete column and no repository declares a delete** — every aggregate's way
+out is a domain state: retired, paused, draining, discarded, cancelled, failed. Partitions are assigned by **FNV-1a
+over the partition key** (`hashPartitionKey`), so which partition a fact landed on is recomputable from its row
+months later and the package holds **no random source at all**; and every instant compared as a range bound passes
+through `fixedWidthInstant`, because ISO strings of unequal width sort lexically wrong and a retention sweep that
+silently skips a row is exactly the kind of silence this domain exists to prevent. **Six permission scopes** split
+82 endpoints across eight controllers — `mesh:read` (wide, and narrow in exactly one place: it does not include a
+message body), `mesh:govern` (the vocabulary, the channels and how long facts are kept), `mesh:deliver` (bindings
+and subscriptions, kept apart from governance because a binding to an outside broker is an egress path),
+**`mesh:publish` standing alone** on the single operation of recording a message, because every producing capability
+needs it and the most widely issued key in the domain must not also define a stream or add a consumer,
+`mesh:operate` (the running mesh) and **`mesh:replay`**, which is separate because a replay delivers facts a
+consumer has already acted on and every consumer downstream was written to read a stream forwards — the damage is
+not an error anybody sees but a projection in a state no sequence of real events could have produced. It is also the
+only way to read a retained payload. Eleven ports — three directory (**organization**, **person**, **transport
+registry**) and eight repository — with **no domain→domain package import** anywhere and every directory port a
+read. Value-, prose- and PII-free `mesh.*` events (35) publish onto the shared bus, and **81 typed error classes**
+name every refusal. The DI-graph spec asserts all three directory ports bind, since an unbound port would turn the
+existence of the institution, the reality of eight attributions and the speakability of every transport into claims
+nothing checked while every guard in the package still appeared to pass. All eight service tokens are exported for
+**in-process cross-domain use**. 856 package tests across 27 files, all clock-free. Residual deferrals are
+**TD-53**. The layer that gives the platform one account of everything it says about itself — what may be said, in
+what shape, on what channel, to whom, for how long, and whether it may be said a second time.
