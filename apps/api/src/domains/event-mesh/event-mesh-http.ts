@@ -1,4 +1,5 @@
 import type { Principal } from "@knowget/auth";
+import { TRANSPORT_KINDS, type TransportKind } from "@knowget/event-mesh";
 import { ValidationError } from "@knowget/exceptions";
 import { isUuid } from "@knowget/shared";
 import type { TenantId, Uuid } from "@knowget/types";
@@ -105,4 +106,42 @@ export function actorOf(principal: Principal): Uuid {
     throw new ValidationError("No user is associated with the current principal");
   }
   return actor as Uuid;
+}
+
+/**
+ * An event type version taken from a path segment. Versions start at one and count up, so a zero or a leading
+ * zero is not a version this domain has ever issued, and refusing it here is what keeps a mistyped route from
+ * reaching the store as a lookup that finds nothing and reads back as a definition that was never defined.
+ */
+export function versionOf(value: string): number {
+  if (!/^[1-9][0-9]*$/u.test(value)) {
+    throw new ValidationError("An event type version must be a positive integer", {
+      details: { version: value },
+    });
+  }
+  return Number(value);
+}
+
+/** A partition ordinal taken from a path segment. Zero-based, so unlike a version it admits zero. */
+export function partitionOf(value: string): number {
+  if (!/^(0|[1-9][0-9]*)$/u.test(value)) {
+    throw new ValidationError("A partition must be a whole number of zero or more", {
+      details: { partition: value },
+    });
+  }
+  return Number(value);
+}
+
+/**
+ * A transport named in a path segment, resolved against the package's own vocabulary rather than asserted into
+ * it. Casting a segment to the union would let an unknown backbone reach a repository query that finds nothing,
+ * and an empty result reads as "this stream has no binding there" rather than "there is no such transport" —
+ * which is the difference between a channel somebody forgot to declare and a channel that does not exist.
+ */
+export function transportOf(value: string): TransportKind {
+  const transport = TRANSPORT_KINDS.find((kind) => kind === value);
+  if (!transport) {
+    throw new ValidationError("Unknown transport", { details: { transport: value } });
+  }
+  return transport;
 }
