@@ -1,0 +1,37 @@
+{
+  "name": "@knowget/event-mesh",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Event Mesh, Streaming & Messaging (P3-D02) — the governed spine every institutional fact travels along. P1-M05 gave the platform an event bus and a transactional outbox; those are mechanism, and this contract is the governance the mechanism was always missing: what event types exist and in what shape, which stream carries them, which physical backbone that stream is bound to, who consumes it under which delivery guarantee, where a consumer's position is, what failed, and on whose authority any of it is replayed. A published event type is immutable and a compatibility mode is enforced rather than documented, so a schema change cannot silently break a consumer. Nothing here holds a clock, an unseeded random source, a broker client or a payload it was not told it may retain: partitions are a hash of the declared key, retention bounds replay, and a stream that declares no payload retention cannot be replayed with one. Domain events carry ids, keys, versions, sequences, statuses, reason codes and counts only.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo coverage"
+  },
+  "dependencies": {
+    "@knowget/shared": "workspace:*",
+    "@knowget/types": "workspace:*",
+    "@knowget/exceptions": "workspace:*",
+    "@knowget/events": "workspace:*"
+  },
+  "devDependencies": {
+    "@knowget/config": "workspace:*",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

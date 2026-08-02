@@ -36,6 +36,7 @@
     "@knowget/diagnostics": "workspace:*",
     "@knowget/documents": "workspace:*",
     "@knowget/enterprise-identity": "workspace:*",
+    "@knowget/event-mesh": "workspace:*",
     "@knowget/events": "workspace:*",
     "@knowget/exceptions": "workspace:*",
     "@knowget/executive-intelligence": "workspace:*",
