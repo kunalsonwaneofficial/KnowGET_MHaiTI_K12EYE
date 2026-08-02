@@ -29,6 +29,22 @@
     },
     "clean": {
       "cache": false
+    },
+    "@knowget/database#db:generate": {
+      "cache": false,
+      "outputs": []
+    },
+    "@knowget/database#build": {
+      "dependsOn": ["^build", "@knowget/database#db:generate"],
+      "outputs": ["dist/**"]
+    },
+    "@knowget/database#typecheck": {
+      "dependsOn": ["^build", "@knowget/database#db:generate"],
+      "outputs": []
+    },
+    "@knowget/database#test": {
+      "dependsOn": ["^build", "@knowget/database#db:generate"],
+      "outputs": []
     }
   }
 }
